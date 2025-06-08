@@ -44,7 +44,7 @@ const useSound = (src) => {
 };
 
 // Initialize socket.io client with reconnection settings
-const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000', {
+const socket = io('https://thunderfleet-backend.onrender.com', {
   reconnectionAttempts: 5, // Attempt to reconnect 5 times if connection fails
   reconnectionDelay: 1000, // Wait 1 second between reconnection attempts
 });
@@ -69,7 +69,7 @@ const mulberry32 = (a) => {
 };
 
 const App = () => {
-  console.log('App component rendered at 08:37 PM IST on June 07, 2025');
+  console.log('App component rendered at 12:14 PM IST on June 08, 2025');
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('join'); // Current game state: join, waiting, placing, playing, finished
@@ -101,6 +101,7 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME); // Time remaining for ship placement
   const [timerActive, setTimerActive] = useState(false); // Whether the placement timer is active
   const [lightningInvoice, setLightningInvoice] = useState(null); // Lightning invoice for payment
+  const [hostedInvoiceUrl, setHostedInvoiceUrl] = useState(null); // Hosted invoice URL for payment
   const [showQR, setShowQR] = useState(false); // Whether to show the QR code for payment
   const [placementSaved, setPlacementSaved] = useState(false); // Whether ship placement has been saved
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false); // Whether waiting for payment confirmation
@@ -372,6 +373,7 @@ const App = () => {
       setMessage('Payment timed out after 5 minutes. Please try again.');
       setGameState('join');
       setLightningInvoice(null);
+      setHostedInvoiceUrl(null);
       setShowQR(false);
       socket.emit('cancelGame', { gameId, playerId });
       console.log('Emitted cancelGame due to payment timeout');
@@ -421,12 +423,22 @@ const App = () => {
         console.log('[Frontend] Socket connection error:', error.message);
         setIsSocketConnected(false);
         setMessage(`Failed to connect to server: ${error.message}`);
+        setIsWaitingForPayment(false);
+        setGameState('join');
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
       },
       disconnect: () => {
         clearTimeout(timeout);
         console.log('[Frontend] Disconnected from server');
         setIsSocketConnected(false);
         setMessage('Disconnected from server. Please refresh the page.');
+        setIsWaitingForPayment(false);
+        setGameState('join');
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
       },
       joined: ({ gameId, playerId }) => {
         console.log(`Joined game ${gameId} as player ${playerId}`);
@@ -436,17 +448,22 @@ const App = () => {
         setMessage('Processing payment...');
       },
       paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
-        console.log('Received payment request:', lightningInvoice || hostedInvoiceUrl);
-        setLightningInvoice(lightningInvoice || hostedInvoiceUrl);
+        console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
+        setLightningInvoice(lightningInvoice);
+        setHostedInvoiceUrl(hostedInvoiceUrl);
         setShowQR(true);
         setIsWaitingForPayment(true);
         setPaymentTimer(PAYMENT_TIMEOUT);
-        setMessage(`Scan to pay ${betAmount} sats`);
+        setMessage(`Scan to pay ${betAmount} SATS`);
+        window.open(hostedInvoiceUrl, '_blank'); // Open payment URL in a new tab
       },
       paymentVerified: () => {
         console.log('Payment verified successfully');
         setIsWaitingForPayment(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
         setMessage('Payment verified! Estimated wait time: 10-25 seconds');
       },
       error: ({ message }) => {
@@ -456,6 +473,7 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setGameState('join');
         setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
         setShowQR(false);
       },
       matchmakingTimer: ({ message }) => {
@@ -562,7 +580,6 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        // No confetti since bot always wins
         playWinSound(); // Play sound for game end (loss sound)
       },
       transaction: ({ message }) => {
@@ -629,6 +646,7 @@ const App = () => {
     setGameState('join');
     setMessage('Game canceled.');
     setLightningInvoice(null);
+    setHostedInvoiceUrl(null);
     setShowQR(false);
     setIsWaitingForPayment(false);
     setPaymentTimer(PAYMENT_TIMEOUT);
@@ -957,9 +975,9 @@ const App = () => {
   // Component to render the payment modal
   const PaymentModal = () => (
     <div className="payment-modal">
-      <h3>⚡ Pay {betAmount} sats to join ⚡</h3>
+      <h3>⚡ Pay {betAmount} SATS to join ⚡</h3>
       <p className="winnings-info">
-        Win {payoutAmount} sats!
+        Win {payoutAmount} SATS!
       </p>
       {showQR && lightningInvoice && (
         <div className="qr-container">
@@ -971,7 +989,7 @@ const App = () => {
           {showQR ? 'Hide QR Code' : 'Show QR Code'}
         </button>
         <button
-          onClick={() => navigator.clipboard.writeText(lightningInvoice)}
+          onClick={() => navigator.clipboard.writeText(lightningInvoice || hostedInvoiceUrl)}
           className="copy-button"
         >
           Copy Invoice
@@ -1118,12 +1136,12 @@ const App = () => {
               <option value="" disabled>Select a bet</option>
               {BET_OPTIONS.map(option => (
                 <option key={option.amount} value={option.amount}>
-                  Bet: {option.amount} SATs
+                  Bet: {option.amount} SATS
                 </option>
               ))}
             </select>
           </div>
-          {betAmount && <p className="winnings-info">Win: {payoutAmount} SATs</p>}
+          {betAmount && <p className="winnings-info">Win: {payoutAmount} SATS</p>}
 
           <input
             type="text"
@@ -1141,7 +1159,7 @@ const App = () => {
             className="join-button"
             disabled={!isSocketConnected || !betAmount || !lightningAddress}
           >
-            Join Game (Pay ${betAmount || 'Select a bet'} SATS)
+            Join Game (Pay {betAmount || 'Select a bet'} SATS)
           </button>
         </div>
       )}
@@ -1150,7 +1168,7 @@ const App = () => {
         <div className="waiting">
           <div className="loading-spinner"></div>
           <p className="waiting-text">{message}</p>
-          {lightningInvoice && <PaymentModal />}
+          {(lightningInvoice || hostedInvoiceUrl) && <PaymentModal />}
         </div>
       )}
 
