@@ -44,7 +44,9 @@ const useSound = (src) => {
 };
 
 // Initialize socket.io client with reconnection settings
+// Edit 1: Force polling to avoid WebSocket issues and 400 errors
 const socket = io('https://thunderfleet-backend.onrender.com', {
+  transports: ['polling'], // Changed to polling only to avoid WebSocket issues
   reconnectionAttempts: 5, // Attempt to reconnect 5 times if connection fails
   reconnectionDelay: 1000, // Wait 1 second between reconnection attempts
 });
@@ -69,7 +71,8 @@ const mulberry32 = (a) => {
 };
 
 const App = () => {
-  console.log('App component rendered at 12:14 PM IST on June 08, 2025');
+  // Edit 2: Fix hardcoded timestamp to use dynamic date
+  console.log('App component rendered at', new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('join'); // Current game state: join, waiting, placing, playing, finished
@@ -114,6 +117,7 @@ const App = () => {
   const paymentTimerRef = useRef(null); // Reference for payment timer
   const seededRandom = useRef(null); // Reference for seeded random number generator
   const gridRef = useRef(null); // Reference for the player's grid DOM element
+  const paymentRequestTimeoutRef = useRef(null); // Edit 3: Add reference for payment request timeout
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3');
@@ -418,9 +422,10 @@ const App = () => {
         setIsSocketConnected(true);
         setMessage('');
       },
+      // Edit 4: Enhance connect_error and disconnect handlers for better debugging
       connect_error: (error) => {
         clearTimeout(timeout);
-        console.log('[Frontend] Socket connection error:', error.message);
+        console.error('[Frontend] Socket connection error:', error.message);
         setIsSocketConnected(false);
         setMessage(`Failed to connect to server: ${error.message}`);
         setIsWaitingForPayment(false);
@@ -429,9 +434,9 @@ const App = () => {
         setHostedInvoiceUrl(null);
         setShowQR(false);
       },
-      disconnect: () => {
+      disconnect: (reason) => {
         clearTimeout(timeout);
-        console.log('[Frontend] Disconnected from server');
+        console.log('[Frontend] Disconnected from server, reason:', reason);
         setIsSocketConnected(false);
         setMessage('Disconnected from server. Please refresh the page.');
         setIsWaitingForPayment(false);
@@ -448,6 +453,11 @@ const App = () => {
         setMessage('Processing payment...');
       },
       paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
+        // Edit 5: Clear payment request timeout when paymentRequest is received
+        if (paymentRequestTimeoutRef.current) {
+          clearTimeout(paymentRequestTimeoutRef.current);
+          console.log('Cleared payment request timeout');
+        }
         console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
         setLightningInvoice(lightningInvoice);
         setHostedInvoiceUrl(hostedInvoiceUrl);
@@ -466,8 +476,13 @@ const App = () => {
         setShowQR(false);
         setMessage('Payment verified! Estimated wait time: 10-25 seconds');
       },
+      // Edit 6: Enhance error handler to clear payment request timeout
       error: ({ message }) => {
-        console.log('Received error from server:', message);
+        if (paymentRequestTimeoutRef.current) {
+          clearTimeout(paymentRequestTimeoutRef.current);
+          console.log('Cleared payment request timeout due to error');
+        }
+        console.error('Received error from server:', message);
         setMessage(`Error: ${message}`);
         setIsWaitingForPayment(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
@@ -633,15 +648,34 @@ const App = () => {
       return;
     }
 
+    // Edit 7: Add timeout for payment request to prevent hanging
     socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) });
     setGameState('waiting');
     setMessage('Joining game...');
     console.log('Emitted joinGame event to server');
+
+    // Set a 30-second timeout for paymentRequest
+    paymentRequestTimeoutRef.current = setTimeout(() => {
+      console.log('Payment request timed out after 30 seconds');
+      setMessage('Payment request timed out. Please try again or check the backend logs.');
+      setIsWaitingForPayment(false);
+      setGameState('join');
+      setLightningInvoice(null);
+      setHostedInvoiceUrl(null);
+      setShowQR(false);
+      socket.emit('cancelGame', { gameId, playerId });
+      console.log('Emitted cancelGame due to payment request timeout');
+    }, 30000); // 30 seconds timeout
   };
 
   // Function to cancel the game during payment phase
   const handleCancelGame = () => {
     console.log('Cancelling game:', { gameId, playerId });
+    // Edit 8: Clear payment request timeout when canceling
+    if (paymentRequestTimeoutRef.current) {
+      clearTimeout(paymentRequestTimeoutRef.current);
+      console.log('Cleared payment request timeout on cancel');
+    }
     socket.emit('cancelGame', { gameId, playerId });
     setGameState('join');
     setMessage('Game canceled.');
