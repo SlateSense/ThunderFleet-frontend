@@ -15,12 +15,16 @@ import submarineVertical from './assets/ships/vertical/submarine.png';
 import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
+// Placeholder logo URL (to be replaced by the user)
+const LOGO_URL = 'https://via.placeholder.com/150?text=Thunderfleet+Logo';
+
 // Game constants defining the grid size and timing constraints
 const GRID_COLS = 9; // Number of columns in the game grid
 const GRID_ROWS = 7; // Number of rows in the game grid
 const GRID_SIZE = GRID_COLS * GRID_ROWS; // Total number of cells in the grid
 const PLACEMENT_TIME = 30; // Time in seconds for ship placement phase
 const PAYMENT_TIMEOUT = 300; // Payment verification timeout in seconds (5 minutes)
+const CONFETTI_COUNT = 50; // Number of confetti pieces (reduced for performance)
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
@@ -32,7 +36,7 @@ const BET_OPTIONS = [
 ];
 
 // Sound effects hook to play audio files for game events
-const useSound = (src) => {
+const useSound = (src, isSoundEnabled) => {
   const [audio] = useState(() => {
     const audio = new Audio(src);
     audio.addEventListener('loadedmetadata', () => {
@@ -40,13 +44,15 @@ const useSound = (src) => {
     });
     return audio;
   });
-  return () => audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
+  return () => {
+    if (isSoundEnabled) {
+      audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
+    }
+  };
 };
 
 // Initialize socket.io client with reconnection settings
-// Edit 1: Force polling to avoid WebSocket issues and 400 errors
 const socket = io('https://thunderfleet-backend.onrender.com', {
-  transports: ['polling'], // Changed to polling only to avoid WebSocket issues
   reconnectionAttempts: 5, // Attempt to reconnect 5 times if connection fails
   reconnectionDelay: 1000, // Wait 1 second between reconnection attempts
 });
@@ -71,11 +77,10 @@ const mulberry32 = (a) => {
 };
 
 const App = () => {
-  // Edit 2: Fix hardcoded timestamp to use dynamic date
-  console.log('App component rendered at', new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  console.log('App component rendered at 01:28 PM IST on June 11, 2025');
 
   // State variables for managing game state and UI
-  const [gameState, setGameState] = useState('join'); // Current game state: join, waiting, placing, playing, finished
+  const [gameState, setGameState] = useState('splash'); // Current game state: splash, join, waiting, placing, playing, finished
   const [gameId, setGameId] = useState(null); // Unique identifier for the game
   const [playerId, setPlayerId] = useState(null); // Unique identifier for the player
   const [lightningAddress, setLightningAddress] = useState(''); // User's Lightning address for payments
@@ -111,20 +116,44 @@ const App = () => {
   const [isOpponentThinking, setIsOpponentThinking] = useState(false); // Whether the opponent (bot) is "thinking"
   const [paymentTimer, setPaymentTimer] = useState(PAYMENT_TIMEOUT); // Time remaining for payment confirmation
   const [isSocketConnected, setIsSocketConnected] = useState(false); // Whether the socket is connected to the server
+  const [showTermsModal, setShowTermsModal] = useState(false); // Whether to show the terms modal
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false); // Whether to show the privacy modal
+  const [showHowToPlayModal, setShowHowToPlayModal] = useState(false); // Whether to show the how-to-play modal
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true); // Whether sound effects are enabled
+  const [payButtonLoading, setPayButtonLoading] = useState(false); // Whether the pay button is in loading state
+  const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 }); // Game statistics
+  const [showConfetti, setShowConfetti] = useState(false); // Whether to show confetti animation
+  const [paymentLogs, setPaymentLogs] = useState([]); // Recent payment logs
+  const [showPaymentLogs, setShowPaymentLogs] = useState(false); // Whether to show payment logs modal
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null); // Reference for placement timer
   const paymentTimerRef = useRef(null); // Reference for payment timer
   const seededRandom = useRef(null); // Reference for seeded random number generator
   const gridRef = useRef(null); // Reference for the player's grid DOM element
-  const paymentRequestTimeoutRef = useRef(null); // Edit 3: Add reference for payment request timeout
+  const reconnectAttemptsRef = useRef(0); // Track reconnection attempts
 
   // Sound effects for various game events
-  const playHitSound = useSound('/sounds/explosion.mp3');
-  const playMissSound = useSound('/sounds/splash.mp3');
-  const playWinSound = useSound('/sounds/victory.mp3');
-  const playPlaceSound = useSound('/sounds/place.mp3');
-  const playTimerSound = useSound('/sounds/timer.mp3');
+  const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
+  const playMissSound = useSound('/sounds/splash.mp3', isSoundEnabled);
+  const playWinSound = useSound('/sounds/victory.mp3', isSoundEnabled);
+  const playLoseSound = useSound('/sounds/lose.mp3', isSoundEnabled);
+  const playPlaceSound = useSound('/sounds/place.mp3', isSoundEnabled);
+  const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
+
+  // Function to fetch payment logs from the server
+  const fetchPaymentLogs = useCallback(async () => {
+    try {
+      const response = await fetch('https://thunderfleet-backend.onrender.com/logs');
+      const text = await response.text();
+      const logs = text.split('\n').filter(line => line.trim()).slice(-5); // Get last 5 logs
+      setPaymentLogs(logs);
+      console.log('Fetched payment logs:', logs);
+    } catch (err) {
+      console.error('Error fetching payment logs:', err.message);
+      setPaymentLogs(['Error fetching payment logs']);
+    }
+  }, []);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
@@ -374,6 +403,7 @@ const App = () => {
     } else if (isWaitingForPayment && paymentTimer === 0) {
       console.log('Payment timed out after 5 minutes');
       setIsWaitingForPayment(false);
+      setPayButtonLoading(false);
       setMessage('Payment timed out after 5 minutes. Please try again.');
       setGameState('join');
       setLightningInvoice(null);
@@ -404,7 +434,14 @@ const App = () => {
     }
   }, [gameState]);
 
-  // Effect to set up socket event listeners with connection timeout
+  // Effect to fetch payment logs when entering the join state
+  useEffect(() => {
+    if (gameState === 'join') {
+      fetchPaymentLogs();
+    }
+  }, [gameState, fetchPaymentLogs]);
+
+  // Effect to set up socket event listeners with connection timeout and retry mechanism
   useEffect(() => {
     console.log('Setting up socket listeners');
     
@@ -418,28 +455,30 @@ const App = () => {
     const handlers = {
       connect: () => {
         clearTimeout(timeout);
+        reconnectAttemptsRef.current = 0;
         console.log('[Frontend] Connected:', socket.id);
         setIsSocketConnected(true);
         setMessage('');
       },
-      // Edit 4: Enhance connect_error and disconnect handlers for better debugging
       connect_error: (error) => {
         clearTimeout(timeout);
-        console.error('[Frontend] Socket connection error:', error.message);
+        console.log('[Frontend] Socket connection error:', error.message);
         setIsSocketConnected(false);
         setMessage(`Failed to connect to server: ${error.message}`);
         setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
         setGameState('join');
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setShowQR(false);
       },
-      disconnect: (reason) => {
+      disconnect: () => {
         clearTimeout(timeout);
-        console.log('[Frontend] Disconnected from server, reason:', reason);
+        console.log('[Frontend] Disconnected from server');
         setIsSocketConnected(false);
-        setMessage('Disconnected from server. Please refresh the page.');
+        setMessage('Disconnected from server. Please try again.');
         setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
         setGameState('join');
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
@@ -453,38 +492,31 @@ const App = () => {
         setMessage('Processing payment...');
       },
       paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
-        // Edit 5: Clear payment request timeout when paymentRequest is received
-        if (paymentRequestTimeoutRef.current) {
-          clearTimeout(paymentRequestTimeoutRef.current);
-          console.log('Cleared payment request timeout');
-        }
         console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
         setLightningInvoice(lightningInvoice);
         setHostedInvoiceUrl(hostedInvoiceUrl);
         setShowQR(true);
         setIsWaitingForPayment(true);
+        setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
         setMessage(`Scan to pay ${betAmount} SATS`);
-        window.open(hostedInvoiceUrl, '_blank'); // Open payment URL in a new tab
       },
       paymentVerified: () => {
         console.log('Payment verified successfully');
         setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setShowQR(false);
         setMessage('Payment verified! Estimated wait time: 10-25 seconds');
+        fetchPaymentLogs(); // Refresh logs after payment
       },
-      // Edit 6: Enhance error handler to clear payment request timeout
       error: ({ message }) => {
-        if (paymentRequestTimeoutRef.current) {
-          clearTimeout(paymentRequestTimeoutRef.current);
-          console.log('Cleared payment request timeout due to error');
-        }
-        console.error('Received error from server:', message);
+        console.log('Received error from server:', message);
         setMessage(`Error: ${message}`);
         setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
         setGameState('join');
         setLightningInvoice(null);
@@ -515,6 +547,7 @@ const App = () => {
         );
         setMyBoard(Array(GRID_SIZE).fill('water'));
         setShipCount(0);
+        setGameStats({ shotsFired: 0, hits: 0, misses: 0 }); // Reset stats
       },
       placementSaved: () => {
         console.log('Placement saved on server');
@@ -565,6 +598,12 @@ const App = () => {
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
         hit ? playHitSound() : playMissSound();
+        setGameStats(prev => ({
+          ...prev,
+          shotsFired: player === socket.id ? prev.shotsFired + 1 : prev.shotsFired,
+          hits: player === socket.id && hit ? prev.hits + 1 : prev.hits,
+          misses: player === socket.id && !hit ? prev.misses + 1 : prev.misses,
+        }));
         if (player === socket.id) {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000); // Reset animation after 1 second
@@ -595,7 +634,13 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playWinSound(); // Play sound for game end (loss sound)
+        fetchPaymentLogs(); // Refresh logs after game end
+        if (message.includes('You won')) {
+          setShowConfetti(true);
+          playWinSound();
+        } else {
+          playLoseSound();
+        }
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -616,7 +661,19 @@ const App = () => {
       });
       socket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, myBoard, betAmount]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, myBoard, betAmount, fetchPaymentLogs]);
+
+  // Function to handle reconnection attempts
+  const handleReconnect = () => {
+    if (reconnectAttemptsRef.current >= 3) {
+      setMessage('Max reconnection attempts reached. Please refresh the page.');
+      return;
+    }
+    reconnectAttemptsRef.current += 1;
+    console.log(`Reconnection attempt ${reconnectAttemptsRef.current}`);
+    socket.connect();
+    setMessage('Attempting to reconnect...');
+  };
 
   // Function to select a bet amount
   const selectBet = (bet, payout, fee) => {
@@ -648,34 +705,26 @@ const App = () => {
       return;
     }
 
-    // Edit 7: Add timeout for payment request to prevent hanging
     socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) });
     setGameState('waiting');
     setMessage('Joining game...');
     console.log('Emitted joinGame event to server');
+  };
 
-    // Set a 30-second timeout for paymentRequest
-    paymentRequestTimeoutRef.current = setTimeout(() => {
-      console.log('Payment request timed out after 30 seconds');
-      setMessage('Payment request timed out. Please try again or check the backend logs.');
-      setIsWaitingForPayment(false);
-      setGameState('join');
-      setLightningInvoice(null);
-      setHostedInvoiceUrl(null);
-      setShowQR(false);
-      socket.emit('cancelGame', { gameId, playerId });
-      console.log('Emitted cancelGame due to payment request timeout');
-    }, 30000); // 30 seconds timeout
+  // Function to handle payment button click
+  const handlePay = () => {
+    if (hostedInvoiceUrl) {
+      setPayButtonLoading(true);
+      console.log('Opening hosted invoice URL:', hostedInvoiceUrl);
+      window.open(hostedInvoiceUrl, '_blank');
+    } else {
+      setMessage('No payment URL available.');
+    }
   };
 
   // Function to cancel the game during payment phase
   const handleCancelGame = () => {
     console.log('Cancelling game:', { gameId, playerId });
-    // Edit 8: Clear payment request timeout when canceling
-    if (paymentRequestTimeoutRef.current) {
-      clearTimeout(paymentRequestTimeoutRef.current);
-      console.log('Cleared payment request timeout on cancel');
-    }
     socket.emit('cancelGame', { gameId, playerId });
     setGameState('join');
     setMessage('Game canceled.');
@@ -683,6 +732,7 @@ const App = () => {
     setHostedInvoiceUrl(null);
     setShowQR(false);
     setIsWaitingForPayment(false);
+    setPayButtonLoading(false);
     setPaymentTimer(PAYMENT_TIMEOUT);
   };
 
@@ -1006,6 +1056,222 @@ const App = () => {
     );
   };
 
+  // Component to render the splash screen
+  const SplashScreen = () => (
+    <div className="splash-screen" style={{ textAlign: 'center', padding: '40px' }}>
+      <img src={LOGO_URL} alt="Thunderfleet Logo" style={{ width: '150px', marginBottom: '20px' }} />
+      <h1 className="game-title">⚡ Lightning Sea Battle ⚡</h1>
+      <button
+        onClick={() => setGameState('join')}
+        onTouchStart={() => setGameState('join')}
+        className="join-button"
+      >
+        Start Game
+      </button>
+      <div style={{ marginTop: '20px' }}>
+        <button
+          onClick={() => setShowHowToPlayModal(true)}
+          onTouchStart={() => setShowHowToPlayModal(true)}
+          className="join-button"
+          style={{ background: '#3498db', marginRight: '10px' }}
+        >
+          How to Play
+        </button>
+        <button
+          onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+          onTouchStart={() => setIsSoundEnabled(!isSoundEnabled)}
+          className="join-button"
+          style={{ background: isSoundEnabled ? '#e74c3c' : '#2ecc71' }}
+        >
+          {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
+        </button>
+      </div>
+    </div>
+  );
+
+  // Component to render the terms and conditions modal
+  const TermsModal = () => (
+    <div className="modal" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}>
+      <div className="modal-content" style={{
+        background: '#fff',
+        color: '#333',
+        padding: '20px',
+        borderRadius: '10px',
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflowY: 'auto',
+      }}>
+        <h2>Terms and Conditions</h2>
+        <p>
+          Welcome to Lightning Sea Battle! By using this application, you agree to the following terms:
+        </p>
+        <ul>
+          <li>All payments are made in Bitcoin SATS via the Lightning Network.</li>
+          <li>Winnings are subject to platform fees as displayed during bet selection.</li>
+          <li>We are not responsible for any losses due to network issues or payment failures.</li>
+          <li>Game results are final and determined by the server.</li>
+          <li>Users must be 18+ to participate.</li>
+        </ul>
+        <p>Please contact support@thunderfleet.com for any inquiries.</p>
+        <button
+          onClick={() => setShowTermsModal(false)}
+          onTouchStart={() => setShowTermsModal(false)}
+          className="join-button"
+          style={{ background: '#e74c3c' }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
+  // Component to render the privacy policy modal
+  const PrivacyModal = () => (
+    <div className="modal" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}>
+      <div className="modal-content" style={{
+        background: '#fff',
+        color: '#333',
+        padding: '20px',
+        borderRadius: '10px',
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflowY: 'auto',
+      }}>
+        <h2>Privacy Policy</h2>
+        <p>
+          At Lightning Sea Battle, we value your privacy:
+        </p>
+        <ul>
+          <li>We collect your Lightning address solely for payment processing.</li>
+          <li>Game data (e.g., board state, game results) is stored temporarily to facilitate gameplay.</li>
+          <li>We do not share your data with third parties, except as required for payment processing.</li>
+          <li>Payment logs are stored securely and used for transparency and dispute resolution.</li>
+        </ul>
+        <p>Contact support@thunderfleet.com for privacy-related concerns.</p>
+        <button
+          onClick={() => setShowPrivacyModal(false)}
+          onTouchStart={() => setShowPrivacyModal(false)}
+          className="join-button"
+          style={{ background: '#e74c3c' }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
+  // Component to render the how-to-play modal
+  const HowToPlayModal = () => (
+    <div className="modal" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}>
+      <div className="modal-content" style={{
+        background: '#fff',
+        color: '#333',
+        padding: '20px',
+        borderRadius: '10px',
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflowY: 'auto',
+      }}>
+        <h2>How to Play Lightning Sea Battle</h2>
+        <p>Lightning Sea Battle is a Battleship-style game with Bitcoin SATS betting:</p>
+        <ol>
+          <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount.</li>
+          <li><strong>Pay to Play:</strong> Use the QR code or payment link to pay the entry fee via Lightning Network.</li>
+          <li><strong>Place Your Ships:</strong> Drag and drop your ships on the grid. Tap to rotate, or use the Randomize buttons.</li>
+          <li><strong>Battle:</strong> Take turns firing at the enemy grid. Hit all enemy ships to win!</li>
+          <li><strong>Win SATS:</strong> If you win, your payout (minus platform fee) will be sent to your Lightning address.</li>
+        </ol>
+        <p>Good luck, Captain! ⚡</p>
+        <button
+          onClick={() => setShowHowToPlayModal(false)}
+          onTouchStart={() => setShowHowToPlayModal(false)}
+          className="join-button"
+          style={{ background: '#e74c3c' }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
+  // Component to render the payment logs modal
+  const PaymentLogsModal = () => (
+    <div className="modal" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}>
+      <div className="modal-content" style={{
+        background: '#fff',
+        color: '#333',
+        padding: '20px',
+        borderRadius: '10px',
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflowY: 'auto',
+      }}>
+        <h2>Recent Payment Logs</h2>
+        {paymentLogs.length > 0 ? (
+          <ul style={{ listStyleType: 'none', padding: 0 }}>
+            {paymentLogs.map((log, index) => (
+              <li key={index} style={{ margin: '10px 0', fontSize: '0.9rem' }}>{log}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No recent payment logs available.</p>
+        )}
+        <button
+          onClick={() => setShowPaymentLogs(false)}
+          onTouchStart={() => setShowPaymentLogs(false)}
+          className="join-button"
+          style={{ background: '#e74c3c' }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
   // Component to render the payment modal
   const PaymentModal = () => (
     <div className="payment-modal">
@@ -1027,6 +1293,13 @@ const App = () => {
           className="copy-button"
         >
           Copy Invoice
+        </button>
+        <button
+          onClick={handlePay}
+          className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
+          disabled={payButtonLoading}
+        >
+          Pay Now
         </button>
         <button onClick={handleCancelGame} className="cancel-button">
           Cancel
@@ -1052,6 +1325,39 @@ const App = () => {
           <div className="loading-spinner"></div>
         </div>
       )}
+    </div>
+  );
+
+  // Component to render confetti animation
+  const Confetti = () => {
+    const confettiPieces = Array.from({ length: CONFETTI_COUNT }).map((_, i) => {
+      const colors = ['#ff4500', '#2ecc71', '#3498db', '#f39c12', '#e74c3c'];
+      const left = Math.random() * 100;
+      const animationDelay = Math.random() * 5;
+      return (
+        <div
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: `${left}%`,
+            backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+            animationDelay: `${animationDelay}s`,
+          }}
+        />
+      );
+    });
+
+    return <div className="confetti">{confettiPieces}</div>;
+  };
+
+  // Component to render game statistics
+  const GameStats = () => (
+    <div className="game-stats" style={{ margin: '20px 0', textAlign: 'center' }}>
+      <h3>Game Statistics</h3>
+      <p>Shots Fired: {gameStats.shotsFired}</p>
+      <p>Hits: {gameStats.hits}</p>
+      <p>Misses: {gameStats.misses}</p>
+      <p>Accuracy: {gameStats.shotsFired > 0 ? ((gameStats.hits / gameStats.shotsFired) * 100).toFixed(2) : 0}%</p>
     </div>
   );
 
@@ -1145,158 +1451,232 @@ const App = () => {
   // Render the main application UI
   return (
     <div className="App">
-      <h1 className="game-title">⚡ Lightning Sea Battle ⚡</h1>
-      {message && <p className={`message ${message.includes('Failed to connect') || message.includes('Disconnected') ? 'error' : ''}`}>{message}</p>}
-      {gameState === 'playing' && isOpponentThinking && (
-        <p className="thinking-message">Opponent is thinking...</p>
-      )}
-      {transactionMessage && <p className="transaction">{transactionMessage}</p>}
+      {showConfetti && <Confetti />}
+      {showTermsModal && <TermsModal />}
+      {showPrivacyModal && <PrivacyModal />}
+      {showHowToPlayModal && <HowToPlayModal />}
+      {showPaymentLogs && <PaymentLogsModal />}
 
-      {gameState === 'join' && (
-        <div className="join">
-          <h2>Select Your Bet</h2>
-          <div className="bet-selection">
-            <label htmlFor="bet-select">Select Your Bet:</label>
-            <select
-              id="bet-select"
-              value={betAmount || ""}
-              onChange={(e) => {
-                const selectedOption = BET_OPTIONS.find(option => option.amount === Number(e.target.value));
-                if (selectedOption) {
-                  selectBet(selectedOption.amount, selectedOption.winnings, selectedOption.fee);
-                }
-              }}
+      {gameState === 'splash' && <SplashScreen />}
+
+      {gameState !== 'splash' && (
+        <>
+          <h1 className="game-title">⚡ Lightning Sea Battle ⚡</h1>
+          <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+            <button
+              onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+              onTouchStart={() => setIsSoundEnabled(!isSoundEnabled)}
+              className="join-button"
+              style={{ background: isSoundEnabled ? '#e74c3c' : '#2ecc71' }}
             >
-              <option value="" disabled>Select a bet</option>
-              {BET_OPTIONS.map(option => (
-                <option key={option.amount} value={option.amount}>
-                  Bet: {option.amount} SATS
-                </option>
-              ))}
-            </select>
+              {isSoundEnabled ? '🔇 Mute' : '🔊 Unmute'}
+            </button>
           </div>
-          {betAmount && <p className="winnings-info">Win: {payoutAmount} SATS</p>}
-
-          <input
-            type="text"
-            placeholder="Enter your Lightning address (e.g., player@your-wallet.com)"
-            value={lightningAddress}
-            onChange={(e) => {
-              console.log('Lightning address input changed:', e.target.value);
-              setLightningAddress(e.target.value);
-            }}
-            className="lightning-input"
-          />
-          <button
-            onClick={() => handleJoinGame()}
-            onTouchStart={() => handleJoinGame()}
-            className="join-button"
-            disabled={!isSocketConnected || !betAmount || !lightningAddress}
-          >
-            Join Game (Pay {betAmount || 'Select a bet'} SATS)
-          </button>
-        </div>
-      )}
-
-      {gameState === 'waiting' && (
-        <div className="waiting">
-          <div className="loading-spinner"></div>
-          <p className="waiting-text">{message}</p>
-          {(lightningInvoice || hostedInvoiceUrl) && <PaymentModal />}
-        </div>
-      )}
-
-      {(gameState === 'placing' || gameState === 'playing' || gameState === 'finished') && (
-        <div className="game-container">
-          <div className="board">
-            <h2 className="board-title">Your Fleet</h2>
-            <div onDragOver={handleGridDragOver} onDrop={handleGridDrop}>
-              {renderGrid(myBoard, false)}
+          {message && <p className={`message ${message.includes('Failed to connect') || message.includes('Disconnected') ? 'error' : ''}`}>{message}</p>}
+          {gameState === 'playing' && isOpponentThinking && (
+            <div className="waiting">
+              <div className="loading-spinner"></div>
+              <p className="waiting-text">Opponent is thinking...</p>
             </div>
-          </div>
-          {(gameState === 'playing' || gameState === 'finished') && (
-            <div className="board">
-              <h2 className="board-title">Enemy Waters</h2>
-              {renderGrid(enemyBoard, true)}
+          )}
+          {transactionMessage && <p className="transaction">{transactionMessage}</p>}
+
+          {gameState === 'join' && (
+            <div className="join">
+              <h2>Select Your Bet</h2>
+              <div className="bet-selection">
+                <label htmlFor="bet-select">Select Your Bet:</label>
+                <select
+                  id="bet-select"
+                  value={betAmount || ""}
+                  onChange={(e) => {
+                    const selectedOption = BET_OPTIONS.find(option => option.amount === Number(e.target.value));
+                    if (selectedOption) {
+                      selectBet(selectedOption.amount, selectedOption.winnings, selectedOption.fee);
+                    }
+                  }}
+                >
+                  <option value="" disabled>Select a bet</option>
+                  {BET_OPTIONS.map(option => (
+                    <option key={option.amount} value={option.amount}>
+                      Bet: {option.amount} SATS
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {betAmount && <p className="winnings-info">Win: {payoutAmount} SATS (Platform Fee: {platformFee} SATS)</p>}
+
+              <input
+                type="text"
+                placeholder="Enter your Lightning address (e.g., player@your-wallet.com)"
+                value={lightningAddress}
+                onChange={(e) => {
+                  console.log('Lightning address input changed:', e.target.value);
+                  setLightningAddress(e.target.value);
+                }}
+                className="lightning-input"
+              />
+              <button
+                onClick={() => handleJoinGame()}
+                onTouchStart={() => handleJoinGame()}
+                className="join-button"
+                disabled={!isSocketConnected || !betAmount || !lightningAddress}
+              >
+                Join Game (Pay {betAmount || 'Select a bet'} SATS)
+              </button>
+              {!isSocketConnected && (
+                <button
+                  onClick={handleReconnect}
+                  onTouchStart={handleReconnect}
+                  className="join-button"
+                  style={{ background: '#f39c12', marginTop: '10px' }}
+                >
+                  Reconnect
+                </button>
+              )}
+              <div style={{ marginTop: '20px' }}>
+                <button
+                  onClick={() => setShowHowToPlayModal(true)}
+                  onTouchStart={() => setShowHowToPlayModal(true)}
+                  className="join-button"
+                  style={{ background: '#3498db', marginRight: '10px' }}
+                >
+                  How to Play
+                </button>
+                <button
+                  onClick={() => setShowPaymentLogs(true)}
+                  onTouchStart={() => setShowPaymentLogs(true)}
+                  className="join-button"
+                  style={{ background: '#2ecc71' }}
+                >
+                  View Payment Logs
+                </button>
+              </div>
+              <div style={{ marginTop: '20px', fontSize: '0.9rem' }}>
+                <span
+                  onClick={() => setShowTermsModal(true)}
+                  onTouchStart={() => setShowTermsModal(true)}
+                  style={{ cursor: 'pointer', color: '#f39c12', marginRight: '10px' }}
+                >
+                  Terms & Conditions
+                </span>
+                <span
+                  onClick={() => setShowPrivacyModal(true)}
+                  onTouchStart={() => setShowPrivacyModal(true)}
+                  style={{ cursor: 'pointer', color: '#f39c12' }}
+                >
+                  Privacy Policy
+                </span>
+              </div>
             </div>
           )}
 
-          {gameState === 'placing' && !isPlacementConfirmed && (
-            <div className="ships-controls">
-              <div className="timer-container">
-                <div className="timer-bar">
-                  <div
-                    className="timer-progress"
-                    style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="timer-text">
-                  Time left:{' '}
-                  <span className={timeLeft <= 10 ? 'time-warning' : ''}>{timeLeft}s</span>
-                </div>
-              </div>
-              <div className="ships">
-                <h2 className="ships-title">Ships ({shipCount}/5)</h2>
-                {renderShipList()}
-              </div>
-              <div className="placement-controls">
-                <button
-                  onClick={randomizeShips}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    randomizeShips();
-                  }}
-                  className="randomize-button"
-                >
-                  🎲 Randomize All
-                </button>
-                <button
-                  onClick={randomizeUnplacedShips}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    randomizeUnplacedShips();
-                  }}
-                  className="randomize-button"
-                >
-                  🎲 Randomize Unplaced
-                </button>
-                <button
-                  onClick={clearBoard}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    clearBoard();
-                  }}
-                  className="clear-button"
-                >
-                  🗑️ Clear
-                </button>
-                <button
-                  onClick={saveShipPlacement}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    saveShipPlacement();
-                  }}
-                  className={`save-button ${shipCount === 5 ? 'pulse' : ''}`}
-                  disabled={placementSaved}
-                >
-                  {placementSaved ? '✓ Placement Saved' : '💾 Save Placement'}
-                </button>
-              </div>
+          {gameState === 'waiting' && (
+            <div className="waiting">
+              <div className="loading-spinner"></div>
+              <p className="waiting-text">{message}</p>
+              {(lightningInvoice || hostedInvoiceUrl) && <PaymentModal />}
             </div>
           )}
-        </div>
-      )}
 
-      {gameState === 'finished' && (
-        <div className="game-end">
-          <button
-            onClick={() => window.location.reload()}
-            onTouchStart={() => window.location.reload()}
-            className="join-button"
-          >
-            ⚡ Play Again
-          </button>
-        </div>
+          {(gameState === 'placing' || gameState === 'playing' || gameState === 'finished') && (
+            <div className="game-container">
+              <div className="board">
+                <h2 className="board-title">Your Fleet</h2>
+                <div onDragOver={handleGridDragOver} onDrop={handleGridDrop}>
+                  {renderGrid(myBoard, false)}
+                </div>
+              </div>
+              {(gameState === 'playing' || gameState === 'finished') && (
+                <div className="board">
+                  <h2 className="board-title">Enemy Waters</h2>
+                  {renderGrid(enemyBoard, true)}
+                </div>
+              )}
+
+              {gameState === 'placing' && !isPlacementConfirmed && (
+                <div className="ships-controls">
+                  <div className="timer-container">
+                    <div className="timer-bar">
+                      <div
+                        className="timer-progress"
+                        style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
+                      ></div>
+                    </div>
+                    <div className="timer-text">
+                      Time left:{' '}
+                      <span className={timeLeft <= 10 ? 'time-warning' : ''}>{timeLeft}s</span>
+                    </div>
+                  </div>
+                  <div className="ships">
+                    <h2 className="ships-title">Ships ({shipCount}/5)</h2>
+                    {renderShipList()}
+                  </div>
+                  <div className="placement-controls">
+                    <button
+                      onClick={randomizeShips}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        randomizeShips();
+                      }}
+                      className="randomize-button"
+                    >
+                      🎲 Randomize All
+                    </button>
+                    <button
+                      onClick={randomizeUnplacedShips}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        randomizeUnplacedShips();
+                      }}
+                      className="randomize-button"
+                    >
+                      🎲 Randomize Unplaced
+                    </button>
+                    <button
+                      onClick={clearBoard}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        clearBoard();
+                      }}
+                      className="clear-button"
+                    >
+                      🗑️ Clear
+                    </button>
+                    <button
+                      onClick={saveShipPlacement}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        saveShipPlacement();
+                      }}
+                      className={`save-button ${shipCount === 5 ? 'pulse' : ''}`}
+                      disabled={placementSaved}
+                    >
+                      {placementSaved ? '✓ Placement Saved' : '💾 Save Placement'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(gameState === 'playing' || gameState === 'finished') && <GameStats />}
+
+          {gameState === 'finished' && (
+            <div className="game-end">
+              {message.includes('You won') && (
+                <div className="win-message">Victory!</div>
+              )}
+              <button
+                onClick={() => window.location.reload()}
+                onTouchStart={() => window.location.reload()}
+                className="join-button"
+              >
+                ⚡ Play Again
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

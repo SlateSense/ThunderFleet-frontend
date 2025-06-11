@@ -35,6 +35,14 @@ body {
 .message.error {
   background: rgba(231, 76, 60, 0.8); /* Red background for errors */
   border-color: #e74c3c;
+  animation: shake 0.5s ease-in-out; /* Add shake animation for errors */
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
 }
 
 .transaction {
@@ -58,6 +66,7 @@ body {
   width: 10px;
   height: 10px;
   animation: fall 5s linear infinite;
+  will-change: transform, opacity; /* Optimize animation performance */
 }
 
 @keyframes fall {
@@ -100,6 +109,11 @@ body {
   color: #333;
 }
 
+.lightning-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style for accessibility */
+}
+
 .join-button {
   padding: 10px 20px;
   font-size: 1.2rem;
@@ -113,6 +127,11 @@ body {
 
 .join-button:hover {
   background: #c0392b;
+}
+
+.join-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
 .waiting {
@@ -133,6 +152,7 @@ body {
   border-top: 4px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  will-change: transform; /* Optimize animation */
 }
 
 @keyframes spin {
@@ -203,6 +223,7 @@ body {
   transform: translate(-50%, -50%);
   border-radius: 50%;
   animation: explode 0.5s ease-out forwards;
+  will-change: transform, opacity; /* Optimize animation */
 }
 
 .cannonball-effect.hit {
@@ -320,18 +341,28 @@ body {
 }
 
 .orientation-button {
-  padding: 5px 10px;
-  font-size: 0.9rem;
+  padding: 8px 15px; /* Standardize padding */
+  font-size: 1rem; /* Standardize font size */
   background: #3498db;
   border: none;
   border-radius: 5px;
   color: white;
   cursor: pointer;
+  transition: background 0.3s; /* Add transition */
+}
+
+.orientation-button:hover {
+  background: #2980b9; /* Add hover state */
 }
 
 .orientation-button:disabled {
   background: #95a5a6;
   cursor: not-allowed;
+}
+
+.orientation-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
 .placement-controls {
@@ -355,6 +386,11 @@ body {
   background: #27ae60;
 }
 
+.randomize-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+}
+
 .clear-button {
   padding: 10px 15px;
   font-size: 1rem;
@@ -367,6 +403,11 @@ body {
 
 .clear-button:hover {
   background: #c0392b;
+}
+
+.clear-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
 .save-button {
@@ -386,6 +427,11 @@ body {
 
 .save-button.pulse {
   animation: pulse 1s infinite;
+}
+
+.save-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
 @keyframes pulse {
@@ -443,6 +489,11 @@ body {
   background: #2980b9;
 }
 
+.qr-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+}
+
 .copy-button {
   background: #2ecc71;
   color: white;
@@ -450,6 +501,11 @@ body {
 
 .copy-button:hover {
   background: #27ae60;
+}
+
+.copy-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
 .invoice-code {
@@ -488,10 +544,36 @@ body {
   border-radius: 5px;
   color: white;
   cursor: pointer;
+  position: relative; /* For loading state */
 }
 
 .pay-button:hover {
   background: #e67e22;
+}
+
+.pay-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+}
+
+.pay-button.loading {
+  background: #e67e22;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.pay-button.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .bet-selection {
@@ -517,6 +599,11 @@ body {
 
 .bet-selection select:hover {
   background: rgba(255, 255, 255, 1);
+}
+
+.bet-selection select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
 .winnings-info {
