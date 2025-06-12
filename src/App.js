@@ -72,7 +72,7 @@ const useSound = (src, isSoundEnabled) => {
 };
 
 const App = () => {
-  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} on June ${new Date().getDate()}, 2025`);
+  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} on Thursday, June 12, 2025, 07:44 PM IST`);
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
@@ -123,6 +123,9 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // Added isLoading state for Join Game button
 
+  // Add a state for initial app loading
+  const [isAppLoaded, setIsAppLoaded] = useState(false);
+
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
   const paymentTimerRef = useRef(null);
@@ -143,6 +146,16 @@ const App = () => {
   useEffect(() => {
     console.log('Current gameState:', gameState);
   }, [gameState]);
+
+  // Simulate app loading (e.g., for assets, initial checks)
+  useEffect(() => {
+    console.log('App useEffect: Simulating app loading');
+    const timer = setTimeout(() => {
+      setIsAppLoaded(true);
+      console.log('App loaded, setting isAppLoaded to true');
+    }, 1000); // 1-second delay to ensure initial assets load
+    return () => clearTimeout(timer);
+  }, []);
 
   // Function to fetch payment logs from the server
   const fetchPaymentLogs = useCallback(async () => {
@@ -1098,30 +1111,109 @@ const App = () => {
   const SplashScreen = useMemo(() => {
     console.log('Rendering SplashScreen');
     return (
-      <div className="splash-screen" style={{ textAlign: 'center', padding: '40px' }}>
-        <img src={LOGO_URL} alt="Thunderfleet Logo" style={{ width: '150px', marginBottom: '20px' }} onError={() => console.error('Failed to load logo image')} />
-        <h1 className="game-title" style={{ color: '#ffffff !important' }}>⚡ Lightning Sea Battle ⚡</h1>
+      <div
+        className="splash-screen"
+        style={{
+          textAlign: 'center',
+          padding: '40px',
+          backgroundColor: '#0000ff !important', // Blue background for debugging
+          visibility: 'visible !important',
+          opacity: '1 !important',
+          minHeight: '100vh'
+        }}
+      >
+        <img
+          src={LOGO_URL}
+          alt="Thunderfleet Logo"
+          style={{
+            width: '150px',
+            marginBottom: '20px',
+            visibility: 'visible !important',
+            opacity: '1 !important'
+          }}
+          onError={() => console.error('Failed to load logo image')}
+        />
+        <h1
+          className="game-title"
+          style={{
+            color: '#ffffff !important',
+            visibility: 'visible !important',
+            opacity: '1 !important',
+            fontSize: '2rem',
+            marginBottom: '20px'
+          }}
+        >
+          ⚡ Lightning Sea Battle ⚡
+        </h1>
         <button
-          onClick={() => setGameState('join')}
-          onTouchStart={() => setGameState('join')}
+          onClick={() => {
+            console.log('Start Game button clicked');
+            setGameState('join');
+          }}
+          onTouchStart={() => {
+            console.log('Start Game button touched');
+            setGameState('join');
+          }}
           className="join-button"
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#3498db',
+            color: '#ffffff !important',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            margin: '10px',
+            visibility: 'visible !important',
+            opacity: '1 !important'
+          }}
         >
           Start Game
         </button>
         <div style={{ marginTop: '20px' }}>
           <button
-            onClick={() => setShowHowToPlayModal(true)}
-            onTouchStart={() => setShowHowToPlayModal(true)}
+            onClick={() => {
+              console.log('How to Play button clicked');
+              setShowHowToPlayModal(true);
+            }}
+            onTouchStart={() => {
+              console.log('How to Play button touched');
+              setShowHowToPlayModal(true);
+            }}
             className="join-button"
-            style={{ background: '#3498db', marginRight: '10px' }}
+            style={{
+              background: '#3498db',
+              marginRight: '10px',
+              padding: '10px 20px',
+              color: '#ffffff !important',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              visibility: 'visible !important',
+              opacity: '1 !important'
+            }}
           >
             How to Play
           </button>
           <button
-            onClick={() => setIsSoundEnabled(!isSoundEnabled)}
-            onTouchStart={() => setIsSoundEnabled(!isSoundEnabled)}
+            onClick={() => {
+              console.log('Sound toggle button clicked');
+              setIsSoundEnabled(!isSoundEnabled);
+            }}
+            onTouchStart={() => {
+              console.log('Sound toggle button touched');
+              setIsSoundEnabled(!isSoundEnabled);
+            }}
             className="join-button"
-            style={{ background: isSoundEnabled ? '#e74c3c' : '#2ecc71' }}
+            style={{
+              background: isSoundEnabled ? '#e74c3c' : '#2ecc71',
+              padding: '10px 20px',
+              color: '#ffffff !important',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              visibility: 'visible !important',
+              opacity: '1 !important'
+            }}
           >
             {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
           </button>
@@ -1535,18 +1627,76 @@ const App = () => {
     );
   }, [betAmount, selectBet]);
 
+  // Default static fallback UI to ensure something always renders
+  const DefaultFallbackUI = (
+    <div
+      style={{
+        color: '#ffffff !important',
+        backgroundColor: '#ff0000 !important', // Red background for debugging
+        textAlign: 'center',
+        padding: '20px',
+        fontSize: '18px',
+        minHeight: '100vh',
+        visibility: 'visible !important',
+        opacity: '1 !important'
+      }}
+    >
+      <p>Thunderfleet App - Initializing...</p>
+      <p>Current Time: 07:44 PM IST on Thursday, June 12, 2025</p>
+      <p>If you see this for more than a few seconds, please refresh the page.</p>
+      <button
+        onClick={() => window.location.reload()}
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#3498db',
+          color: '#ffffff !important',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer',
+          visibility: 'visible !important',
+          opacity: '1 !important'
+        }}
+      >
+        Refresh
+      </button>
+    </div>
+  );
+
   // Render the main application UI
-  console.log('Rendering App UI');
-  if (!socket) {
+  console.log('Rendering App UI with states - isAppLoaded:', isAppLoaded, 'isSocketConnected:', isSocketConnected, 'gameState:', gameState);
+
+  // Show loading UI while app initializes
+  if (!isAppLoaded) {
+    console.log('Rendering app loading UI');
     return (
-      <div style={{ color: '#ffffff !important', textAlign: 'center', padding: '20px' }}>
-        Connecting to server... Please wait.
+      <div
+        style={{
+          color: '#ffffff !important',
+          backgroundColor: '#ff0000 !important', // Red background for debugging
+          textAlign: 'center',
+          padding: '20px',
+          fontSize: '18px',
+          minHeight: '100vh',
+          visibility: 'visible !important',
+          opacity: '1 !important'
+        }}
+      >
+        <p>Loading Thunderfleet App... Please wait.</p>
+        <p>Current Time: 07:44 PM IST on Thursday, June 12, 2025</p>
       </div>
     );
   }
 
   return (
-    <div className="App">
+    <div
+      className="App"
+      style={{
+        backgroundColor: '#00ff00 !important', // Green background for debugging
+        minHeight: '100vh',
+        visibility: 'visible !important',
+        opacity: '1 !important'
+      }}
+    >
       {showConfetti && Confetti}
       {showTermsModal && TermsModal}
       {showPrivacyModal && PrivacyModal}
@@ -1557,13 +1707,40 @@ const App = () => {
 
       {gameState !== 'splash' && (
         <>
-          <h1 className="game-title" style={{ color: '#ffffff !important' }}>⚡ Lightning Sea Battle ⚡</h1>
+          <h1
+            className="game-title"
+            style={{
+              color: '#ffffff !important',
+              visibility: 'visible !important',
+              opacity: '1 !important',
+              fontSize: '2rem',
+              textAlign: 'center',
+              padding: '20px 0'
+            }}
+          >
+            ⚡ Lightning Sea Battle ⚡
+          </h1>
           <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
             <button
-              onClick={() => setIsSoundEnabled(!isSoundEnabled)}
-              onTouchStart={() => setIsSoundEnabled(!isSoundEnabled)}
+              onClick={() => {
+                console.log('Sound toggle button clicked');
+                setIsSoundEnabled(!isSoundEnabled);
+              }}
+              onTouchStart={() => {
+                console.log('Sound toggle button touched');
+                setIsSoundEnabled(!isSoundEnabled);
+              }}
               className="join-button"
-              style={{ background: isSoundEnabled ? '#e74c3c' : '#2ecc71' }}
+              style={{
+                background: isSoundEnabled ? '#e74c3c' : '#2ecc71',
+                padding: '10px 20px',
+                color: '#ffffff !important',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                visibility: 'visible !important',
+                opacity: '1 !important'
+              }}
             >
               {isSoundEnabled ? '🔇 Mute' : '🔊 Unmute'}
             </button>
@@ -1571,7 +1748,13 @@ const App = () => {
           {message && (
             <p
               className={`message ${message.includes('Failed to connect') || message.includes('Disconnected') ? 'error' : ''}`}
-              style={{ color: '#ffffff !important' }}
+              style={{
+                color: '#ffffff !important',
+                visibility: 'visible !important',
+                opacity: '1 !important',
+                textAlign: 'center',
+                margin: '10px 0'
+              }}
             >
               {message}
             </p>
@@ -1579,19 +1762,53 @@ const App = () => {
           {gameState === 'playing' && isOpponentThinking && (
             <div className="waiting">
               <div className="loading-spinner"></div>
-              <p className="waiting-text" style={{ color: '#ffffff !important' }}>Opponent is thinking...</p>
+              <p
+                className="waiting-text"
+                style={{
+                  color: '#ffffff !important',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                Opponent is thinking...
+              </p>
             </div>
           )}
           {transactionMessage && (
-            <p className="transaction" style={{ color: '#f39c12 !important' }}>{transactionMessage}</p>
+            <p
+              className="transaction"
+              style={{
+                color: '#f39c12 !important',
+                visibility: 'visible !important',
+                opacity: '1 !important',
+                textAlign: 'center'
+              }}
+            >
+              {transactionMessage}
+            </p>
           )}
 
           {gameState === 'join' && (
             <div className="join">
-              <h2 style={{ color: '#ffffff !important' }}>Select Your Bet</h2>
+              <h2
+                style={{
+                  color: '#ffffff !important',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                Select Your Bet
+              </h2>
               {betSelection}
               {betAmount && (
-                <p className="winnings-info" style={{ color: '#2ecc71 !important' }}>
+                <p
+                  className="winnings-info"
+                  style={{
+                    color: '#2ecc71 !important',
+                    visibility: 'visible !important',
+                    opacity: '1 !important'
+                  }}
+                >
                   Win: {payoutAmount} SATS (Platform Fee: {platformFee} SATS)
                 </p>
               )}
@@ -1605,189 +1822,405 @@ const App = () => {
                   setLightningAddress(e.target.value);
                 }}
                 className="lightning-input"
+                style={{
+                  visibility: 'visible !important',
+                  opacity: '1 !important',
+                  padding: '10px',
+                  margin: '10px',
+                  borderRadius: '5px',
+                  border: 'none'
+                }}
               />
               <button
                 onClick={() => handleJoinGame()}
                 onTouchStart={() => handleJoinGame()}
                 className="join-button"
                 disabled={!isSocketConnected || !betAmount || !lightningAddress || isLoading}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#3498db',
+                  color: '#ffffff !important',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  margin: '10px',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
               >
-                {isLoading ? 'Joining...' : `Join Game (Pay ${betAmount || 'Select a bet'} SATS)`}
+                Join Game {isLoading && <span className="loading-spinner"></span>}
               </button>
-              {!isSocketConnected && (
-                <button
-                  onClick={handleReconnect}
-                  onTouchStart={handleReconnect}
-                  className="join-button"
-                  style={{ background: '#f39c12', marginTop: '10px' }}
+              <button
+                onClick={() => {
+                  console.log('View Payment Logs button clicked');
+                  fetchPaymentLogs();
+                  setShowPaymentLogs(true);
+                }}
+                onTouchStart={() => {
+                  console.log('View Payment Logs button touched');
+                  fetchPaymentLogs();
+                  setShowPaymentLogs(true);
+                }}
+                className="join-button"
+                style={{
+                  background: '#f39c12',
+                  padding: '10px 20px',
+                  color: '#ffffff !important',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  margin: '10px',
+                  visibility: 'visible !important'
+                  opacity: '1 !important'
+                }}
+              >
+                View Payment Logs
+              </button>
+              <button
+                onClick={() => {
+                  console.log('How to Play button clicked');
+                  setShowHowToPlayModal(true);
+                }}
+                onTouchStart={() => {
+                  console.log('How to Play button touched');
+                  setShowHowToPlayModal(true);
+                }}
+                className="join-button"
+                style={{
+                  background: '#3498db',
+                  padding: '10px 20px',
+                  color: '#ffffff !important',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  margin: '10px',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                How to Play
+              </button>
+            </div>
+          )}
+
+          {(gameState === 'waiting' || (gameState === 'join' && lightningInvoice)) && PaymentModal}
+
+          {gameState === 'placing' && (
+            <div className="placing">
+              <h2
+                style={{
+                  color: '#ffffff !important',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                Place Your Ships
+              </h2>
+              <div className="timer-container">
+                <div className="timer-bar">
+                  <div
+                    className="timer-progress"
+                    style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
+                  ></div>
+                </div>
+                <div
+                  className="timer-text"
+                  style={{
+                    color: '#ffffff !important',
+                    visibility: 'visible !important',
+                    opacity: '1 !important'
+                  }}
                 >
-                  Reconnect
-                </button>
-              )}
-              <div style={{ marginTop: '20px' }}>
-                <button
-                  onClick={() => setShowHowToPlayModal(true)}
-                  onTouchStart={() => setShowHowToPlayModal(true)}
-                  className="join-button"
-                  style={{ background: '#3498db', marginRight: '10px' }}
-                >
-                  How to Play
-                </button>
-                <button
-                  onClick={() => setShowPaymentLogs(true)}
-                  onTouchStart={() => setShowPaymentLogs(true)}
-                  className="join-button"
-                  style={{ background: '#2ecc71' }}
-                >
-                  View Payment Logs
-                </button>
+                  Time left:{' '}
+                  <span className={timeLeft <= 10 ? 'time-warning' : ''}>
+                    {timeLeft} seconds
+                  </span>
+                </div>
               </div>
-              <div style={{ marginTop: '20px', fontSize: '0.9rem' }}>
-                <span
-                  onClick={() => setShowTermsModal(true)}
-                  onTouchStart={() => setShowTermsModal(true)}
-                  style={{ cursor: 'pointer', color: '#f39c12 !important', marginRight: '10px' }}
+              <div
+                onDragOver={handleGridDragOver}
+                onDrop={handleGridDrop}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  margin: '20px 0',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                {renderGrid(myBoard, false)}
+              </div>
+              {renderShipList()}
+              <div className="placement-controls">
+                <button
+                  onClick={randomizeShips}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    randomizeShips();
+                  }}
+                  className="placement-button"
+                  disabled={isPlacementConfirmed}
                 >
-                  Terms & Conditions
-                </span>
-                <span
-                  onClick={() => setShowPrivacyModal(true)}
-                  onTouchStart={() => setShowPrivacyModal(true)}
-                  style={{ cursor: 'pointer', color: '#f39c12 !important' }}
+                  Randomize All
+                </button>
+                <button
+                  onClick={randomizeUnplacedShips}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    randomizeUnplacedShips();
+                  }}
+                  className="placement-button"
+                  disabled={isPlacementConfirmed}
                 >
-                  Privacy Policy
-                </span>
+                  Randomize Unplaced
+                </button>
+                <button
+                  onClick={clearBoard}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    clearBoard();
+                  }}
+                  className="placement-button"
+                  disabled={isPlacementConfirmed}
+                >
+                  Clear Board
+                </button>
+                <button
+                  onClick={saveShipPlacement}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    saveShipPlacement();
+                  }}
+                  className="placement-button save"
+                  disabled={isPlacementConfirmed || shipCount < 5}
+                >
+                  Save Placement
+                </button>
               </div>
             </div>
           )}
 
-          {gameState === 'waiting' && (
-            <div className="waiting">
-              <div className="loading-spinner"></div>
-              <p className="waiting-text" style={{ color: '#ffffff !important' }}>{message}</p>
-              {(lightningInvoice || hostedInvoiceUrl) && PaymentModal}
-            </div>
-          )}
-
-          {(gameState === 'placing' || gameState === 'playing' || gameState === 'finished') && (
-            <div className="game-container">
-              <div className="board">
-                <h2 className="board-title" style={{ color: '#ffffff !important' }}>Your Fleet</h2>
-                <div onDragOver={handleGridDragOver} onDrop={handleGridDrop}>
+          {gameState === 'playing' && (
+            <div className="playing">
+              <h2
+                style={{
+                  color: '#ffffff !important',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                Battle Phase
+              </h2>
+              <div className="boards">
+                <div className="board-section">
+                  <h3
+                    style={{
+                      color: '#ffffff !important',
+                      visibility: 'visible !important',
+                      opacity: '1 !important'
+                    }}
+                  >
+                    Your Board
+                  </h3>
                   {renderGrid(myBoard, false)}
                 </div>
-              </div>
-              {(gameState === 'playing' || gameState === 'finished') && (
-                <div className="board">
-                  <h2 className="board-title" style={{ color: '#ffffff !important' }}>Enemy Waters</h2>
+                <div className="board-section">
+                  <h3
+                    style={{
+                      color: '#ffffff !important',
+                      visibility: 'visible !important',
+                      opacity: '1 !important'
+                    }}
+                  >
+                    Enemy Board
+                  </h3>
                   {renderGrid(enemyBoard, true)}
                 </div>
-              )}
-
-              {gameState === 'placing' && !isPlacementConfirmed && (
-                <div className="ships-controls">
-                  <div className="timer-container">
-                    <div className="timer-bar">
-                      <div
-                        className="timer-progress"
-                        style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
-                      ></div>
-                    </div>
-                    <div className="timer-text" style={{ color: '#ffffff !important' }}>
-                      Time left:{' '}
-                      <span className={timeLeft <= 10 ? 'time-warning' : ''}>{timeLeft}s</span>
-                    </div>
-                  </div>
-                  <div className="ships">
-                    <h2 className="ships-title" style={{ color: '#ffffff !important' }}>Ships ({shipCount}/5)</h2>
-                    {renderShipList()}
-                  </div>
-                  <div className="placement-controls">
-                    <button
-                      onClick={randomizeShips}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        randomizeShips();
-                      }}
-                      className="randomize-button"
-                    >
-                      🎲 Randomize All
-                    </button>
-                    <button
-                      onClick={randomizeUnplacedShips}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        randomizeUnplacedShips();
-                      }}
-                      className="randomize-button"
-                    >
-                      🎲 Randomize Unplaced
-                    </button>
-                    <button
-                      onClick={clearBoard}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        clearBoard();
-                      }}
-                      className="clear-button"
-                    >
-                      🗑️ Clear
-                    </button>
-                    <button
-                      onClick={saveShipPlacement}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        saveShipPlacement();
-                      }}
-                      className={`save-button ${shipCount === 5 ? 'pulse' : ''}`}
-                      disabled={placementSaved}
-                    >
-                      {placementSaved ? '✓ Placement Saved' : '💾 Save Placement'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
+              {GameStats}
             </div>
           )}
 
-          {(gameState === 'playing' || gameState === 'finished') && GameStats}
-
           {gameState === 'finished' && (
-            <div className="game-end">
-              {message.includes('You won') && (
-                <div className="win-message" style={{ color: '#2ecc71 !important' }}>Victory!</div>
-              )}
-              <button
-                onClick={() => window.location.reload()}
-                onTouchStart={() => window.location.reload()}
-                className="join-button"
+            <div className="finished">
+              <h2
+                style={{
+                  color: '#ffffff !important',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
               >
-                ⚡ Play Again
+                Game Over
+              </h2>
+              {GameStats}
+              <div className="boards">
+                <div className="board-section">
+                  <h3
+                    style={{
+                      color: '#ffffff !important',
+                      visibility: 'visible !important',
+                      opacity: '1 !important'
+                    }}
+                  >
+                    Your Board
+                  </h3>
+                  {renderGrid(myBoard, false)}
+                </div>
+                <div className="board-section">
+                  <h3
+                    style={{
+                      color: '#ffffff !important',
+                      visibility: 'visible !important',
+                      opacity: '1 !important'
+                    }}
+                  >
+                    Enemy Board
+                  </h3>
+                  {renderGrid(enemyBoard, true)}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  console.log('Play Again button clicked');
+                  setGameState('join');
+                  setMessage('');
+                  setTransactionMessage('');
+                  setShowConfetti(false);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setMyBoard(Array(GRID_SIZE).fill('water'));
+                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                  setShips(SHIP_CONFIG.map((ship, index) => ({
+                    ...ship,
+                    id: index,
+                    positions: [],
+                    horizontal: true,
+                    placed: false,
+                  })));
+                  setShipCount(0);
+                  setBetAmount(null);
+                  setPayoutAmount(null);
+                  setPlatformFee(null);
+                  setLightningAddress('');
+                  setLightningInvoice(null);
+                  setHostedInvoiceUrl(null);
+                  setShowQR(false);
+                  setIsWaitingForPayment(false);
+                  setPaymentTimer(PAYMENT_TIMEOUT);
+                }}
+                onTouchStart={() => {
+                  console.log('Play Again button touched');
+                  setGameState('join');
+                  setMessage('');
+                  setTransactionMessage('');
+                  setShowConfetti(false);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setMyBoard(Array(GRID_SIZE).fill('water'));
+                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                  setShips(SHIP_CONFIG.map((ship, index) => ({
+                    ...ship,
+                    id: index,
+                    positions: [],
+                    horizontal: true,
+                    placed: false,
+                  })));
+                  setShipCount(0);
+                  setBetAmount(null);
+                  setPayoutAmount(null);
+                  setPlatformFee(null);
+                  setLightningAddress('');
+                  setLightningInvoice(null);
+                  setHostedInvoiceUrl(null);
+                  setShowQR(false);
+                  setIsWaitingForPayment(false);
+                  setPaymentTimer(PAYMENT_TIMEOUT);
+                }}
+                className="join-button"
+                style={{
+                  background: '#2ecc71',
+                  padding: '10px 20px',
+                  color: '#ffffff !important',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  margin: '10px',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                Play Again
+              </button>
+              <button
+                onClick={() => {
+                  console.log('View Payment Logs button clicked');
+                  fetchPaymentLogs();
+                  setShowPaymentLogs(true);
+                }}
+                onTouchStart={() => {
+                  console.log('View Payment Logs button touched');
+                  fetchPaymentLogs();
+                  setShowPaymentLogs(true);
+                }}
+                className="join-button"
+                style={{
+                  background: '#f39c12',
+                  padding: '10px 20px',
+                  color: '#ffffff !important',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  margin: '10px',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                View Payment Logs
               </button>
             </div>
           )}
         </>
       )}
 
-      {/* Fallback UI if gameState doesn't match expected states */}
-      {gameState !== 'splash' && 
-       gameState !== 'join' && 
-       gameState !== 'waiting' && 
-       gameState !== 'placing' && 
-       gameState !== 'playing' && 
-       gameState !== 'finished' && (
-        <div style={{ color: '#ffffff !important', textAlign: 'center', padding: '20px' }}>
-          <p>Unexpected game state: {gameState}</p>
-          <p>Please refresh the page to continue.</p>
-          <button
-            onClick={() => window.location.reload()}
-            onTouchStart={() => window.location.reload()}
-            className="join-button"
+      <footer
+        style={{
+          padding: '20px',
+          textAlign: 'center',
+          color: '#ffffff !important',
+          visibility: 'visible !important',
+          opacity: '1 !important'
+        }}
+      >
+        <p style={{ margin: '5px 0', color: '#ffffff !important' }}>
+          © 2025 Thunderfleet. All rights reserved.
+        </p>
+        <p style={{ margin: '5px 0' }}>
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Terms & Conditions link clicked');
+              setShowTermsModal(true);
+            }}
+            style={{ color: '#3498db !important', textDecoration: 'none' }}
           >
-            Refresh
-          </button>
-        </div>
-      )}
+            Terms & Conditions
+          </a>{' '}
+          |{' '}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log('Privacy Policy link clicked');
+              setShowPrivacyModal(true);
+            }}
+            style={{ color: '#3498db !important', textDecoration: 'none' }}
+          >
+            Privacy Policy
+          </a>
+        </p>
+        <p style={{ margin: '5px 0', color: '#ffffff !important' }}>
+          Current Time: 07:49 PM IST on Thursday, June 12, 2025
+        </p>
+      </footer>
     </div>
   );
 };
