@@ -35,7 +35,7 @@ body {
   visibility: visible !important;
 }
 
-.message {
+.message-box {
   font-size: 1.2rem;
   margin: 10px 0;
   padding: 10px;
@@ -45,7 +45,7 @@ body {
   visibility: visible !important;
 }
 
-.message.error {
+.message-box.error {
   background: rgba(231, 76, 60, 0.8); /* Red background for errors */
   border-color: #e74c3c;
   animation: shake 0.5s ease-in-out; /* Add shake animation for errors */
@@ -58,10 +58,20 @@ body {
   75% { transform: translateX(-5px); }
 }
 
-.transaction {
+.transaction-message {
   font-size: 1rem;
   margin: 5px 0;
   color: #f39c12 !important; /* Ensure transaction message is visible */
+}
+
+.disconnected-message {
+  font-size: 1.2rem;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(231, 76, 60, 0.8);
+  border-radius: 5px;
+  border: 1px solid #e74c3c;
+  visibility: visible !important;
 }
 
 .confetti {
@@ -106,12 +116,20 @@ body {
   visibility: visible !important;
 }
 
-.join {
+.join-game {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
   visibility: visible !important;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
 }
 
 .lightning-input {
@@ -169,6 +187,17 @@ body {
   border-top: 4px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  will-change: transform; /* Optimize animation */
+}
+
+.thinking-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
   will-change: transform; /* Optimize animation */
 }
 
@@ -390,14 +419,17 @@ body {
   justify-content: center;
 }
 
-.randomize-button {
+.placement-button {
   padding: 10px 15px;
   font-size: 1rem;
-  background: #2ecc71;
   border: none;
   border-radius: 5px;
   color: white !important;
   cursor: pointer;
+}
+
+.randomize-button {
+  background: #2ecc71;
 }
 
 .randomize-button:hover {
@@ -410,13 +442,7 @@ body {
 }
 
 .clear-button {
-  padding: 10px 15px;
-  font-size: 1rem;
   background: #e74c3c;
-  border: none;
-  border-radius: 5px;
-  color: white !important;
-  cursor: pointer;
 }
 
 .clear-button:hover {
@@ -428,26 +454,20 @@ body {
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
-.save-button {
-  padding: 10px 15px;
-  font-size: 1rem;
+.save {
   background: #f39c12;
-  border: none;
-  border-radius: 5px;
-  color: white !important;
-  cursor: pointer;
 }
 
-.save-button:disabled {
+.save:disabled {
   background: #95a5a6;
   cursor: not-allowed;
 }
 
-.save-button.pulse {
+.save.pulse {
   animation: pulse 1s infinite;
 }
 
-.save-button:focus {
+.save:focus {
   outline: none;
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
@@ -527,6 +547,30 @@ body {
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
+.cancel-button {
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  background: #e74c3c;
+  border: none;
+  border-radius: 5px;
+  color: white !important;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #c0392b;
+}
+
+.cancel-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12;
+}
+
+.payment-status {
+  margin-top: 15px;
+  color: white !important;
+}
+
 .invoice-code {
   background: rgba(255, 255, 255, 0.1);
   padding: 10px;
@@ -535,11 +579,7 @@ body {
   font-size: 0.8rem;
 }
 
-.payment-status {
-  margin-top: 15px;
-}
-
-.game-end {
+.finished {
   margin-top: 20px;
 }
 
@@ -630,4 +670,39 @@ body {
   margin: 10px 0;
   color: #2ecc71 !important;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.placing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.playing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.boards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.game-stats {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  color: white !important;
 }

@@ -72,7 +72,7 @@ const useSound = (src, isSoundEnabled) => {
 };
 
 const App = () => {
-  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} on Thursday, June 12, 2025, 08:11 PM IST`);
+  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
@@ -349,9 +349,9 @@ const App = () => {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
-            const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
-            return newBoard;
+            const ShotBoard = [...prev];
+            ShotBoard[position] = hit ? 'hit' : 'miss';
+            return ShotBoard;
           });
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
         } else {
@@ -1114,8 +1114,8 @@ const App = () => {
         {ships.map((ship, i) => (
           <div key={i} className="ship-container">
             <div className="ship-info">
-              <span style={{ color: '#ffffff !important' }}>{ship.name}</span>
-              <span className="ship-status" style={{ color: '#ffffff !important' }}>{ship.placed ? '✅ Placed' : '❌ Not placed'}</span>
+              <span style={{ color: '#ffffff' }}>{ship.name}</span>
+              <span className="ship-status" style={{ color: '#ffffff' }}>{ship.placed ? '✅ Placed' : '❌ Not placed'}</span>
             </div>
             <div
               className="ship"
@@ -1171,7 +1171,7 @@ const App = () => {
                 touchAction: 'none'
               }}
             >
-              <span className="ship-label" style={{ color: '#ffffff !important' }}>{ship.name}</span>
+              <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
             </div>
             <button
               onClick={() => toggleOrientation(i)}
@@ -1199,9 +1199,7 @@ const App = () => {
         style={{
           textAlign: 'center',
           padding: '40px',
-          backgroundColor: '#0000ff !important', // Blue background for debugging
-          visibility: 'visible !important',
-          opacity: '1 !important',
+          backgroundColor: '#0000ff',
           minHeight: '100vh'
         }}
       >
@@ -1210,18 +1208,14 @@ const App = () => {
           alt="Thunderfleet Logo"
           style={{
             width: '150px',
-            marginBottom: '20px',
-            visibility: 'visible !important',
-            opacity: '1 !important'
+            marginBottom: '20px'
           }}
           onError={() => console.error('Failed to load logo image')}
-        />
+ aes         />
         <h1
           className="game-title"
           style={{
-            color: '#ffffff !important',
-            visibility: 'visible !important',
-            opacity: '1 !important',
+            color: '#ffffff',
             fontSize: '2rem',
             marginBottom: '20px'
           }}
@@ -1241,13 +1235,11 @@ const App = () => {
           style={{
             padding: '10px 20px',
             backgroundColor: '#3498db',
-            color: '#ffffff !important',
+            color: '#ffffff',
             border: 'none',
             borderRadius: '5px',
             cursor: 'pointer',
-            margin: '10px',
-            visibility: 'visible !important',
-            opacity: '1 !important'
+            margin: '10px'
           }}
         >
           Start Game
@@ -1267,12 +1259,10 @@ const App = () => {
               background: '#3498db',
               marginRight: '10px',
               padding: '10px 20px',
-              color: '#ffffff !important',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '5px',
-              cursor: 'pointer',
-              visibility: 'visible !important',
-              opacity: '1 !important'
+              cursor: 'pointer'
             }}
           >
             How to Play
@@ -1290,12 +1280,10 @@ const App = () => {
             style={{
               background: isSoundEnabled ? '#e74c3c' : '#2ecc71',
               padding: '10px 20px',
-              color: '#ffffff !important',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '5px',
-              cursor: 'pointer',
-              visibility: 'visible !important',
-              opacity: '1 !important'
+              cursor: 'pointer'
             }}
           >
             {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
@@ -1330,18 +1318,18 @@ const App = () => {
           maxHeight: '80%',
           overflowY: 'auto',
         }}>
-          <h2 style={{ color: '#333 !important' }}>Terms and Conditions</h2>
-          <p style={{ color: '#333 !important' }}>
+          <h2 style={{ color: '#333' }}>Terms and Conditions</h2>
+          <p style={{ color: '#333' }}>
             Welcome to Lightning Sea Battle! By using this application, you agree to the following terms:
           </p>
           <ul>
-            <li style={{ color: '#333 !important' }}>All payments are made in Bitcoin SATS via the Lightning Network.</li>
-            <li style={{ color: '#333 !important' }}>Winnings are subject to platform fees as displayed during bet selection.</li>
-            <li style={{ color: '#333 !important' }}>We are not responsible for any losses due to network issues or payment failures.</li>
-            <li style={{ color: '#333 !important' }}>Game results are final and determined by the server.</li>
-            <li style={{ color: '#333 !important' }}>Users must be 18+ to participate.</li>
+            <li style={{ color: '#333' }}>All payments are made in Bitcoin SATS via the Lightning Network.</li>
+            <li style={{ color: '#333' }}>Winnings are subject to platform fees as displayed during bet selection.</li>
+            <li style={{ color: '#333' }}>We are not responsible for any losses due to network issues or payment failures.</li>
+            <li style={{ color: '#333' }}>Game results are final and determined by the server.</li>
+            <li style={{ color: '#333' }}>Users must be 18+ to participate.</li>
           </ul>
-          <p style={{ color: '#333 !important' }}>Please contact support@thunderfleet.com for any inquiries.</p>
+          <p style={{ color: '#333' }}>Please contact support@thunderfleet.com for any inquiries.</p>
           <button
             onClick={() => setShowTermsModal(false)}
             onTouchStart={() => setShowTermsModal(false)}
@@ -1380,17 +1368,17 @@ const App = () => {
           maxHeight: '80%',
           overflowY: 'auto',
         }}>
-          <h2 style={{ color: '#333 !important' }}>Privacy Policy</h2>
-          <p style={{ color: '#333 !important' }}>
+          <h2 style={{ color: '#333' }}>Privacy Policy</h2>
+          <p style={{ color: '#333' }}>
             At Lightning Sea Battle, we value your privacy:
           </p>
           <ul>
-            <li style={{ color: '#333 !important' }}>We collect your Lightning address solely for payment processing.</li>
-            <li style={{ color: '#333 !important' }}>Game data (e.g., board state, game results) is stored temporarily to facilitate gameplay.</li>
-            <li style={{ color: '#333 !important' }}>We do not share your data with third parties, except as required for payment processing.</li>
-            <li style={{ color: '#333 !important' }}>Payment logs are stored securely and used for transparency and dispute resolution.</li>
+            <li style={{ color: '#333' }}>We collect your Lightning address solely for payment processing.</li>
+            <li style={{ color: '#333' }}>Game data (e.g., board state, game results) is stored temporarily to facilitate gameplay.</li>
+            <li style={{ color: '#333' }}>We do not share your data with third parties, except as required for payment processing.</li>
+            <li style={{ color: '#333' }}>Payment logs are stored securely and used for transparency and dispute resolution.</li>
           </ul>
-          <p style={{ color: '#333 !important' }}>Contact support@thunderfleet.com for privacy-related concerns.</p>
+          <p style={{ color: '#333' }}>Contact support@thunderfleet.com for privacy-related concerns.</p>
           <button
             onClick={() => setShowPrivacyModal(false)}
             onTouchStart={() => setShowPrivacyModal(false)}
@@ -1429,16 +1417,16 @@ const App = () => {
           maxHeight: '80%',
           overflowY: 'auto',
         }}>
-          <h2 style={{ color: '#333 !important' }}>How to Play Lightning Sea Battle</h2>
-          <p style={{ color: '#333 !important' }}>Lightning Sea Battle is a Battleship-style game with Bitcoin SATS betting:</p>
+          <h2 style={{ color: '#333' }}>How to Play Lightning Sea Battle</h2>
+          <p style={{ color: '#333' }}>Lightning Sea Battle is a Battleship-style game with Bitcoin SATS betting:</p>
           <ol>
-            <li style={{ color: '#333 !important' }}><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount.</li>
-            <li style={{ color: '#333 !important' }}><strong>Pay to Play:</strong> Use the QR code or payment link to pay the entry fee via Lightning Network.</li>
-            <li style={{ color: '#333 !important' }}><strong>Place Your Ships:</strong> Drag and drop your ships on the grid. Tap to rotate, or use the Randomize buttons.</li>
-            <li style={{ color: '#333 !important' }}><strong>Battle:</strong> Take turns firing at the enemy grid. Hit all enemy ships to win!</li>
-            <li style={{ color: '#333 !important' }}><strong>Win SATS:</strong> If you win, your payout (minus platform fee) will be sent to your Lightning address.</li>
+            <li style={{ color: '#333' }}><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount.</li>
+            <li style={{ color: '#333' }}><strong>Pay to Play:</strong> Use the QR code or payment link to pay the entry fee via Lightning Network.</li>
+            <li style={{ color: '#333' }}><strong>Place Your Ships:</strong> Drag and drop your ships on the grid. Tap to rotate, or use the Randomize buttons.</li>
+            <li style={{ color: '#333' }}><strong>Battle:</strong> Take turns firing at the enemy grid. Hit all enemy ships to win!</li>
+            <li style={{ color: '#333' }}><strong>Win SATS:</strong> If you win, your payout (minus platform fee) will be sent to your Lightning address.</li>
           </ol>
-          <p style={{ color: '#333 !important' }}>Good luck, Captain! ⚡</p>
+          <p style={{ color: '#333' }}>Good luck, Captain! ⚡</p>
           <button
             onClick={() => setShowHowToPlayModal(false)}
             onTouchStart={() => setShowHowToPlayModal(false)}
@@ -1477,15 +1465,15 @@ const App = () => {
           maxHeight: '80%',
           overflowY: 'auto',
         }}>
-          <h2 style={{ color: '#333 !important' }}>Recent Payment Logs</h2>
+          <h2 style={{ color: '#333' }}>Recent Payment Logs</h2>
           {paymentLogs.length > 0 ? (
             <ul style={{ listStyleType: 'none', padding: 0 }}>
               {paymentLogs.map((log, index) => (
-                <li key={index} style={{ margin: '10px 0', fontSize: '0.9rem', color: '#333 !important' }}>{log}</li>
+                <li key={index} style={{ margin: '10px 0', fontSize: '0.9rem', color: '#333' }}>{log}</li>
               ))}
             </ul>
           ) : (
-            <p style={{ color: '#333 !important' }}>No recent payment logs available.</p>
+            <p style={{ color: '#333' }}>No recent payment logs available.</p>
           )}
           <button
             onClick={() => setShowPaymentLogs(false)}
@@ -1505,7 +1493,7 @@ const App = () => {
     console.log('Rendering PaymentModal');
     return (
       <div className="payment-modal">
-        <h3 style={{ color: '#ffffff !important' }}>⚡ Pay {betAmount} SATS to join ⚡</h3>
+        <h3 style={{ color: '#ffffff' }}>⚡ Pay {betAmount} SATS to join ⚡</h3>
         <p className="winnings-info">
           Win {payoutAmount} SATS!
         </p>
@@ -1537,7 +1525,7 @@ const App = () => {
         </div>
         {isWaitingForPayment && (
           <div className="payment-status">
-            <p style={{ color: '#ffffff !important' }}>Waiting for payment confirmation...</p>
+            <p style={{ color: '#ffffff' }}>Waiting for payment confirmation...</p>
             <div className="timer-container">
               <div className="timer-bar">
                 <div
@@ -1545,7 +1533,7 @@ const App = () => {
                   style={{ width: `${(paymentTimer / PAYMENT_TIMEOUT) * 100}%` }}
                 ></div>
               </div>
-              <div className="timer-text" style={{ color: '#ffffff !important' }}>
+              <div className="timer-text" style={{ color: '#ffffff' }}>
                 Time left:{' '}
                 <span className={paymentTimer <= 30 ? 'time-warning' : ''}>
                   {Math.floor(paymentTimer / 60)}:{(paymentTimer % 60).toString().padStart(2, '0')}
@@ -1587,11 +1575,11 @@ const App = () => {
     console.log('Rendering GameStats');
     return (
       <div className="game-stats" style={{ margin: '20px 0', textAlign: 'center' }}>
-        <h3 style={{ color: '#ffffff !important' }}>Game Statistics</h3>
-        <p style={{ color: '#ffffff !important' }}>Shots Fired: {gameStats.shotsFired}</p>
-        <p style={{ color: '#ffffff !important' }}>Hits: {gameStats.hits}</p>
-        <p style={{ color: '#ffffff !important' }}>Misses: {gameStats.misses}</p>
-        <p style={{ color: '#ffffff !important' }}>
+        <h3 style={{ color: '#ffffff' }}>Game Statistics</h3>
+        <p style={{ color: '#ffffff' }}>Shots Fired: {gameStats.shotsFired}</p>
+        <p style={{ color: '#ffffff' }}>Hits: {gameStats.hits}</p>
+        <p style={{ color: '#ffffff' }}>Misses: {gameStats.misses}</p>
+        <p style={{ color: '#ffffff' }}>
           Accuracy: {gameStats.shotsFired > 0 ? ((gameStats.hits / gameStats.shotsFired) * 100).toFixed(2) : 0}%
         </p>
       </div>
@@ -1603,7 +1591,7 @@ const App = () => {
     console.log('Rendering betSelection');
     return (
       <div className="bet-selection">
-        <label htmlFor="bet-select" style={{ color: '#ffffff !important' }}>Select Your Bet:</label>
+        <label htmlFor="bet-select" style={{ color: '#ffffff' }}>Select Your Bet:</label>
         <select
           id="bet-select"
           value={betAmount || ""}
@@ -1629,30 +1617,26 @@ const App = () => {
   const DefaultFallbackUI = (
     <div
       style={{
-        color: '#ffffff !important',
-        backgroundColor: '#ff0000 !important', // Red background for debugging
+        color: '#ffffff',
+        backgroundColor: '#ff0000',
         textAlign: 'center',
         padding: '20px',
         fontSize: '18px',
-        minHeight: '100vh',
-        visibility: 'visible !important',
-        opacity: '1 !important'
+        minHeight: '100vh'
       }}
     >
       <p>Thunderfleet App - Initializing...</p>
-      <p>Current Time: 08:11 PM IST on Thursday, June 12, 2025</p>
+      <p>Current Time: {new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}</p>
       <p>If you see this for more than a few seconds, please refresh the page.</p>
       <button
         onClick={() => window.location.reload()}
         style={{
           padding: '10px 20px',
           backgroundColor: '#3498db',
-          color: '#ffffff !important',
+          color: '#ffffff',
           border: 'none',
           borderRadius: '5px',
-          cursor: 'pointer',
-          visibility: 'visible !important',
-          opacity: '1 !important'
+          cursor: 'pointer'
         }}
       >
         Refresh
@@ -1669,18 +1653,16 @@ const App = () => {
     return (
       <div
         style={{
-          color: '#ffffff !important',
-          backgroundColor: '#ff0000 !important', // Red background for debugging
+          color: '#ffffff',
+          backgroundColor: '#ff0000',
           textAlign: 'center',
           padding: '20px',
           fontSize: '18px',
-          minHeight: '100vh',
-          visibility: 'visible !important',
-          opacity: '1 !important'
+          minHeight: '100vh'
         }}
       >
         <p>Loading Thunderfleet App... Please wait.</p>
-        <p>Current Time: 08:11 PM IST on Thursday, June 12, 2025</p>
+        <p>Current Time: {new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}</p>
       </div>
     );
   }
@@ -1695,10 +1677,8 @@ const App = () => {
     <div
       className="App"
       style={{
-        backgroundColor: '#00ff00 !important', // Green background for debugging
-        minHeight: '100vh',
-        visibility: 'visible !important',
-        opacity: '1 !important'
+        backgroundColor: '#00ff00',
+        minHeight: '100vh'
       }}
     >
       {showConfetti && Confetti}
@@ -1714,9 +1694,7 @@ const App = () => {
           <h1
             className="game-title"
             style={{
-              color: '#ffffff !important',
-              visibility: 'visible !important',
-              opacity: '1 !important',
+              color: '#ffffff',
               fontSize: '2rem',
               textAlign: 'center',
               padding: '20px 0'
@@ -1738,12 +1716,10 @@ const App = () => {
               style={{
                 background: isSoundEnabled ? '#e74c3c' : '#2ecc71',
                 padding: '5px 10px',
-                color: '#ffffff !important',
+                color: '#ffffff',
                 border: 'none',
                 borderRadius: '5px',
-                cursor: 'pointer',
-                visibility: 'visible !important',
-                opacity: '1 !important'
+                cursor: 'pointer'
               }}
             >
               {isSoundEnabled ? '🔇 Mute' : '🔊 Sound'}
@@ -1753,20 +1729,18 @@ const App = () => {
           <div
             className="message-box"
             style={{
-              color: '#ffffff !important',
+              color: '#ffffff',
               background: 'rgba(0, 0, 0, 0.7)',
               padding: '10px',
               margin: '10px auto',
               borderRadius: '5px',
               textAlign: 'center',
-              maxWidth: '90%',
-              visibility: 'visible !important',
-              opacity: '1 !important'
+              maxWidth: '90%'
             }}
           >
             {message || 'Welcome! Join a game to start.'}
             {isOpponentThinking && (
-              <p style={{ color: '#ffffff !important', margin: '5px 0' }}>
+              <p style={{ color: '#ffffff', margin: '5px 0' }}>
                 Opponent is thinking...
                 <span className="thinking-spinner"></span>
               </p>
@@ -1777,15 +1751,13 @@ const App = () => {
             <div
               className="transaction-message"
               style={{
-                color: '#2ecc71 !important',
+                color: '#2ecc71',
                 background: 'rgba(0, 0, 0, 0.7)',
                 padding: '10px',
                 margin: '10px auto',
                 borderRadius: '5px',
                 textAlign: 'center',
-                maxWidth: '90%',
-                visibility: 'visible !important',
-                opacity: '1 !important'
+                maxWidth: '90%'
               }}
             >
               {transactionMessage}
@@ -1796,15 +1768,13 @@ const App = () => {
             <div
               className="disconnected-message"
               style={{
-                color: '#e74c3c !important',
+                color: '#e74c3c',
                 background: 'rgba(0, 0, 0, 0.7)',
                 padding: '10px',
                 margin: '10px auto',
                 borderRadius: '5px',
                 textAlign: 'center',
-                maxWidth: '90%',
-                visibility: 'visible !important',
-                opacity: '1 !important'
+                maxWidth: '90%'
               }}
             >
               {message || 'Disconnected from server. Please try again.'}
@@ -1815,13 +1785,11 @@ const App = () => {
                 style={{
                   background: '#3498db',
                   padding: '5px 10px',
-                  color: '#ffffff !important',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '5px',
                   cursor: 'pointer',
-                  margin: '10px',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  margin: '10px'
                 }}
               >
                 Reconnect
@@ -1834,16 +1802,12 @@ const App = () => {
               className="join-game"
               style={{
                 textAlign: 'center',
-                padding: '20px',
-                visibility: 'visible !important',
-                opacity: '1 !important'
+                padding: '20px'
               }}
             >
               <h2
                 style={{
-                  color: '#ffffff !important',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  color: '#ffffff'
                 }}
               >
                 Join Game
@@ -1852,7 +1816,7 @@ const App = () => {
                 <label
                   htmlFor="lightning-address"
                   style={{
-                    color: '#ffffff !important',
+                    color: '#ffffff',
                     display: 'block',
                     marginBottom: '5px'
                   }}
@@ -1889,13 +1853,12 @@ const App = () => {
                 style={{
                   background: '#2ecc71',
                   padding: '10px 20px',
-                  color: '#ffffff !important',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '5px',
                   cursor: isLoading ? 'not-allowed' : 'pointer',
                   margin: '10px',
-                  visibility: 'visible !important',
-                  opacity: isLoading ? '0.5 !important' : '1 !important'
+                  opacity: isLoading ? '0.5' : '1'
                 }}
               >
                 {isLoading ? 'Joining...' : 'Join Game'}
@@ -1915,13 +1878,11 @@ const App = () => {
                 style={{
                   background: '#f39c12',
                   padding: '10px 20px',
-                  color: '#ffffff !important',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '5px',
                   cursor: 'pointer',
-                  margin: '10px',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  margin: '10px'
                 }}
               >
                 View Payment Logs
@@ -1939,13 +1900,11 @@ const App = () => {
                 style={{
                   background: '#3498db',
                   padding: '10px 20px',
-                  color: '#ffffff !important',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '5px',
                   cursor: 'pointer',
-                  margin: '10px',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  margin: '10px'
                 }}
               >
                 How to Play
@@ -1959,9 +1918,7 @@ const App = () => {
             <div className="placing">
               <h2
                 style={{
-                  color: '#ffffff !important',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  color: '#ffffff'
                 }}
               >
                 Place Your Ships
@@ -1976,9 +1933,7 @@ const App = () => {
                 <div
                   className="timer-text"
                   style={{
-                    color: '#ffffff !important',
-                    visibility: 'visible !important',
-                    opacity: '1 !important'
+                    color: '#ffffff'
                   }}
                 >
                   Time left:{' '}
@@ -1993,9 +1948,7 @@ const App = () => {
                 style={{
                   display: 'flex',
                   justifyContent: 'center',
-                  margin: '20px 0',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  margin: '20px 0'
                 }}
               >
                 {renderGrid(myBoard, false)}
@@ -2054,9 +2007,7 @@ const App = () => {
             <div className="playing">
               <h2
                 style={{
-                  color: '#ffffff !important',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  color: '#ffffff'
                 }}
               >
                 Battle Phase
@@ -2065,9 +2016,7 @@ const App = () => {
                 <div className="board-section">
                   <h3
                     style={{
-                      color: '#ffffff !important',
-                      visibility: 'visible !important',
-                      opacity: '1 !important'
+                      color: '#ffffff'
                     }}
                   >
                     Your Board
@@ -2077,9 +2026,7 @@ const App = () => {
                 <div className="board-section">
                   <h3
                     style={{
-                      color: '#ffffff !important',
-                      visibility: 'visible !important',
-                      opacity: '1 !important'
+                      color: '#ffffff'
                     }}
                   >
                     Enemy Board
@@ -2095,9 +2042,7 @@ const App = () => {
             <div className="finished">
               <h2
                 style={{
-                  color: '#ffffff !important',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  color: '#ffffff'
                 }}
               >
                 Game Over
@@ -2107,9 +2052,7 @@ const App = () => {
                 <div className="board-section">
                   <h3
                     style={{
-                      color: '#ffffff !important',
-                      visibility: 'visible !important',
-                      opacity: '1 !important'
+                      color: '#ffffff'
                     }}
                   >
                     Your Board
@@ -2119,9 +2062,7 @@ const App = () => {
                 <div className="board-section">
                   <h3
                     style={{
-                      color: '#ffffff !important',
-                      visibility: 'visible !important',
-                      opacity: '1 !important'
+                      color: '#ffffff'
                     }}
                   >
                     Enemy Board
@@ -2186,13 +2127,11 @@ const App = () => {
                 style={{
                   background: '#2ecc71',
                   padding: '10px 20px',
-                  color: '#ffffff !important',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '5px',
                   cursor: 'pointer',
-                  margin: '10px',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  margin: '10px'
                 }}
               >
                 Play Again
@@ -2212,13 +2151,11 @@ const App = () => {
                 style={{
                   background: '#f39c12',
                   padding: '10px 20px',
-                  color: '#ffffff !important',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '5px',
                   cursor: 'pointer',
-                  margin: '10px',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
+                  margin: '10px'
                 }}
               >
                 View Payment Logs
@@ -2232,12 +2169,10 @@ const App = () => {
         style={{
           padding: '20px',
           textAlign: 'center',
-          color: '#ffffff !important',
-          visibility: 'visible !important',
-          opacity: '1 !important'
+          color: '#ffffff'
         }}
       >
-        <p style={{ margin: '5px 0', color: '#ffffff !important' }}>
+        <p style={{ margin: '5px 0', color: '#ffffff' }}>
           © 2025 Thunderfleet. All rights reserved.
         </p>
         <p style={{ margin: '5px 0' }}>
@@ -2247,7 +2182,7 @@ const App = () => {
               console.log('Terms & Conditions button clicked');
               setShowTermsModal(true);
             }}
-            style={{ color: '#3498db !important', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ color: '#3498db', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Terms & Conditions
           </button>{' '}
@@ -2258,13 +2193,13 @@ const App = () => {
               console.log('Privacy Policy button clicked');
               setShowPrivacyModal(true);
             }}
-            style={{ color: '#3498db !important', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ color: '#3498db', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Privacy Policy
           </button>
         </p>
-        <p style={{ margin: '5px 0', color: '#ffffff !important' }}>
-          Current Time: 08:19 PM IST on Thursday, June 12, 2025
+        <p style={{ margin: '5px 0', color: '#ffffff' }}>
+          Current Time: {new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}
         </p>
       </footer>
     </div>
