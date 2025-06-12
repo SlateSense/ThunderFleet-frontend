@@ -1870,7 +1870,7 @@ const App = () => {
                   borderRadius: '5px',
                   cursor: 'pointer',
                   margin: '10px',
-                  visibility: 'visible !important'
+                  visibility: 'visible !important
                   opacity: '1 !important'
                 }}
               >
