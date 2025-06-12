@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import './Cargo.css';
@@ -36,28 +36,6 @@ const BET_OPTIONS = [
   { amount: 10000, winnings: 17000, fee: 3000 }, // Bet: 10000 sats, Win: 17000 sats, Fee: 3000 sats
 ];
 
-// Sound effects hook to play audio files for game events
-const useSound = (src, isSoundEnabled) => {
-  const [audio] = useState(() => {
-    const audio = new Audio(src);
-    audio.addEventListener('loadedmetadata', () => {
-      console.log(`Audio file ${src} loaded with duration: ${audio.duration} seconds`);
-    });
-    return audio;
-  });
-  return () => {
-    if (isSoundEnabled) {
-      audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
-    }
-  };
-};
-
-// Initialize socket.io client with reconnection settings
-const socket = io('https://thunderfleet-backend.onrender.com', {
-  reconnectionAttempts: 5, // Attempt to reconnect 5 times if connection fails
-  reconnectionDelay: 1000, // Wait 1 second between reconnection attempts
-});
-
 // Ship configuration defining each ship's name, size, and images
 const SHIP_CONFIG = [
   { name: 'Aircraft Carrier', size: 5, horizontalImg: carrierHorizontal, verticalImg: carrierVertical },
@@ -77,19 +55,35 @@ const mulberry32 = (a) => {
   };
 };
 
+// Sound effects hook to play audio files for game events
+const useSound = (src, isSoundEnabled) => {
+  const [audio] = useState(() => {
+    const audio = new Audio(src);
+    audio.addEventListener('loadedmetadata', () => {
+      console.log(`Audio file ${src} loaded with duration: ${audio.duration} seconds`);
+    });
+    return audio;
+  });
+  return useCallback(() => {
+    if (isSoundEnabled) {
+      audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
+    }
+  }, [isSoundEnabled, audio]);
+};
+
 const App = () => {
-  console.log('App component rendered at 01:28 PM IST on June 11, 2025');
+  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} on June ${new Date().getDate()}, 2025`);
 
   // State variables for managing game state and UI
-  const [gameState, setGameState] = useState('splash'); // Current game state: splash, join, waiting, placing, playing, finished
-  const [gameId, setGameId] = useState(null); // Unique identifier for the game
-  const [playerId, setPlayerId] = useState(null); // Unique identifier for the player
-  const [lightningAddress, setLightningAddress] = useState(''); // User's Lightning address for payments
-  const [betAmount, setBetAmount] = useState(null); // Selected bet amount in sats
-  const [payoutAmount, setPayoutAmount] = useState(null); // Potential winnings for the selected bet
-  const [platformFee, setPlatformFee] = useState(null); // Platform fee for the selected bet
-  const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water')); // Player's game board
-  const [enemyBoard, setEnemyBoard] = useState(Array(GRID_SIZE).fill('water')); // Opponent's game board (for display)
+  const [gameState, setGameState] = useState('splash');
+  const [gameId, setGameId] = useState(null);
+  const [playerId, setPlayerId] = useState(null);
+  const [lightningAddress, setLightningAddress] = useState('');
+  const [betAmount, setBetAmount] = useState(null);
+  const [payoutAmount, setPayoutAmount] = useState(null);
+  const [platformFee, setPlatformFee] = useState(null);
+  const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water'));
+  const [enemyBoard, setEnemyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [ships, setShips] = useState(() =>
     SHIP_CONFIG.map((ship, index) => ({
       ...ship,
@@ -98,42 +92,43 @@ const App = () => {
       horizontal: true,
       placed: false,
     }))
-  ); // Array of ships with their positions and orientations
-  const [shipCount, setShipCount] = useState(0); // Number of ships placed on the board
-  const [turn, setTurn] = useState(null); // Current player's turn (playerId or opponent)
-  const [message, setMessage] = useState(''); // General message to display to the user
-  const [transactionMessage, setTransactionMessage] = useState(''); // Transaction-related message (e.g., payment confirmation)
-  const [cannonFire, setCannonFire] = useState(null); // State for cannon fire animation
-  const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false); // Whether ship placement is confirmed
-  const [isDragging, setIsDragging] = useState(false); // Whether a ship is being dragged
-  const [cellSize, setCellSize] = useState(40); // Size of each grid cell in pixels
-  const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME); // Time remaining for ship placement
-  const [timerActive, setTimerActive] = useState(false); // Whether the placement timer is active
-  const [lightningInvoice, setLightningInvoice] = useState(null); // Lightning invoice for payment
-  const [hostedInvoiceUrl, setHostedInvoiceUrl] = useState(null); // Hosted invoice URL for payment
-  const [showQR, setShowQR] = useState(false); // Whether to show the QR code for payment
-  const [placementSaved, setPlacementSaved] = useState(false); // Whether ship placement has been saved
-  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false); // Whether waiting for payment confirmation
-  const [isOpponentThinking, setIsOpponentThinking] = useState(false); // Whether the opponent (bot) is "thinking"
-  const [paymentTimer, setPaymentTimer] = useState(PAYMENT_TIMEOUT); // Time remaining for payment confirmation
-  const [isSocketConnected, setIsSocketConnected] = useState(false); // Whether the socket is connected to the server
-  const [showTermsModal, setShowTermsModal] = useState(false); // Whether to show the terms modal
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false); // Whether to show the privacy modal
-  const [showHowToPlayModal, setShowHowToPlayModal] = useState(false); // Whether to show the how-to-play modal
-  const [isSoundEnabled, setIsSoundEnabled] = useState(true); // Whether sound effects are enabled
-  const [payButtonLoading, setPayButtonLoading] = useState(false); // Whether the pay button is in loading state
-  const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 }); // Game statistics
-  const [showConfetti, setShowConfetti] = useState(false); // Whether to show confetti animation
-  const [paymentLogs, setPaymentLogs] = useState([]); // Recent payment logs
-  const [showPaymentLogs, setShowPaymentLogs] = useState(false); // Whether to show payment logs modal
+  );
+  const [shipCount, setShipCount] = useState(0);
+  const [turn, setTurn] = useState(null);
+  const [message, setMessage] = useState('');
+  const [transactionMessage, setTransactionMessage] = useState('');
+  const [cannonFire, setCannonFire] = useState(null);
+  const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [cellSize, setCellSize] = useState(40);
+  const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
+  const [timerActive, setTimerActive] = useState(false);
+  const [lightningInvoice, setLightningInvoice] = useState(null);
+  const [hostedInvoiceUrl, setHostedInvoiceUrl] = useState(null);
+  const [showQR, setShowQR] = useState(false);
+  const [placementSaved, setPlacementSaved] = useState(false);
+  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
+  const [isOpponentThinking, setIsOpponentThinking] = useState(false);
+  const [paymentTimer, setPaymentTimer] = useState(PAYMENT_TIMEOUT);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showHowToPlayModal, setShowHowToPlayModal] = useState(false);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [payButtonLoading, setPayButtonLoading] = useState(false);
+  const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [paymentLogs, setPaymentLogs] = useState([]);
+  const [showPaymentLogs, setShowPaymentLogs] = useState(false);
+  const [socket, setSocket] = useState(null); // Add socket state
 
   // References for managing timers and DOM elements
-  const timerRef = useRef(null); // Reference for placement timer
-  const paymentTimerRef = useRef(null); // Reference for payment timer
-  const joinGameTimeoutRef = useRef(null); // Reference for joinGame timeout
-  const seededRandom = useRef(null); // Reference for seeded random number generator
-  const gridRef = useRef(null); // Reference for the player's grid DOM element
-  const reconnectAttemptsRef = useRef(0); // Track reconnection attempts
+  const timerRef = useRef(null);
+  const paymentTimerRef = useRef(null);
+  const joinGameTimeoutRef = useRef(null);
+  const seededRandom = useRef(null);
+  const gridRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -157,6 +152,237 @@ const App = () => {
     }
   }, []);
 
+  // Initialize Socket.IO connection once on mount
+  useEffect(() => {
+    const newSocket = io('https://thunderfleet-backend.onrender.com', {
+      transports: ['polling'], // Match backend by forcing polling
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+    setSocket(newSocket);
+
+    console.log('Setting up socket listeners');
+    const timeout = setTimeout(() => {
+      if (!newSocket.connected) {
+        setIsSocketConnected(false);
+        setMessage("Failed to connect to the server. Please try again.");
+      }
+    }, 5000);
+
+    const handlers = {
+      connect: () => {
+        clearTimeout(timeout);
+        reconnectAttemptsRef.current = 0;
+        console.log('[Frontend] Connected:', newSocket.id);
+        setIsSocketConnected(true);
+        setPlayerId(newSocket.id);
+        setMessage('');
+      },
+      connect_error: (error) => {
+        clearTimeout(timeout);
+        console.log('[Frontend] Socket connection error:', error.message);
+        setIsSocketConnected(false);
+        setMessage(`Failed to connect to server: ${error.message}`);
+        setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
+        setGameState('join');
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
+      },
+      disconnect: () => {
+        clearTimeout(timeout);
+        console.log('[Frontend] Disconnected from server');
+        setIsSocketConnected(false);
+        setMessage('Disconnected from server. Please try again.');
+        setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
+        setGameState('join');
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
+      },
+      joined: ({ gameId, playerId }) => {
+        console.log(`Joined game ${gameId} as player ${playerId}`);
+        setGameId(gameId);
+        setPlayerId(playerId);
+        setGameState('waiting');
+        setMessage('Processing payment...');
+      },
+      paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
+        console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
+        clearTimeout(joinGameTimeoutRef.current);
+        setLightningInvoice(lightningInvoice);
+        setHostedInvoiceUrl(hostedInvoiceUrl);
+        setShowQR(true);
+        setIsWaitingForPayment(true);
+        setPayButtonLoading(false);
+        setPaymentTimer(PAYMENT_TIMEOUT);
+        setMessage(`Scan to pay ${betAmount} SATS`);
+      },
+      paymentVerified: () => {
+        console.log('Payment verified successfully');
+        setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
+        setPaymentTimer(PAYMENT_TIMEOUT);
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
+        setMessage('Payment verified! Estimated wait time: 10-25 seconds');
+        fetchPaymentLogs();
+      },
+      error: ({ message }) => {
+        console.log('Received error from server:', message);
+        clearTimeout(joinGameTimeoutRef.current);
+        setMessage(`Error: ${message}`);
+        setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
+        setPaymentTimer(PAYMENT_TIMEOUT);
+        setGameState('join');
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
+        setShowQR(false);
+      },
+      matchmakingTimer: ({ message }) => {
+        console.log('Received matchmaking timer update:', message);
+        setMessage(message);
+      },
+      matchedWithBot: ({ message }) => {
+        console.log('Matched with bot:', message);
+        setMessage(message);
+      },
+      startPlacing: () => {
+        console.log('Starting ship placement phase');
+        setGameState('placing');
+        setMessage('Place your ships! Tap to rotate, drag to position.');
+        setIsPlacementConfirmed(false);
+        setPlacementSaved(false);
+        setShips(prev =>
+          prev.map(ship => ({
+            ...ship,
+            positions: [],
+            horizontal: true,
+            placed: false,
+          }))
+        );
+        setMyBoard(Array(GRID_SIZE).fill('water'));
+        setShipCount(0);
+        setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+      },
+      placementSaved: () => {
+        console.log('Placement saved on server');
+        setIsPlacementConfirmed(true);
+        setPlacementSaved(true);
+        setMessage('Placement saved! Waiting for opponent...');
+      },
+      placementAutoSaved: () => {
+        console.log('Placement auto-saved due to timeout');
+        setIsPlacementConfirmed(true);
+        setPlacementSaved(true);
+        setMessage('Time up! Ships auto-placed. Waiting for opponent...');
+      },
+      games: ({ count, grid, ships: serverShips }) => {
+        console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
+        setShipCount(count);
+        if (grid && serverShips) {
+          setMyBoard(grid);
+          setShips(prev => {
+            const updated = [...prev];
+            serverShips.forEach(serverShip => {
+              const shipIndex = updated.findIndex(s => s.name === serverShip.name);
+              if (shipIndex !== -1) {
+                updated[shipIndex] = {
+                  ...updated[shipIndex],
+                  positions: serverShip.positions,
+                  horizontal: serverShip.horizontal,
+                  placed: serverShip.positions.length > 0,
+                };
+              }
+            });
+            return updated;
+          });
+          playPlaceSound();
+        }
+      },
+      startGame: ({ turn, message }) => {
+        console.log(`Starting game, turn: ${turn}, message: ${message}`);
+        setGameState('playing');
+        setTurn(turn);
+        setMessage(message);
+        setIsOpponentThinking(turn !== newSocket.id);
+        setPlacementSaved(false);
+        setEnemyBoard(Array(GRID_SIZE).fill('water'));
+      },
+      fireResult: ({ player, position, hit }) => {
+        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
+        const row = Math.floor(position / GRID_COLS);
+        const col = position % GRID_COLS;
+        hit ? playHitSound() : playMissSound();
+        setGameStats(prev => ({
+          ...prev,
+          shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
+          hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
+          misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
+        }));
+        if (player === newSocket.id) {
+          setCannonFire({ row, col, hit });
+          setTimeout(() => setCannonFire(null), 1000);
+          setEnemyBoard(prev => {
+            const newBoard = [...prev];
+            newBoard[position] = hit ? 'hit' : 'miss';
+            return newBoard;
+          });
+          setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
+        } else {
+          setMyBoard(prev => {
+            const newBoard = [...prev];
+            newBoard[position] = hit ? 'hit' : 'miss';
+            return newBoard;
+          });
+          setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+        }
+        setIsOpponentThinking(false);
+      },
+      nextTurn: ({ turn }) => {
+        console.log(`Next turn: ${turn}`);
+        setTurn(turn);
+        setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
+        setIsOpponentThinking(turn !== newSocket.id);
+      },
+      gameEnd: ({ message }) => {
+        console.log('Game ended:', message);
+        setGameState('finished');
+        setIsOpponentThinking(false);
+        setMessage(message);
+        fetchPaymentLogs();
+        if (message.includes('You won')) {
+          setShowConfetti(true);
+          playWinSound();
+        } else {
+          playLoseSound();
+        }
+      },
+      transaction: ({ message }) => {
+        console.log('Transaction message:', message);
+        setTransactionMessage(message);
+      },
+    };
+
+    Object.entries(handlers).forEach(([event, handler]) => {
+      newSocket.on(event, handler);
+    });
+
+    newSocket.connect();
+
+    return () => {
+      clearTimeout(timeout);
+      Object.entries(handlers).forEach(([event, handler]) => {
+        newSocket.off(event, handler);
+      });
+      newSocket.disconnect();
+    };
+  }, [fetchPaymentLogs, playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound]); // Removed myBoard to avoid re-running
+
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
     console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
@@ -164,7 +390,6 @@ const App = () => {
     let row = Math.floor(position / GRID_COLS);
     let col = position % GRID_COLS;
 
-    // Adjust row and column to prevent overflow
     if (!ship.horizontal) {
       const maxRow = GRID_ROWS - ship.size;
       if (row > maxRow) {
@@ -206,8 +431,8 @@ const App = () => {
 
   // Function to update the server with the current board state
   const updateServerBoard = useCallback((updatedShips) => {
-    if (gameState !== 'placing' || isPlacementConfirmed) {
-      console.log('Cannot update server board: Invalid game state or placement confirmed');
+    if (gameState !== 'placing' || isPlacementConfirmed || !socket) {
+      console.log('Cannot update server board: Invalid game state, placement confirmed, or no socket');
       return;
     }
     console.log('Updating server with current board state');
@@ -216,9 +441,9 @@ const App = () => {
       positions: ship.positions,
       horizontal: ship.horizontal,
     }));
-    socket.emit('updateBoard', { gameId, playerId: socket.id, placements });
+    socket.emit('updateBoard', { gameId, playerId: socket?.id, placements });
     console.log('Server board update emitted:', placements);
-  }, [gameId, gameState, isPlacementConfirmed, ships]);
+  }, [gameId, gameState, isPlacementConfirmed, ships, socket]);
 
   // Function to randomize unplaced ships on the board
   const randomizeUnplacedShips = useCallback(() => {
@@ -307,8 +532,8 @@ const App = () => {
 
   // Function to save ship placement to the server
   const saveShipPlacement = useCallback(() => {
-    if (placementSaved) {
-      console.log('Placement already saved, cannot save again');
+    if (placementSaved || !socket) {
+      console.log('Placement already saved or no socket, cannot save again');
       return;
     }
     const unplacedShips = ships.filter(ship => !ship.placed);
@@ -331,7 +556,7 @@ const App = () => {
     socket.emit('savePlacement', { gameId, placements });
     console.log('Emitted savePlacement to server:', placements);
     playPlaceSound();
-  }, [placementSaved, ships, gameId, playPlaceSound, randomizeUnplacedShips]);
+  }, [placementSaved, ships, gameId, playPlaceSound, randomizeUnplacedShips, socket]);
 
   // Function to auto-save placement when time runs out
   const autoSavePlacement = useCallback(() => {
@@ -341,25 +566,26 @@ const App = () => {
   }, [randomizeUnplacedShips, saveShipPlacement]);
 
   // Effect to adjust cell size based on screen width for mobile optimization
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      console.log(`Window resized to width: ${width}px`);
-      if (width < 480) {
-        setCellSize(30); // Small phones
-        console.log('Set cell size to 30px for small phones');
-      } else if (width < 768) {
-        setCellSize(35); // Tablets
-        console.log('Set cell size to 35px for tablets');
-      } else {
-        setCellSize(40); // Desktop
-        console.log('Set cell size to 40px for desktop');
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
+  const handleResize = useCallback(() => {
+    const width = window.innerWidth;
+    console.log(`Window resized to width: ${width}px`);
+    if (width < 480) {
+      setCellSize(30);
+      console.log('Set cell size to 30px for small phones');
+    } else if (width < 768) {
+      setCellSize(35);
+      console.log('Set cell size to 35px for tablets');
+    } else {
+      setCellSize(40);
+      console.log('Set cell size to 40px for desktop');
+    }
   }, []);
+
+  useEffect(() => {
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [handleResize]);
 
   // Effect to initialize seeded random number generator based on playerId
   useEffect(() => {
@@ -411,7 +637,7 @@ const App = () => {
       setLightningInvoice(null);
       setHostedInvoiceUrl(null);
       setShowQR(false);
-      socket.emit('cancelGame', { gameId, playerId });
+      socket?.emit('cancelGame', { gameId, playerId });
       console.log('Emitted cancelGame due to payment timeout');
     }
     return () => {
@@ -420,7 +646,7 @@ const App = () => {
         clearTimeout(paymentTimerRef.current);
       }
     };
-  }, [isWaitingForPayment, paymentTimer, gameId, playerId]);
+  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket]);
 
   // Effect to start the placement timer when entering the placing state
   useEffect(() => {
@@ -443,252 +669,32 @@ const App = () => {
     }
   }, [gameState, fetchPaymentLogs]);
 
-  // Effect to set up socket event listeners with connection timeout and retry mechanism
-  useEffect(() => {
-    console.log('Setting up socket listeners');
-    
-    const timeout = setTimeout(() => {
-      if (!socket.connected) {
-        setIsSocketConnected(false);
-        setMessage("Failed to connect to the server. Please try again.");
-      }
-    }, 5000);
-
-    const handlers = {
-      connect: () => {
-        clearTimeout(timeout);
-        reconnectAttemptsRef.current = 0;
-        console.log('[Frontend] Connected:', socket.id);
-        setIsSocketConnected(true);
-        setMessage('');
-      },
-      connect_error: (error) => {
-        clearTimeout(timeout);
-        console.log('[Frontend] Socket connection error:', error.message);
-        setIsSocketConnected(false);
-        setMessage(`Failed to connect to server: ${error.message}`);
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setGameState('join');
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
-        setShowQR(false);
-      },
-      disconnect: () => {
-        clearTimeout(timeout);
-        console.log('[Frontend] Disconnected from server');
-        setIsSocketConnected(false);
-        setMessage('Disconnected from server. Please try again.');
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setGameState('join');
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
-        setShowQR(false);
-      },
-      joined: ({ gameId, playerId }) => {
-        console.log(`Joined game ${gameId} as player ${playerId}`);
-        setGameId(gameId);
-        setPlayerId(playerId);
-        setGameState('waiting');
-        setMessage('Processing payment...');
-      },
-      paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
-        console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
-        clearTimeout(joinGameTimeoutRef.current);
-        setLightningInvoice(lightningInvoice);
-        setHostedInvoiceUrl(hostedInvoiceUrl);
-        setShowQR(true);
-        setIsWaitingForPayment(true);
-        setPayButtonLoading(false);
-        setPaymentTimer(PAYMENT_TIMEOUT);
-        setMessage(`Scan to pay ${betAmount} SATS`);
-      },
-      paymentVerified: () => {
-        console.log('Payment verified successfully');
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setPaymentTimer(PAYMENT_TIMEOUT);
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
-        setShowQR(false);
-        setMessage('Payment verified! Estimated wait time: 10-25 seconds');
-        fetchPaymentLogs(); // Refresh logs after payment
-      },
-      error: ({ message }) => {
-        console.log('Received error from server:', message);
-        clearTimeout(joinGameTimeoutRef.current);
-        setMessage(`Error: ${message}`);
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setPaymentTimer(PAYMENT_TIMEOUT);
-        setGameState('join');
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
-        setShowQR(false);
-      },
-      matchmakingTimer: ({ message }) => {
-        console.log('Received matchmaking timer update:', message);
-        setMessage(message);
-      },
-      matchedWithBot: ({ message }) => {
-        console.log('Matched with bot:', message);
-        setMessage(message);
-      },
-      startPlacing: () => {
-        console.log('Starting ship placement phase');
-        setGameState('placing');
-        setMessage('Place your ships! Tap to rotate, drag to position.');
-        setIsPlacementConfirmed(false);
-        setPlacementSaved(false);
-        setShips(prev =>
-          prev.map(ship => ({
-            ...ship,
-            positions: [],
-            horizontal: true,
-            placed: false,
-          }))
-        );
-        setMyBoard(Array(GRID_SIZE).fill('water'));
-        setShipCount(0);
-        setGameStats({ shotsFired: 0, hits: 0, misses: 0 }); // Reset stats
-      },
-      placementSaved: () => {
-        console.log('Placement saved on server');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setMessage('Placement saved! Waiting for opponent...');
-      },
-      placementAutoSaved: () => {
-        console.log('Placement auto-saved due to timeout');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setMessage('Time up! Ships auto-placed. Waiting for opponent...');
-      },
-      games: ({ count, grid, ships: serverShips }) => {
-        console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
-        setShipCount(count);
-        if (grid && serverShips) {
-          setMyBoard(grid);
-          setShips(prev => {
-            const updated = [...prev];
-            serverShips.forEach(serverShip => {
-              const shipIndex = updated.findIndex(s => s.name === serverShip.name);
-              if (shipIndex !== -1) {
-                updated[shipIndex] = {
-                  ...updated[shipIndex],
-                  positions: serverShip.positions,
-                  horizontal: serverShip.horizontal,
-                  placed: serverShip.positions.length > 0,
-                };
-              }
-            });
-            return updated;
-          });
-          playPlaceSound();
-        }
-      },
-      startGame: ({ turn, message }) => {
-        console.log(`Starting game, turn: ${turn}, message: ${message}`);
-        setGameState('playing');
-        setTurn(turn);
-        setMessage(message);
-        setIsOpponentThinking(turn !== socket.id);
-        setPlacementSaved(false);
-        setEnemyBoard(Array(GRID_SIZE).fill('water'));
-      },
-      fireResult: ({ player, position, hit }) => {
-        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
-        const row = Math.floor(position / GRID_COLS);
-        const col = position % GRID_COLS;
-        hit ? playHitSound() : playMissSound();
-        setGameStats(prev => ({
-          ...prev,
-          shotsFired: player === socket.id ? prev.shotsFired + 1 : prev.shotsFired,
-          hits: player === socket.id && hit ? prev.hits + 1 : prev.hits,
-          misses: player === socket.id && !hit ? prev.misses + 1 : prev.misses,
-        }));
-        if (player === socket.id) {
-          setCannonFire({ row, col, hit });
-          setTimeout(() => setCannonFire(null), 1000); // Reset animation after 1 second
-          setEnemyBoard(prev => {
-            const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
-            return newBoard;
-          });
-          setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
-        } else {
-          setMyBoard(prev => {
-            const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
-            return newBoard;
-          });
-          setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-        }
-        setIsOpponentThinking(false);
-      },
-      nextTurn: ({ turn }) => {
-        console.log(`Next turn: ${turn}`);
-        setTurn(turn);
-        setMessage(turn === socket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
-        setIsOpponentThinking(turn !== socket.id);
-      },
-      gameEnd: ({ message }) => {
-        console.log('Game ended:', message);
-        setGameState('finished');
-        setIsOpponentThinking(false);
-        setMessage(message);
-        fetchPaymentLogs(); // Refresh logs after game end
-        if (message.includes('You won')) {
-          setShowConfetti(true);
-          playWinSound();
-        } else {
-          playLoseSound();
-        }
-      },
-      transaction: ({ message }) => {
-        console.log('Transaction message:', message);
-        setTransactionMessage(message);
-      },
-    };
-
-    Object.entries(handlers).forEach(([event, handler]) => {
-      socket.on(event, handler);
-    });
-
-    socket.connect();
-
-    return () => {
-      clearTimeout(timeout);
-      Object.entries(handlers).forEach(([event, handler]) => {
-        socket.off(event, handler);
-      });
-      socket.disconnect();
-    };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, myBoard, betAmount, fetchPaymentLogs]);
-
   // Function to handle reconnection attempts
-  const handleReconnect = () => {
+  const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
       setMessage('Max reconnection attempts reached. Please refresh the page.');
       return;
     }
     reconnectAttemptsRef.current += 1;
     console.log(`Reconnection attempt ${reconnectAttemptsRef.current}`);
-    socket.connect();
+    socket?.connect();
     setMessage('Attempting to reconnect...');
-  };
+  }, [socket]);
 
   // Function to select a bet amount
-  const selectBet = (bet, payout, fee) => {
+  const selectBet = useCallback((bet, payout, fee) => {
     console.log('Selecting bet:', { bet, payout, fee });
     setBetAmount(bet);
     setPayoutAmount(payout);
     setPlatformFee(fee);
-  };
+  }, []);
 
   // Function to handle joining the game
-  const handleJoinGame = () => {
+  const handleJoinGame = useCallback(() => {
+    if (!socket) {
+      setMessage('Cannot join game: No socket connection.');
+      return;
+    }
     console.log('Attempting to join game:', { lightningAddress, betAmount, socketId: socket.id });
     if (!lightningAddress) {
       setMessage('Please enter a Lightning address');
@@ -709,12 +715,10 @@ const App = () => {
       return;
     }
 
-    // Emit joinGame event
     socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) }, () => {
       console.log('Join game callback triggered');
     });
 
-    // Set a timeout for the joinGame response
     joinGameTimeoutRef.current = setTimeout(() => {
       console.error('joinGame timed out');
       setMessage('Failed to join game: Server did not respond. Please try again.');
@@ -729,10 +733,10 @@ const App = () => {
     setGameState('waiting');
     setMessage('Joining game...');
     console.log('Emitted joinGame event to server');
-  };
+  }, [socket, lightningAddress, betAmount]);
 
   // Function to handle payment button click
-  const handlePay = () => {
+  const handlePay = useCallback(() => {
     if (hostedInvoiceUrl) {
       setPayButtonLoading(true);
       console.log('Opening hosted invoice URL:', hostedInvoiceUrl);
@@ -740,10 +744,11 @@ const App = () => {
     } else {
       setMessage('No payment URL available.');
     }
-  };
+  }, [hostedInvoiceUrl]);
 
   // Function to cancel the game during payment phase
-  const handleCancelGame = () => {
+  const handleCancelGame = useCallback(() => {
+    if (!socket) return;
     console.log('Cancelling game:', { gameId, playerId });
     socket.emit('cancelGame', { gameId, playerId });
     setGameState('join');
@@ -754,10 +759,10 @@ const App = () => {
     setIsWaitingForPayment(false);
     setPayButtonLoading(false);
     setPaymentTimer(PAYMENT_TIMEOUT);
-  };
+  }, [socket, gameId, playerId]);
 
   // Function to toggle ship orientation
-  const toggleOrientation = (shipIndex) => {
+  const toggleOrientation = useCallback((shipIndex) => {
     if (isPlacementConfirmed || !ships[shipIndex].placed) {
       console.log(`Cannot toggle orientation for ship ${shipIndex}: Placement confirmed or ship not placed`);
       return;
@@ -794,10 +799,10 @@ const App = () => {
 
       return updated;
     });
-  };
+  }, [isPlacementConfirmed, ships, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to randomize all ships on the board
-  const randomizeShips = () => {
+  const randomizeShips = useCallback(() => {
     if (isPlacementConfirmed) {
       console.log('Cannot randomize ships: Placement already confirmed');
       return;
@@ -873,10 +878,10 @@ const App = () => {
     }
     playPlaceSound();
     updateServerBoard(newShips);
-  };
+  }, [isPlacementConfirmed, ships, playPlaceSound, updateServerBoard]);
 
   // Function to clear the board
-  const clearBoard = () => {
+  const clearBoard = useCallback(() => {
     if (isPlacementConfirmed) {
       console.log('Cannot clear board: Placement already confirmed');
       return;
@@ -887,24 +892,24 @@ const App = () => {
     setShipCount(0);
     setMessage('Board cleared. Place your ships!');
     updateServerBoard();
-  };
+  }, [isPlacementConfirmed, updateServerBoard]);
 
   // Function to handle firing a shot
-  const handleFire = (position) => {
-    if (gameState !== 'playing' || turn !== socket.id || enemyBoard[position] !== 'water') {
+  const handleFire = useCallback((position) => {
+    if (gameState !== 'playing' || turn !== socket?.id || enemyBoard[position] !== 'water') {
       console.log(`Cannot fire at position ${position}: Invalid state, turn, or cell`);
       return;
     }
     console.log(`Firing at position ${position}`);
-    socket.emit('fire', { gameId, position });
+    socket?.emit('fire', { gameId, position });
     const row = Math.floor(position / GRID_COLS);
     const col = position % GRID_COLS;
     setCannonFire({ row, col, hit: false });
-    setTimeout(() => setCannonFire(null), 1000); // Reset animation after 1 second
-  };
+    setTimeout(() => setCannonFire(null), 1000);
+  }, [gameState, turn, enemyBoard, socket, gameId]);
 
   // Function to render the game grid
-  const renderGrid = (board, isEnemy) => {
+  const renderGrid = useCallback((board, isEnemy) => {
     console.log(`Rendering ${isEnemy ? 'enemy' : 'player'} grid`);
     return (
       <div
@@ -937,7 +942,7 @@ const App = () => {
                 }}
                 style={{
                   cursor:
-                    isEnemy && cell === 'water' && gameState === 'playing' && turn === socket.id
+                    isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
                       ? 'crosshair'
                       : 'default',
                   width: cellSize,
@@ -986,10 +991,10 @@ const App = () => {
           })}
       </div>
     );
-  };
+  }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket?.id]);
 
   // Function to render the list of ships for placement
-  const renderShipList = () => {
+  const renderShipList = useCallback(() => {
     if (isPlacementConfirmed) {
       console.log('Not rendering ship list: Placement confirmed');
       return null;
@@ -1074,10 +1079,10 @@ const App = () => {
         ))}
       </div>
     );
-  };
+  }, [isPlacementConfirmed, ships, cellSize, isDragging, toggleOrientation, handleGridDrop]);
 
   // Component to render the splash screen
-  const SplashScreen = () => (
+  const SplashScreen = useMemo(() => (
     <div className="splash-screen" style={{ textAlign: 'center', padding: '40px' }}>
       <img src={LOGO_URL} alt="Thunderfleet Logo" style={{ width: '150px', marginBottom: '20px' }} />
       <h1 className="game-title">⚡ Lightning Sea Battle ⚡</h1>
@@ -1107,10 +1112,10 @@ const App = () => {
         </button>
       </div>
     </div>
-  );
+  ), [isSoundEnabled]);
 
   // Component to render the terms and conditions modal
-  const TermsModal = () => (
+  const TermsModal = useMemo(() => (
     <div className="modal" style={{
       position: 'fixed',
       top: 0,
@@ -1154,10 +1159,10 @@ const App = () => {
         </button>
       </div>
     </div>
-  );
+  ), []);
 
   // Component to render the privacy policy modal
-  const PrivacyModal = () => (
+  const PrivacyModal = useMemo(() => (
     <div className="modal" style={{
       position: 'fixed',
       top: 0,
@@ -1200,10 +1205,10 @@ const App = () => {
         </button>
       </div>
     </div>
-  );
+  ), []);
 
   // Component to render the how-to-play modal
-  const HowToPlayModal = () => (
+  const HowToPlayModal = useMemo(() => (
     <div className="modal" style={{
       position: 'fixed',
       top: 0,
@@ -1245,10 +1250,10 @@ const App = () => {
         </button>
       </div>
     </div>
-  );
+  ), []);
 
   // Component to render the payment logs modal
-  const PaymentLogsModal = () => (
+  const PaymentLogsModal = useMemo(() => (
     <div className="modal" style={{
       position: 'fixed',
       top: 0,
@@ -1290,10 +1295,10 @@ const App = () => {
         </button>
       </div>
     </div>
-  );
+  ), [paymentLogs]);
 
   // Component to render the payment modal
-  const PaymentModal = () => (
+  const PaymentModal = useMemo(() => (
     <div className="payment-modal">
       <h3>⚡ Pay {betAmount} SATS to join ⚡</h3>
       <p className="winnings-info">
@@ -1346,10 +1351,10 @@ const App = () => {
         </div>
       )}
     </div>
-  );
+  ), [betAmount, payoutAmount, showQR, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame]);
 
   // Component to render confetti animation
-  const Confetti = () => {
+  const Confetti = useMemo(() => {
     const confettiPieces = Array.from({ length: CONFETTI_COUNT }).map((_, i) => {
       const colors = ['#ff4500', '#2ecc71', '#3498db', '#f39c12', '#e74c3c'];
       const left = Math.random() * 100;
@@ -1368,10 +1373,10 @@ const App = () => {
     });
 
     return <div className="confetti">{confettiPieces}</div>;
-  };
+  }, []);
 
   // Component to render game statistics
-  const GameStats = () => (
+  const GameStats = useMemo(() => (
     <div className="game-stats" style={{ margin: '20px 0', textAlign: 'center' }}>
       <h3>Game Statistics</h3>
       <p>Shots Fired: {gameStats.shotsFired}</p>
@@ -1379,19 +1384,18 @@ const App = () => {
       <p>Misses: {gameStats.misses}</p>
       <p>Accuracy: {gameStats.shotsFired > 0 ? ((gameStats.hits / gameStats.shotsFired) * 100).toFixed(2) : 0}%</p>
     </div>
-  );
+  ), [gameStats]);
 
   // Function to handle drag over events on the grid
-  const handleGridDragOver = (e) => {
+  const handleGridDragOver = useCallback((e) => {
     e.preventDefault();
     console.log('Drag over grid');
-  };
+  }, []);
 
   // Function to handle dropping a ship on the grid
-  const handleGridDrop = (e) => {
+  const handleGridDrop = useCallback((e) => {
     let shipIndex, x, y;
     if (e.dataTransfer) {
-      // Desktop drag-and-drop
       e.preventDefault();
       if (isPlacementConfirmed) {
         console.log('Cannot drop ship: Placement confirmed');
@@ -1403,7 +1407,6 @@ const App = () => {
       y = e.clientY - rect.top;
       console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
     } else {
-      // Mobile touch
       shipIndex = e.shipIndex;
       x = e.x;
       y = e.y;
@@ -1466,18 +1469,42 @@ const App = () => {
     playPlaceSound();
     setIsDragging(false);
     if (updatedShips) updateServerBoard(updatedShips);
-  };
+  }, [isPlacementConfirmed, ships, cellSize, shipCount, calculateShipPositions, playPlaceSound, updateServerBoard]);
+
+  // Memoized bet selection UI to prevent re-renders
+  const betSelection = useMemo(() => (
+    <div className="bet-selection">
+      <label htmlFor="bet-select">Select Your Bet:</label>
+      <select
+        id="bet-select"
+        value={betAmount || ""}
+        onChange={(e) => {
+          const selectedOption = BET_OPTIONS.find(option => option.amount === Number(e.target.value));
+          if (selectedOption) {
+            selectBet(selectedOption.amount, selectedOption.winnings, selectedOption.fee);
+          }
+        }}
+      >
+        <option value="" disabled>Select a bet</option>
+        {BET_OPTIONS.map(option => (
+          <option key={option.amount} value={option.amount}>
+            Bet: {option.amount} SATS
+          </option>
+        ))}
+      </select>
+    </div>
+  ), [betAmount, selectBet]);
 
   // Render the main application UI
   return (
     <div className="App">
-      {showConfetti && <Confetti />}
-      {showTermsModal && <TermsModal />}
-      {showPrivacyModal && <PrivacyModal />}
-      {showHowToPlayModal && <HowToPlayModal />}
-      {showPaymentLogs && <PaymentLogsModal />}
+      {showConfetti && Confetti}
+      {showTermsModal && TermsModal}
+      {showPrivacyModal && PrivacyModal}
+      {showHowToPlayModal && HowToPlayModal}
+      {showPaymentLogs && PaymentLogsModal}
 
-      {gameState === 'splash' && <SplashScreen />}
+      {gameState === 'splash' && SplashScreen}
 
       {gameState !== 'splash' && (
         <>
@@ -1504,26 +1531,7 @@ const App = () => {
           {gameState === 'join' && (
             <div className="join">
               <h2>Select Your Bet</h2>
-              <div className="bet-selection">
-                <label htmlFor="bet-select">Select Your Bet:</label>
-                <select
-                  id="bet-select"
-                  value={betAmount || ""}
-                  onChange={(e) => {
-                    const selectedOption = BET_OPTIONS.find(option => option.amount === Number(e.target.value));
-                    if (selectedOption) {
-                      selectBet(selectedOption.amount, selectedOption.winnings, selectedOption.fee);
-                    }
-                  }}
-                >
-                  <option value="" disabled>Select a bet</option>
-                  {BET_OPTIONS.map(option => (
-                    <option key={option.amount} value={option.amount}>
-                      Bet: {option.amount} SATS
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {betSelection}
               {betAmount && <p className="winnings-info">Win: {payoutAmount} SATS (Platform Fee: {platformFee} SATS)</p>}
 
               <input
@@ -1595,7 +1603,7 @@ const App = () => {
             <div className="waiting">
               <div className="loading-spinner"></div>
               <p className="waiting-text">{message}</p>
-              {(lightningInvoice || hostedInvoiceUrl) && <PaymentModal />}
+              {(lightningInvoice || hostedInvoiceUrl) && PaymentModal}
             </div>
           )}
 
@@ -1680,7 +1688,7 @@ const App = () => {
             </div>
           )}
 
-          {(gameState === 'playing' || gameState === 'finished') && <GameStats />}
+          {(gameState === 'playing' || gameState === 'finished') && GameStats}
 
           {gameState === 'finished' && (
             <div className="game-end">
