@@ -15,8 +15,8 @@ import submarineVertical from './assets/ships/vertical/submarine.png';
 import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
-// Placeholder logo URL (to be replaced by the user)
-const LOGO_URL = 'https://via.placeholder.com/150?text=Thunderfleet+Logo';
+// Updated logo URL to a more reliable placeholder
+const LOGO_URL = 'https://placehold.co/150x150?text=Thunderfleet+Logo';
 
 // Game constants defining the grid size and timing constraints
 const GRID_COLS = 9; // Number of columns in the game grid
@@ -24,6 +24,7 @@ const GRID_ROWS = 7; // Number of rows in the game grid
 const GRID_SIZE = GRID_COLS * GRID_ROWS; // Total number of cells in the grid
 const PLACEMENT_TIME = 30; // Time in seconds for ship placement phase
 const PAYMENT_TIMEOUT = 300; // Payment verification timeout in seconds (5 minutes)
+const JOIN_GAME_TIMEOUT = 10000; // Timeout for joinGame response in milliseconds (10 seconds)
 const CONFETTI_COUNT = 50; // Number of confetti pieces (reduced for performance)
 
 // Bet options aligned with server.js for consistency
@@ -129,6 +130,7 @@ const App = () => {
   // References for managing timers and DOM elements
   const timerRef = useRef(null); // Reference for placement timer
   const paymentTimerRef = useRef(null); // Reference for payment timer
+  const joinGameTimeoutRef = useRef(null); // Reference for joinGame timeout
   const seededRandom = useRef(null); // Reference for seeded random number generator
   const gridRef = useRef(null); // Reference for the player's grid DOM element
   const reconnectAttemptsRef = useRef(0); // Track reconnection attempts
@@ -493,6 +495,7 @@ const App = () => {
       },
       paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
         console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
+        clearTimeout(joinGameTimeoutRef.current);
         setLightningInvoice(lightningInvoice);
         setHostedInvoiceUrl(hostedInvoiceUrl);
         setShowQR(true);
@@ -514,6 +517,7 @@ const App = () => {
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
+        clearTimeout(joinGameTimeoutRef.current);
         setMessage(`Error: ${message}`);
         setIsWaitingForPayment(false);
         setPayButtonLoading(false);
@@ -705,7 +709,23 @@ const App = () => {
       return;
     }
 
-    socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) });
+    // Emit joinGame event
+    socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) }, () => {
+      console.log('Join game callback triggered');
+    });
+
+    // Set a timeout for the joinGame response
+    joinGameTimeoutRef.current = setTimeout(() => {
+      console.error('joinGame timed out');
+      setMessage('Failed to join game: Server did not respond. Please try again.');
+      setGameState('join');
+      setIsWaitingForPayment(false);
+      setPayButtonLoading(false);
+      setLightningInvoice(null);
+      setHostedInvoiceUrl(null);
+      setShowQR(false);
+    }, JOIN_GAME_TIMEOUT);
+
     setGameState('waiting');
     setMessage('Joining game...');
     console.log('Emitted joinGame event to server');
