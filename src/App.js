@@ -24,7 +24,7 @@ const GRID_ROWS = 7; // Number of rows in the game grid
 const GRID_SIZE = GRID_COLS * GRID_ROWS; // Total number of cells in the grid
 const PLACEMENT_TIME = 30; // Time in seconds for ship placement phase
 const PAYMENT_TIMEOUT = 300; // Payment verification timeout in seconds (5 minutes)
-const JOIN_GAME_TIMEOUT = 20000; // Timeout for joinGame response in milliseconds (increased to 20 seconds)
+const JOIN_GAME_TIMEOUT = 10000; // Timeout for joinGame response in milliseconds (10 seconds)
 const CONFETTI_COUNT = 50; // Number of confetti pieces (reduced for performance)
 
 // Bet options aligned with server.js for consistency
@@ -120,8 +120,7 @@ const App = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [paymentLogs, setPaymentLogs] = useState([]);
   const [showPaymentLogs, setShowPaymentLogs] = useState(false);
-  const [socket, setSocket] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); // Added for joinGame loading state
+  const [socket, setSocket] = useState(null); // Add socket state
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -153,8 +152,8 @@ const App = () => {
     }
   }, []);
 
-  // Initialize Socket.IO connection with useCallback to prevent re-renders
-  const initializeSocket = useCallback(() => {
+  // Initialize Socket.IO connection once on mount
+  useEffect(() => {
     const newSocket = io('https://thunderfleet-backend.onrender.com', {
       transports: ['polling'], // Match backend by forcing polling
       reconnectionAttempts: 5,
@@ -190,7 +189,6 @@ const App = () => {
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setShowQR(false);
-        setIsLoading(false);
       },
       disconnect: () => {
         clearTimeout(timeout);
@@ -203,7 +201,6 @@ const App = () => {
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setShowQR(false);
-        setIsLoading(false);
       },
       joined: ({ gameId, playerId }) => {
         console.log(`Joined game ${gameId} as player ${playerId}`);
@@ -222,7 +219,6 @@ const App = () => {
         setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
         setMessage(`Scan to pay ${betAmount} SATS`);
-        setIsLoading(false);
       },
       paymentVerified: () => {
         console.log('Payment verified successfully');
@@ -246,7 +242,6 @@ const App = () => {
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setShowQR(false);
-        setIsLoading(false);
       },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
@@ -386,12 +381,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [fetchPaymentLogs, playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound]);
-
-  useEffect(() => {
-    const cleanup = initializeSocket();
-    return cleanup;
-  }, [initializeSocket]);
+  }, [fetchPaymentLogs, playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound]); // Removed myBoard to avoid re-running
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
@@ -725,9 +715,6 @@ const App = () => {
       return;
     }
 
-    setIsLoading(true);
-    setMessage('');
-
     socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) }, () => {
       console.log('Join game callback triggered');
     });
@@ -741,7 +728,6 @@ const App = () => {
       setLightningInvoice(null);
       setHostedInvoiceUrl(null);
       setShowQR(false);
-      setIsLoading(false);
     }, JOIN_GAME_TIMEOUT);
 
     setGameState('waiting');
@@ -773,7 +759,6 @@ const App = () => {
     setIsWaitingForPayment(false);
     setPayButtonLoading(false);
     setPaymentTimer(PAYMENT_TIMEOUT);
-    setIsLoading(false);
   }, [socket, gameId, playerId]);
 
   // Function to toggle ship orientation
@@ -1008,8 +993,8 @@ const App = () => {
     );
   }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket?.id]);
 
-  // Function to render the list of ships for placement, wrapped in useMemo to prevent re-renders
-  const renderShipList = useMemo(() => {
+  // Function to render the list of ships for placement
+  const renderShipList = useCallback(() => {
     if (isPlacementConfirmed) {
       console.log('Not rendering ship list: Placement confirmed');
       return null;
@@ -1563,13 +1548,9 @@ const App = () => {
                 onClick={() => handleJoinGame()}
                 onTouchStart={() => handleJoinGame()}
                 className="join-button"
-                disabled={!isSocketConnected || !betAmount || !lightningAddress || isLoading}
+                disabled={!isSocketConnected || !betAmount || !lightningAddress}
               >
-                {isLoading ? (
-                  <div className="loading-spinner" />
-                ) : (
-                  `Join Game (Pay ${betAmount || 'Select a bet'} SATS)`
-                )}
+                Join Game (Pay {betAmount || 'Select a bet'} SATS)
               </button>
               {!isSocketConnected && (
                 <button
@@ -1657,7 +1638,7 @@ const App = () => {
                   </div>
                   <div className="ships">
                     <h2 className="ships-title">Ships ({shipCount}/5)</h2>
-                    {renderShipList}
+                    {renderShipList()}
                   </div>
                   <div className="placement-controls">
                     <button
