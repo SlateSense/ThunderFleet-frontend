@@ -15,7 +15,7 @@ import submarineVertical from './assets/ships/vertical/submarine.png';
 import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
-// Updated logo URL to a more reliable placeholder
+// Updated logo URL to a reliable placeholder
 const LOGO_URL = 'https://placehold.co/150x150?text=Thunderfleet+Logo';
 
 // Game constants defining the grid size and timing constraints
@@ -68,11 +68,11 @@ const useSound = (src, isSoundEnabled) => {
     if (isSoundEnabled) {
       audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
     }
-  }, [isSoundEnabled, audio]);
+  }, [isSoundEnabled, audio, src]); // Added src to dependency array
 };
 
 const App = () => {
-  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} on Thursday, June 12, 2025, 07:44 PM IST`);
+  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} on Thursday, June 12, 2025, 08:11 PM IST`);
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
@@ -81,7 +81,6 @@ const App = () => {
   const [lightningAddress, setLightningAddress] = useState('');
   const [betAmount, setBetAmount] = useState(null);
   const [payoutAmount, setPayoutAmount] = useState(null);
-  const [platformFee, setPlatformFee] = useState(null);
   const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [enemyBoard, setEnemyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [ships, setShips] = useState(() =>
@@ -669,7 +668,7 @@ const App = () => {
         clearTimeout(paymentTimerRef.current);
       }
     };
-  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket]);
+  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket, betAmount]); // Added betAmount to dependency array
 
   // Effect to start the placement timer when entering the placing state
   useEffect(() => {
@@ -705,11 +704,10 @@ const App = () => {
   }, [socket]);
 
   // Function to select a bet amount
-  const selectBet = useCallback((bet, payout, fee) => {
-    console.log('Selecting bet:', { bet, payout, fee });
+  const selectBet = useCallback((bet, payout) => {
+    console.log('Selecting bet:', { bet, payout });
     setBetAmount(bet);
     setPayoutAmount(payout);
-    setPlatformFee(fee);
   }, []);
 
   // Function to handle joining the game
@@ -1018,6 +1016,91 @@ const App = () => {
       </div>
     );
   }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket?.id]);
+
+  // Function to handle dropping a ship on the grid
+  const handleGridDrop = useCallback((e) => {
+    let shipIndex, x, y;
+    if (e.dataTransfer) {
+      e.preventDefault();
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
+        return;
+      }
+      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    } else {
+      shipIndex = e.shipIndex;
+      x = e.x;
+      y = e.y;
+      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    }
+
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
+      return;
+    }
+
+    const ship = ships[shipIndex];
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+    const position = row * GRID_COLS + col;
+
+    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
+      setMessage('Invalid drop position!');
+      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
+      return;
+    }
+
+    const newPositions = calculateShipPositions(ship, position.toString());
+    if (!newPositions) {
+      setMessage('Invalid placement!');
+      console.log('Invalid placement: Ship cannot be placed here');
+      return;
+    }
+
+    let updatedShips;
+    setMyBoard((prev) => {
+      const newBoard = [...prev];
+      ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
+      return newBoard;
+    });
+
+    setShips((prev) => {
+      const updated = [...prev];
+      updated[shipIndex] = {
+        ...updated[shipIndex],
+        positions: newPositions,
+        placed: true,
+      };
+      updatedShips = updated;
+      console.log(`Updated ship ${ship.name} with new positions:`, newPositions);
+      return updated;
+    });
+
+    const newShipCount = ship.positions.length > 0 ? shipCount : shipCount + 1;
+    setShipCount(newShipCount);
+    setMessage(
+      newShipCount === 5
+        ? 'All ships placed! Click "Save Placement".'
+        : `${newShipCount} of 5 ships placed.`
+    );
+    console.log(`Ship count updated to ${newShipCount}`);
+
+    playPlaceSound();
+    setIsDragging(false);
+    if (updatedShips) updateServerBoard(updatedShips);
+  }, [isPlacementConfirmed, ships, cellSize, shipCount, calculateShipPositions, playPlaceSound, updateServerBoard]);
+
+  // Function to handle drag over events on the grid
+  const handleGridDragOver = useCallback((e) => {
+    e.preventDefault();
+    console.log('Drag over grid');
+  }, []);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1515,91 +1598,6 @@ const App = () => {
     );
   }, [gameStats]);
 
-  // Function to handle drag over events on the grid
-  const handleGridDragOver = useCallback((e) => {
-    e.preventDefault();
-    console.log('Drag over grid');
-  }, []);
-
-  // Function to handle dropping a ship on the grid
-  const handleGridDrop = useCallback((e) => {
-    let shipIndex, x, y;
-    if (e.dataTransfer) {
-      e.preventDefault();
-      if (isPlacementConfirmed) {
-        console.log('Cannot drop ship: Placement confirmed');
-        return;
-      }
-      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
-      const rect = e.currentTarget.getBoundingClientRect();
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
-      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
-    } else {
-      shipIndex = e.shipIndex;
-      x = e.x;
-      y = e.y;
-      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
-    }
-
-    if (isPlacementConfirmed) {
-      console.log('Cannot drop ship: Placement confirmed');
-      return;
-    }
-
-    const ship = ships[shipIndex];
-    const col = Math.floor(x / cellSize);
-    const row = Math.floor(y / cellSize);
-    const position = row * GRID_COLS + col;
-
-    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
-      setMessage('Invalid drop position!');
-      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
-      return;
-    }
-
-    const newPositions = calculateShipPositions(ship, position.toString());
-    if (!newPositions) {
-      setMessage('Invalid placement!');
-      console.log('Invalid placement: Ship cannot be placed here');
-      return;
-    }
-
-    let updatedShips;
-    setMyBoard((prev) => {
-      const newBoard = [...prev];
-      ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
-      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
-      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
-      return newBoard;
-    });
-
-    setShips((prev) => {
-      const updated = [...prev];
-      updated[shipIndex] = {
-        ...updated[shipIndex],
-        positions: newPositions,
-        placed: true,
-      };
-      updatedShips = updated;
-      console.log(`Updated ship ${ship.name} with new positions:`, newPositions);
-      return updated;
-    });
-
-    const newShipCount = ship.positions.length > 0 ? shipCount : shipCount + 1;
-    setShipCount(newShipCount);
-    setMessage(
-      newShipCount === 5
-        ? 'All ships placed! Click "Save Placement".'
-        : `${newShipCount} of 5 ships placed.`
-    );
-    console.log(`Ship count updated to ${newShipCount}`);
-
-    playPlaceSound();
-    setIsDragging(false);
-    if (updatedShips) updateServerBoard(updatedShips);
-  }, [isPlacementConfirmed, ships, cellSize, shipCount, calculateShipPositions, playPlaceSound, updateServerBoard]);
-
   // Memoized bet selection UI to prevent re-renders
   const betSelection = useMemo(() => {
     console.log('Rendering betSelection');
@@ -1612,7 +1610,7 @@ const App = () => {
           onChange={(e) => {
             const selectedOption = BET_OPTIONS.find(option => option.amount === Number(e.target.value));
             if (selectedOption) {
-              selectBet(selectedOption.amount, selectedOption.winnings, selectedOption.fee);
+              selectBet(selectedOption.amount, selectedOption.winnings);
             }
           }}
         >
@@ -1642,7 +1640,7 @@ const App = () => {
       }}
     >
       <p>Thunderfleet App - Initializing...</p>
-      <p>Current Time: 07:44 PM IST on Thursday, June 12, 2025</p>
+      <p>Current Time: 08:11 PM IST on Thursday, June 12, 2025</p>
       <p>If you see this for more than a few seconds, please refresh the page.</p>
       <button
         onClick={() => window.location.reload()}
@@ -1682,9 +1680,15 @@ const App = () => {
         }}
       >
         <p>Loading Thunderfleet App... Please wait.</p>
-        <p>Current Time: 07:44 PM IST on Thursday, June 12, 2025</p>
+        <p>Current Time: 08:11 PM IST on Thursday, June 12, 2025</p>
       </div>
     );
+  }
+
+  // Use DefaultFallbackUI if app is loaded but socket is disconnected and no valid game state
+  if (isAppLoaded && !isSocketConnected && gameState === 'splash') {
+    console.log('Rendering DefaultFallbackUI due to socket disconnection');
+    return DefaultFallbackUI;
   }
 
   return (
@@ -1733,7 +1737,7 @@ const App = () => {
               className="join-button"
               style={{
                 background: isSoundEnabled ? '#e74c3c' : '#2ecc71',
-                padding: '10px 20px',
+                padding: '5px 10px',
                 color: '#ffffff !important',
                 border: 'none',
                 borderRadius: '5px',
@@ -1742,103 +1746,75 @@ const App = () => {
                 opacity: '1 !important'
               }}
             >
-              {isSoundEnabled ? '🔇 Mute' : '🔊 Unmute'}
+              {isSoundEnabled ? '🔇 Mute' : '🔊 Sound'}
             </button>
           </div>
-          {message && (
-            <p
-              className={`message ${message.includes('Failed to connect') || message.includes('Disconnected') ? 'error' : ''}`}
-              style={{
-                color: '#ffffff !important',
-                visibility: 'visible !important',
-                opacity: '1 !important',
-                textAlign: 'center',
-                margin: '10px 0'
-              }}
-            >
-              {message}
-            </p>
-          )}
-          {gameState === 'playing' && isOpponentThinking && (
-            <div className="waiting">
-              <div className="loading-spinner"></div>
-              <p
-                className="waiting-text"
-                style={{
-                  color: '#ffffff !important',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
-                }}
-              >
+
+          <div
+            className="message-box"
+            style={{
+              color: '#ffffff !important',
+              background: 'rgba(0, 0, 0, 0.7)',
+              padding: '10px',
+              margin: '10px auto',
+              borderRadius: '5px',
+              textAlign: 'center',
+              maxWidth: '90%',
+              visibility: 'visible !important',
+              opacity: '1 !important'
+            }}
+          >
+            {message || 'Welcome! Join a game to start.'}
+            {isOpponentThinking && (
+              <p style={{ color: '#ffffff !important', margin: '5px 0' }}>
                 Opponent is thinking...
+                <span className="thinking-spinner"></span>
               </p>
-            </div>
-          )}
+            )}
+          </div>
+
           {transactionMessage && (
-            <p
-              className="transaction"
+            <div
+              className="transaction-message"
               style={{
-                color: '#f39c12 !important',
+                color: '#2ecc71 !important',
+                background: 'rgba(0, 0, 0, 0.7)',
+                padding: '10px',
+                margin: '10px auto',
+                borderRadius: '5px',
+                textAlign: 'center',
+                maxWidth: '90%',
                 visibility: 'visible !important',
-                opacity: '1 !important',
-                textAlign: 'center'
+                opacity: '1 !important'
               }}
             >
               {transactionMessage}
-            </p>
+            </div>
           )}
 
-          {gameState === 'join' && (
-            <div className="join">
-              <h2
-                style={{
-                  color: '#ffffff !important',
-                  visibility: 'visible !important',
-                  opacity: '1 !important'
-                }}
-              >
-                Select Your Bet
-              </h2>
-              {betSelection}
-              {betAmount && (
-                <p
-                  className="winnings-info"
-                  style={{
-                    color: '#2ecc71 !important',
-                    visibility: 'visible !important',
-                    opacity: '1 !important'
-                  }}
-                >
-                  Win: {payoutAmount} SATS (Platform Fee: {platformFee} SATS)
-                </p>
-              )}
-
-              <input
-                type="text"
-                placeholder="Enter your Lightning address (e.g., player@your-wallet.com)"
-                value={lightningAddress}
-                onChange={(e) => {
-                  console.log('Lightning address input changed:', e.target.value);
-                  setLightningAddress(e.target.value);
-                }}
-                className="lightning-input"
-                style={{
-                  visibility: 'visible !important',
-                  opacity: '1 !important',
-                  padding: '10px',
-                  margin: '10px',
-                  borderRadius: '5px',
-                  border: 'none'
-                }}
-              />
+          {!isSocketConnected && (
+            <div
+              className="disconnected-message"
+              style={{
+                color: '#e74c3c !important',
+                background: 'rgba(0, 0, 0, 0.7)',
+                padding: '10px',
+                margin: '10px auto',
+                borderRadius: '5px',
+                textAlign: 'center',
+                maxWidth: '90%',
+                visibility: 'visible !important',
+                opacity: '1 !important'
+              }}
+            >
+              {message || 'Disconnected from server. Please try again.'}
               <button
-                onClick={() => handleJoinGame()}
-                onTouchStart={() => handleJoinGame()}
+                onClick={handleReconnect}
+                onTouchStart={handleReconnect}
                 className="join-button"
-                disabled={!isSocketConnected || !betAmount || !lightningAddress || isLoading}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#3498db',
+                  background: '#3498db',
+                  padding: '5px 10px',
                   color: '#ffffff !important',
                   border: 'none',
                   borderRadius: '5px',
@@ -1848,7 +1824,81 @@ const App = () => {
                   opacity: '1 !important'
                 }}
               >
-                Join Game {isLoading && <span className="loading-spinner"></span>}
+                Reconnect
+              </button>
+            </div>
+          )}
+
+          {isSocketConnected && gameState === 'join' && (
+            <div
+              className="join-game"
+              style={{
+                textAlign: 'center',
+                padding: '20px',
+                visibility: 'visible !important',
+                opacity: '1 !important'
+              }}
+            >
+              <h2
+                style={{
+                  color: '#ffffff !important',
+                  visibility: 'visible !important',
+                  opacity: '1 !important'
+                }}
+              >
+                Join Game
+              </h2>
+              <div className="input-group">
+                <label
+                  htmlFor="lightning-address"
+                  style={{
+                    color: '#ffffff !important',
+                    display: 'block',
+                    marginBottom: '5px'
+                  }}
+                >
+                  Your Lightning Address:
+                </label>
+                <input
+                  id="lightning-address"
+                  type="text"
+                  value={lightningAddress}
+                  onChange={(e) => {
+                    setLightningAddress(e.target.value);
+                    console.log('Lightning address updated:', e.target.value);
+                  }}
+                  placeholder="e.g., user@domain.com"
+                  style={{
+                    padding: '10px',
+                    width: '100%',
+                    maxWidth: '300px',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc'
+                  }}
+                />
+              </div>
+              {betSelection}
+              <button
+                onClick={handleJoinGame}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleJoinGame();
+                }}
+                className="join-button"
+                disabled={isLoading}
+                style={{
+                  background: '#2ecc71',
+                  padding: '10px 20px',
+                  color: '#ffffff !important',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  margin: '10px',
+                  visibility: 'visible !important',
+                  opacity: isLoading ? '0.5 !important' : '1 !important'
+                }}
+              >
+                {isLoading ? 'Joining...' : 'Join Game'}
               </button>
               <button
                 onClick={() => {
@@ -1870,7 +1920,7 @@ const App = () => {
                   borderRadius: '5px',
                   cursor: 'pointer',
                   margin: '10px',
-                  visibility: 'visible !important
+                  visibility: 'visible !important',
                   opacity: '1 !important'
                 }}
               >
@@ -2099,7 +2149,6 @@ const App = () => {
                   setShipCount(0);
                   setBetAmount(null);
                   setPayoutAmount(null);
-                  setPlatformFee(null);
                   setLightningAddress('');
                   setLightningInvoice(null);
                   setHostedInvoiceUrl(null);
@@ -2126,7 +2175,6 @@ const App = () => {
                   setShipCount(0);
                   setBetAmount(null);
                   setPayoutAmount(null);
-                  setPlatformFee(null);
                   setLightningAddress('');
                   setLightningInvoice(null);
                   setHostedInvoiceUrl(null);
@@ -2193,32 +2241,30 @@ const App = () => {
           © 2025 Thunderfleet. All rights reserved.
         </p>
         <p style={{ margin: '5px 0' }}>
-          <a
-            href="#"
+          <button
             onClick={(e) => {
               e.preventDefault();
-              console.log('Terms & Conditions link clicked');
+              console.log('Terms & Conditions button clicked');
               setShowTermsModal(true);
             }}
-            style={{ color: '#3498db !important', textDecoration: 'none' }}
+            style={{ color: '#3498db !important', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Terms & Conditions
-          </a>{' '}
+          </button>{' '}
           |{' '}
-          <a
-            href="#"
+          <button
             onClick={(e) => {
               e.preventDefault();
-              console.log('Privacy Policy link clicked');
+              console.log('Privacy Policy button clicked');
               setShowPrivacyModal(true);
             }}
-            style={{ color: '#3498db !important', textDecoration: 'none' }}
+            style={{ color: '#3498db !important', textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Privacy Policy
-          </a>
+          </button>
         </p>
         <p style={{ margin: '5px 0', color: '#ffffff !important' }}>
-          Current Time: 07:49 PM IST on Thursday, June 12, 2025
+          Current Time: 08:19 PM IST on Thursday, June 12, 2025
         </p>
       </footer>
     </div>
