@@ -1,8 +1,18 @@
+/* Debug styles to ensure visibility during troubleshooting */
+* {
+  outline: 1px solid red !important;
+  color: #000000 !important; /* Black text for high contrast */
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: 16px !important;
+}
+
 body {
   margin: 0;
   font-family: 'Arial', sans-serif;
   background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-  color: white;
+  background-attachment: fixed; /* Ensure gradient renders consistently */
+  color: #ffffff !important; /* Force white text with high priority */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -15,24 +25,27 @@ body {
   padding: 20px;
   max-width: 1200px;
   width: 100%;
+  visibility: visible !important; /* Ensure container is visible */
 }
 
 .game-title {
   font-size: 2.5rem;
   margin-bottom: 20px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  visibility: visible !important;
 }
 
-.message {
+.message-box {
   font-size: 1.2rem;
   margin: 10px 0;
   padding: 10px;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 5px;
   border: 1px solid transparent;
+  visibility: visible !important;
 }
 
-.message.error {
+.message-box.error {
   background: rgba(231, 76, 60, 0.8); /* Red background for errors */
   border-color: #e74c3c;
   animation: shake 0.5s ease-in-out; /* Add shake animation for errors */
@@ -45,10 +58,20 @@ body {
   75% { transform: translateX(-5px); }
 }
 
-.transaction {
+.transaction-message {
   font-size: 1rem;
   margin: 5px 0;
-  color: #f39c12;
+  color: #f39c12 !important; /* Ensure transaction message is visible */
+}
+
+.disconnected-message {
+  font-size: 1.2rem;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(231, 76, 60, 0.8);
+  border-radius: 5px;
+  border: 1px solid #e74c3c;
+  visibility: visible !important;
 }
 
 .confetti {
@@ -87,16 +110,26 @@ body {
   transform: translate(-50%, -50%);
   font-size: 3rem;
   font-weight: bold;
-  color: #2ecc71;
+  color: #f39c12 !important; /* Changed from green (#2ecc71) to orange */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   z-index: 1001;
+  visibility: visible !important;
 }
 
-.join {
+.join-game {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
+  visibility: visible !important;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
 }
 
 .lightning-input {
@@ -106,12 +139,20 @@ body {
   border: none;
   width: 250px;
   background: rgba(255, 255, 255, 0.9);
-  color: #333;
+  color: #333 !important;
 }
 
 .lightning-input:focus {
   outline: none;
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style for accessibility */
+}
+
+.speed-app-label {
+  margin-top: 5px;
+  color: #ffffff !important;
+  font-size: 0.9rem !important;
+  opacity: 0.7;
+  pointer-events: none; /* Makes the text uneditable */
 }
 
 .join-button {
@@ -120,9 +161,10 @@ body {
   background: #e74c3c;
   border: none;
   border-radius: 5px;
-  color: white;
+  color: white !important;
   cursor: pointer;
   transition: background 0.3s;
+  visibility: visible !important;
 }
 
 .join-button:hover {
@@ -134,11 +176,29 @@ body {
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
+.terms-text {
+  margin-top: 10px;
+  font-size: 0.9rem !important;
+  color: #ffffff !important;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.terms-text a {
+  color: #f39c12 !important;
+  text-decoration: underline;
+}
+
+.terms-text a:hover {
+  color: #e67e22 !important;
+}
+
 .waiting {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  visibility: visible !important;
 }
 
 .waiting-text {
@@ -155,6 +215,17 @@ body {
   will-change: transform; /* Optimize animation */
 }
 
+.thinking-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+  will-change: transform; /* Optimize animation */
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -165,6 +236,7 @@ body {
   flex-direction: column;
   gap: 20px;
   align-items: center;
+  visibility: visible !important;
 }
 
 .board {
@@ -195,7 +267,7 @@ body {
 }
 
 .cell.water {
-  background: #3498db;
+  background: #3498db; /* Kept as is since it was in your original */
 }
 
 .cell.ship {
@@ -273,7 +345,7 @@ body {
 
 .timer-progress {
   height: 100%;
-  background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c);
+  background: linear-gradient(90deg, #f39c12, #e74c3c); /* Changed from green (#2ecc71) to orange-red gradient */
   transition: width 1s linear;
 }
 
@@ -283,7 +355,7 @@ body {
 }
 
 .time-warning {
-  color: #e74c3c;
+  color: #e74c3c !important;
   font-weight: bold;
 }
 
@@ -334,7 +406,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
+  color: white !important;
   font-size: 0.8rem;
   text-shadow: 1px 1px 2px black;
   pointer-events: none;
@@ -343,16 +415,16 @@ body {
 .orientation-button {
   padding: 8px 15px; /* Standardize padding */
   font-size: 1rem; /* Standardize font size */
-  background: #3498db;
+  background: #e74c3c; /* Changed from blue (#3498db) to red */
   border: none;
   border-radius: 5px;
-  color: white;
+  color: white !important;
   cursor: pointer;
   transition: background 0.3s; /* Add transition */
 }
 
 .orientation-button:hover {
-  background: #2980b9; /* Add hover state */
+  background: #c0392b; /* Changed from blue (#2980b9) to darker red */
 }
 
 .orientation-button:disabled {
@@ -372,18 +444,21 @@ body {
   justify-content: center;
 }
 
-.randomize-button {
+.placement-button {
   padding: 10px 15px;
   font-size: 1rem;
-  background: #2ecc71;
   border: none;
   border-radius: 5px;
-  color: white;
+  color: white !important;
   cursor: pointer;
 }
 
+.randomize-button {
+  background: #f39c12; /* Changed from green (#2ecc71) to orange */
+}
+
 .randomize-button:hover {
-  background: #27ae60;
+  background: #e67e22; /* Changed from green (#27ae60) to darker orange */
 }
 
 .randomize-button:focus {
@@ -392,13 +467,7 @@ body {
 }
 
 .clear-button {
-  padding: 10px 15px;
-  font-size: 1rem;
   background: #e74c3c;
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
 }
 
 .clear-button:hover {
@@ -410,26 +479,20 @@ body {
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
 
-.save-button {
-  padding: 10px 15px;
-  font-size: 1rem;
+.save {
   background: #f39c12;
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
 }
 
-.save-button:disabled {
+.save:disabled {
   background: #95a5a6;
   cursor: not-allowed;
 }
 
-.save-button.pulse {
+.save.pulse {
   animation: pulse 1s infinite;
 }
 
-.save-button:focus {
+.save:focus {
   outline: none;
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
 }
@@ -455,6 +518,7 @@ body {
   border-radius: 10px;
   margin-top: 20px;
   text-align: center;
+  visibility: visible !important;
 }
 
 .payment-modal h3 {
@@ -481,12 +545,12 @@ body {
 }
 
 .qr-toggle {
-  background: #3498db;
-  color: white;
+  background: #e74c3c; /* Changed from blue (#3498db) to red */
+  color: white !important;
 }
 
 .qr-toggle:hover {
-  background: #2980b9;
+  background: #c0392b; /* Changed from blue (#2980b9) to darker red */
 }
 
 .qr-toggle:focus {
@@ -495,17 +559,41 @@ body {
 }
 
 .copy-button {
-  background: #2ecc71;
-  color: white;
+  background: #f39c12; /* Changed from green (#2ecc71) to orange */
+  color: white !important;
 }
 
 .copy-button:hover {
-  background: #27ae60;
+  background: #e67e22; /* Changed from green (#27ae60) to darker orange */
 }
 
 .copy-button:focus {
   outline: none;
   box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+}
+
+.cancel-button {
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  background: #e74c3c;
+  border: none;
+  border-radius: 5px;
+  color: white !important;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #c0392b;
+}
+
+.cancel-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #f39c12;
+}
+
+.payment-status {
+  margin-top: 15px;
+  color: white !important;
 }
 
 .invoice-code {
@@ -516,11 +604,7 @@ body {
   font-size: 0.8rem;
 }
 
-.payment-status {
-  margin-top: 15px;
-}
-
-.game-end {
+.finished {
   margin-top: 20px;
 }
 
@@ -542,7 +626,7 @@ body {
   background: #f39c12;
   border: none;
   border-radius: 5px;
-  color: white;
+  color: white !important;
   cursor: pointer;
   position: relative; /* For loading state */
 }
@@ -593,7 +677,7 @@ body {
   border-radius: 5px;
   border: none;
   background: rgba(255, 255, 255, 0.9);
-  color: #333;
+  color: #333 !important;
   cursor: pointer;
 }
 
@@ -609,6 +693,41 @@ body {
 .winnings-info {
   font-size: 1rem;
   margin: 10px 0;
-  color: #2ecc71;
+  color: #f39c12 !important; /* Changed from green (#2ecc71) to orange */
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.placing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.playing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.boards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.game-stats {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  color: white !important;
 }
