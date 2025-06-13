@@ -1854,7 +1854,14 @@ const App = () => {
           {/* Playing Game Screen */}
           {gameState === 'playing' && (
             <div className="playing-screen">
-              <h3 style={{ color: '#ffffff', textAlign: 'center' }}>
+              <h3 style={{ 
+                color: '#ffffff', 
+                textAlign: 'center',
+                background: turn === socket?.id ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)',
+                padding: '10px',
+                borderRadius: '5px',
+                marginBottom: '10px'
+              }}>
                 {turn === socket?.id ? 'Your Turn' : 'Opponent’s Turn'}
               </h3>
               <p style={{ color: '#ffffff', textAlign: 'center' }}>{message}</p>
@@ -1864,12 +1871,30 @@ const App = () => {
                   <div className="loading-spinner"></div>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap' }}>
-                <div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-around', 
+                flexWrap: 'wrap',
+                gap: '20px',
+                padding: '10px'
+              }}>
+                <div style={{
+                  flex: '1 1 300px',
+                  maxWidth: '400px',
+                  border: turn !== socket?.id ? '3px solid rgba(46, 204, 113, 0.5)' : 'none',
+                  borderRadius: '5px',
+                  padding: '5px'
+                }}>
                   <h4 style={{ color: '#ffffff', textAlign: 'center' }}>Your Board</h4>
                   {renderGrid(myBoard, false)}
                 </div>
-                <div>
+                <div style={{
+                  flex: '1 1 300px',
+                  maxWidth: '400px',
+                  border: turn === socket?.id ? '3px solid rgba(46, 204, 113, 0.5)' : 'none',
+                  borderRadius: '5px',
+                  padding: '5px'
+                }}>
                   <h4 style={{ color: '#ffffff', textAlign: 'center' }}>Enemy Board</h4>
                   {renderGrid(enemyBoard, true)}
                 </div>
@@ -1878,6 +1903,22 @@ const App = () => {
                 <p style={{ color: '#ffffff' }}>
                   Shots Fired: {gameStats.shotsFired} | Hits: {gameStats.hits} | Misses: {gameStats.misses}
                 </p>
+                <button
+                  onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+                  onTouchStart={() => setIsSoundEnabled(!isSoundEnabled)}
+                  className="join-button"
+                  style={{
+                    background: isSoundEnabled ? '#e74c3c' : '#f39c12',
+                    padding: '8px 16px',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    marginTop: '10px'
+                  }}
+                >
+                  {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
+                </button>
               </div>
             </div>
           )}
