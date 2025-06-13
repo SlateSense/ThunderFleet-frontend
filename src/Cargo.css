@@ -1,18 +1,26 @@
-/* Debug styles to ensure visibility during troubleshooting */
+/* Reset default styles for consistency */
 * {
-  outline: 1px solid red !important;
-  color: #000000 !important; /* Black text for high contrast */
-  visibility: visible !important;
-  opacity: 1 !important;
-  font-size: 16px !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+/* Base styles for the body with responsive oceanic background */
 body {
-  margin: 0;
-  font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-  background-attachment: fixed; /* Ensure gradient renders consistently */
-  color: #ffffff !important; /* Force white text with high priority */
+  font-family: 'Poppins', 'Arial', sans-serif; /* Modern font with fallback */
+  
+  /* Oceanic Gradient Background */
+  background: linear-gradient(135deg, #0a2a4a 0%, #1a3c5e 40%, #4a90e2 100%);
+  /* This gradient transitions from deep ocean blue (#0a2a4a) to a mid-tone blue (#1a3c5e) and finally to a lighter wave-like blue (#4a90e2), creating a sense of depth and movement. It scales naturally to any screen size. */
+  
+  /* Option: Image Background (Uncomment to use when you have an image URL) */
+  /*
+  background: url('your-image-url-here') no-repeat center center fixed;
+  background-size: cover; /* Ensures the image covers the entire viewport without distortion */
+  background-color: #0a2a4a; /* Fallback color if the image fails to load */
+  
+  
+  color: #f0f4f8;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -20,35 +28,45 @@ body {
   overflow: auto;
 }
 
+/* Main app container */
 .App {
   text-align: center;
-  padding: 20px;
+  padding: 30px;
   max-width: 1200px;
   width: 100%;
-  visibility: visible !important; /* Ensure container is visible */
+  background: rgba(255, 255, 255, 0.05); /* Slight glassmorphism effect */
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(5px);
 }
 
+/* Game title styling */
 .game-title {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  visibility: visible !important;
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #f0f4f8;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
 }
 
+/* Message box for game updates */
 .message-box {
   font-size: 1.2rem;
-  margin: 10px 0;
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 5px;
-  border: 1px solid transparent;
-  visibility: visible !important;
+  margin: 15px auto;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  border: 1px solid #4a90e2;
+  color: #f0f4f8;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .message-box.error {
-  background: rgba(231, 76, 60, 0.8); /* Red background for errors */
-  border-color: #e74c3c;
-  animation: shake 0.5s ease-in-out; /* Add shake animation for errors */
+  background: rgba(211, 47, 47, 0.8); /* Red background for errors */
+  border-color: #d32f2f;
+  animation: shake 0.5s ease-in-out;
 }
 
 @keyframes shake {
@@ -58,22 +76,33 @@ body {
   75% { transform: translateX(-5px); }
 }
 
+/* Transaction message styling */
 .transaction-message {
-  font-size: 1rem;
-  margin: 5px 0;
-  color: #f39c12 !important; /* Ensure transaction message is visible */
+  font-size: 1.1rem;
+  margin: 10px auto;
+  padding: 10px;
+  color: #f5c518;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  max-width: 90%;
+  text-align: center;
 }
 
+/* Disconnected message styling */
 .disconnected-message {
   font-size: 1.2rem;
-  margin: 10px 0;
-  padding: 10px;
-  background: rgba(231, 76, 60, 0.8);
-  border-radius: 5px;
-  border: 1px solid #e74c3c;
-  visibility: visible !important;
+  margin: 15px auto;
+  padding: 15px;
+  background: rgba(211, 47, 47, 0.8);
+  border-radius: 10px;
+  border: 1px solid #d32f2f;
+  color: #f0f4f8;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+/* Confetti animation for winning */
 .confetti {
   position: fixed;
   top: 0;
@@ -89,7 +118,7 @@ body {
   width: 10px;
   height: 10px;
   animation: fall 5s linear infinite;
-  will-change: transform, opacity; /* Optimize animation performance */
+  will-change: transform, opacity;
 }
 
 @keyframes fall {
@@ -103,25 +132,16 @@ body {
   }
 }
 
-.win-message {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 3rem;
-  font-weight: bold;
-  color: #2ecc71 !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  z-index: 1001;
-  visibility: visible !important;
-}
-
+/* Join game section */
 .join-game {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  visibility: visible !important;
+  gap: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .input-group {
@@ -129,76 +149,87 @@ body {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 300px;
+  max-width: 350px;
 }
 
 .lightning-input {
-  padding: 10px;
-  font-size: 1rem;
-  border-radius: 5px;
+  padding: 12px;
+  font-size: 1.1rem;
+  border-radius: 8px;
   border: none;
-  width: 250px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333 !important;
+  width: 100%;
+  background: #f0f4f8;
+  color: #1a3c5e;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
 }
 
 .lightning-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style for accessibility */
+  box-shadow: 0 0 0 3px #4a90e2;
 }
 
+/* Join button styling */
 .join-button {
-  padding: 10px 20px;
+  padding: 12px 30px;
   font-size: 1.2rem;
-  background: #e74c3c;
+  font-weight: 600;
+  background: #4a90e2;
   border: none;
-  border-radius: 5px;
-  color: white !important;
+  border-radius: 8px;
+  color: #f0f4f8;
   cursor: pointer;
-  transition: background 0.3s;
-  visibility: visible !important;
+  transition: background 0.3s, transform 0.1s;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .join-button:hover {
-  background: #c0392b;
+  background: #357abd;
+  transform: translateY(-2px);
 }
 
 .join-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
+.join-button:disabled {
+  background: #b0bec5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Waiting state styling */
 .waiting {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  visibility: visible !important;
+  gap: 15px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
 }
 
 .waiting-text {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  color: #f0f4f8;
 }
 
-.loading-spinner {
+/* Loading and thinking spinners */
+.loading-spinner, .thinking-spinner {
   width: 40px;
   height: 40px;
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid white;
+  border-top: 4px solid #f5c518;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  will-change: transform; /* Optimize animation */
+  will-change: transform;
 }
 
 .thinking-spinner {
   width: 20px;
   height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
   margin-left: 10px;
-  will-change: transform; /* Optimize animation */
 }
 
 @keyframes spin {
@@ -206,29 +237,42 @@ body {
   100% { transform: rotate(360deg); }
 }
 
+/* Game container */
 .game-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 30px;
   align-items: center;
-  visibility: visible !important;
 }
 
-.board {
+/* Game boards */
+.boards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.board-section {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .board-title {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #f0f4f8;
 }
 
+/* Grid styling */
 .grid-container {
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 2px;
+  border: 3px solid #f0f4f8;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .grid {
@@ -237,30 +281,32 @@ body {
 
 .cell {
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #3498db;
+  background: #4a90e2;
   position: relative;
+  transition: background 0.3s;
 }
 
 .cell.water {
-  background: #3498db;
+  background: #4a90e2;
 }
 
 .cell.ship {
-  background: #7f8c8d;
+  background: #b0bec5;
 }
 
 .cell.hit {
-  background: #e74c3c;
+  background: #d32f2f;
 }
 
 .cell.miss {
-  background: #bdc3c7;
+  background: #607d8b;
 }
 
 .cell.drag-active {
-  border: 2px dashed #f39c12;
+  border: 2px dashed #f5c518;
 }
 
+/* Cannonball effect for hits/misses */
 .cannonball-effect {
   position: absolute;
   top: 50%;
@@ -270,15 +316,15 @@ body {
   transform: translate(-50%, -50%);
   border-radius: 50%;
   animation: explode 0.5s ease-out forwards;
-  will-change: transform, opacity; /* Optimize animation */
+  will-change: transform, opacity;
 }
 
 .cannonball-effect.hit {
-  background: radial-gradient(circle, #e74c3c, transparent);
+  background: radial-gradient(circle, #d32f2f, transparent);
 }
 
 .cannonball-effect.miss {
-  background: radial-gradient(circle, #bdc3c7, transparent);
+  background: radial-gradient(circle, #607d8b, transparent);
 }
 
 @keyframes explode {
@@ -296,84 +342,98 @@ body {
   z-index: 10;
 }
 
+/* Ships controls */
 .ships-controls {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
   align-items: center;
   width: 100%;
   max-width: 400px;
 }
 
+/* Timer styling */
 .timer-container {
   width: 100%;
+  max-width: 300px;
   text-align: center;
+  margin: 0 auto;
 }
 
 .timer-bar {
   width: 100%;
-  height: 20px;
+  height: 15px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .timer-progress {
   height: 100%;
-  background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c);
+  background: linear-gradient(90deg, #4a90e2, #f5c518, #d32f2f);
   transition: width 1s linear;
 }
 
 .timer-text {
-  margin-top: 5px;
-  font-size: 1rem;
+  margin-top: 8px;
+  font-size: 1.1rem;
+  color: #f0f4f8;
 }
 
 .time-warning {
-  color: #e74c3c !important;
+  color: #d32f2f;
   font-weight: bold;
 }
 
+/* Ships list */
 .ships {
   width: 100%;
 }
 
 .ships-title {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #f0f4f8;
 }
 
 .ships-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
 }
 
 .ship-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 10px;
-  border-radius: 5px;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .ship-info {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  color: #f0f4f8;
 }
 
 .ship-status {
   font-size: 0.9rem;
+  color: #f0f4f8;
 }
 
 .ship {
   position: relative;
-  background: #7f8c8d; /* Fallback background color */
-  border: 2px solid #f39c12; /* Fallback border for visibility */
+  background: #b0bec5;
+  border: 2px solid #f5c518;
+  border-radius: 5px;
+  transition: opacity 0.3s;
 }
 
 .ship-label {
@@ -381,86 +441,103 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white !important;
-  font-size: 0.8rem;
-  text-shadow: 1px 1px 2px black;
+  color: #f0f4f8;
+  font-size: 0.9rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
 
+/* Orientation button */
 .orientation-button {
-  padding: 8px 15px; /* Standardize padding */
-  font-size: 1rem; /* Standardize font size */
-  background: #3498db;
+  padding: 10px 20px;
+  font-size: 1rem;
+  background: #4a90e2;
   border: none;
-  border-radius: 5px;
-  color: white !important;
+  border-radius: 8px;
+  color: #f0f4f8;
   cursor: pointer;
-  transition: background 0.3s; /* Add transition */
+  transition: background 0.3s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .orientation-button:hover {
-  background: #2980b9; /* Add hover state */
+  background: #357abd;
+  transform: translateY(-2px);
 }
 
 .orientation-button:disabled {
-  background: #95a5a6;
+  background: #607d8b;
   cursor: not-allowed;
+  transform: none;
 }
 
 .orientation-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
+/* Placement controls */
 .placement-controls {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   flex-wrap: wrap;
   justify-content: center;
+  margin-top: 20px;
 }
 
 .placement-button {
-  padding: 10px 15px;
+  padding: 12px 20px;
   font-size: 1rem;
   border: none;
-  border-radius: 5px;
-  color: white !important;
+  border-radius: 8px;
+  color: #f0f4f8;
   cursor: pointer;
+  transition: background 0.3s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .randomize-button {
-  background: #2ecc71;
+  background: #4a90e2;
 }
 
 .randomize-button:hover {
-  background: #27ae60;
+  background: #357abd;
+  transform: translateY(-2px);
 }
 
 .randomize-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
 .clear-button {
-  background: #e74c3c;
+  background: #d32f2f;
 }
 
 .clear-button:hover {
-  background: #c0392b;
+  background: #b71c1c;
+  transform: translateY(-2px);
 }
 
 .clear-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
 .save {
-  background: #f39c12;
+  background: #f5c518;
+  color: #1a3c5e;
+}
+
+.save:hover {
+  background: #e0b015;
+  transform: translateY(-2px);
 }
 
 .save:disabled {
-  background: #95a5a6;
+  background: #607d8b;
   cursor: not-allowed;
+  transform: none;
 }
 
 .save.pulse {
@@ -469,156 +546,129 @@ body {
 
 .save:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #4a90e2;
 }
 
 @keyframes pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7);
+    box-shadow: 0 0 0 0 rgba(245, 197, 24, 0.7);
   }
   70% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(243, 156, 18, 0);
+    box-shadow: 0 0 0 10px rgba(245, 197, 24, 0);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
+    box-shadow: 0 0 0 0 rgba(245, 197, 24, 0);
   }
 }
 
+/* Payment modal */
 .payment-modal {
-  background: rgba(0, 0, 0, 0.8);
-  padding: 20px;
-  border-radius: 10px;
-  margin-top: 20px;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 25px;
+  border-radius: 15px;
+  margin-top: 25px;
   text-align: center;
-  visibility: visible !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .payment-modal h3 {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #f0f4f8;
 }
 
 .qr-container {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f0f4f8;
+  border-radius: 10px;
 }
 
 .invoice-controls {
   display: flex;
-  gap: 10px;
+  gap: 15px;
   justify-content: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
-.qr-toggle, .copy-button {
-  padding: 8px 15px;
-  font-size: 0.9rem;
+.qr-toggle, .copy-button, .cancel-button, .pay-button {
+  padding: 10px 20px;
+  font-size: 1rem;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.3s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .qr-toggle {
-  background: #3498db;
-  color: white !important;
+  background: #4a90e2;
+  color: #f0f4f8;
 }
 
 .qr-toggle:hover {
-  background: #2980b9;
+  background: #357abd;
+  transform: translateY(-2px);
 }
 
 .qr-toggle:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
 .copy-button {
-  background: #2ecc71;
-  color: white !important;
+  background: #4a90e2;
+  color: #f0f4f8;
 }
 
 .copy-button:hover {
-  background: #27ae60;
+  background: #357abd;
+  transform: translateY(-2px);
 }
 
 .copy-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
 .cancel-button {
-  padding: 8px 15px;
-  font-size: 0.9rem;
-  background: #e74c3c;
-  border: none;
-  border-radius: 5px;
-  color: white !important;
-  cursor: pointer;
+  background: #d32f2f;
+  color: #f0f4f8;
 }
 
 .cancel-button:hover {
-  background: #c0392b;
+  background: #b71c1c;
+  transform: translateY(-2px);
 }
 
 .cancel-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12;
-}
-
-.payment-status {
-  margin-top: 15px;
-  color: white !important;
-}
-
-.invoice-code {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 10px;
-  border-radius: 5px;
-  word-break: break-all;
-  font-size: 0.8rem;
-}
-
-.finished {
-  margin-top: 20px;
-}
-
-@media (min-width: 768px) {
-  .game-container {
-    flex-direction: row;
-    justify-content: center;
-    gap: 40px;
-  }
-
-  .ships-controls {
-    align-items: flex-start;
-  }
+  box-shadow: 0 0 0 3px #f5c518;
 }
 
 .pay-button {
-  padding: 8px 15px;
-  font-size: 0.9rem;
-  background: #f39c12;
-  border: none;
-  border-radius: 5px;
-  color: white !important;
-  cursor: pointer;
-  position: relative; /* For loading state */
+  background: #f5c518;
+  color: #1a3c5e;
 }
 
 .pay-button:hover {
-  background: #e67e22;
+  background: #e0b015;
+  transform: translateY(-2px);
 }
 
 .pay-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
+  box-shadow: 0 0 0 3px #4a90e2;
 }
 
 .pay-button.loading {
-  background: #e67e22;
+  background: #e0b015;
   cursor: not-allowed;
-  position: relative;
+  transform: none;
 }
 
 .pay-button.loading::after {
@@ -629,80 +679,115 @@ body {
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
-  border: 2px solid white;
+  border: 2px solid #1a3c5e;
   border-top: 2px solid transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-.bet-selection {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+.payment-status {
+  margin-top: 20px;
+  color: #f0f4f8;
 }
 
-.bet-selection label {
-  font-size: 1rem;
+/* Game end/finished state */
+.finished {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.bet-selection select {
-  padding: 8px;
-  font-size: 1rem;
-  border-radius: 5px;
-  border: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333 !important;
-  cursor: pointer;
-}
-
-.bet-selection select:hover {
-  background: rgba(255, 255, 255, 1);
-}
-
-.bet-selection select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #f39c12; /* Add focus style */
-}
-
-.winnings-info {
-  font-size: 1rem;
-  margin: 10px 0;
-  color: #2ecc71 !important;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
+/* Placing state */
 .placing {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 25px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+/* Playing state */
 .playing {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 25px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.boards {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
-}
-
-.board-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
+/* Game statistics */
 .game-stats {
-  margin: 20px 0;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 5px;
-  color: white !important;
+  margin: 25px 0;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  color: #f0f4f8;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Bet selection */
+.bet-selection {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.bet-selection label {
+  font-size: 1.1rem;
+  color: #f0f4f8;
+}
+
+.bet-selection select {
+  padding: 10px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  border: none;
+  background: #f0f4f8;
+  color: #1a3c5e;
+  cursor: pointer;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s;
+}
+
+.bet-selection select:hover {
+  background: #e0e6ed;
+}
+
+.bet-selection select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px #4a90e2;
+}
+
+/* Winnings info */
+.winnings-info {
+  font-size: 1.1rem;
+  margin: 15px 0;
+  color: #f5c518;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive design */
+@media (min-width: 768px) {
+  .game-container {
+    flex-direction: row;
+    justify-content: center;
+    gap: 50px;
+  }
+
+  .ships-controls {
+    align-items: flex-start;
+  }
+
+  .boards {
+    gap: 50px;
+  }
 }
