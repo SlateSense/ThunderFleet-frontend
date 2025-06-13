@@ -68,7 +68,7 @@ const useSound = (src, isSoundEnabled) => {
     if (isSoundEnabled) {
       audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
     }
-  }, [isSoundEnabled, audio, src]); // Added src to dependency array
+  }, [isSoundEnabled, audio, src]);
 };
 
 const App = () => {
@@ -119,9 +119,7 @@ const App = () => {
   const [paymentLogs, setPaymentLogs] = useState([]);
   const [showPaymentLogs, setShowPaymentLogs] = useState(false);
   const [socket, setSocket] = useState(null);
-  const [isLoading, setIsLoading] = useState(false); // Added isLoading state for Join Game button
-
-  // Add a state for initial app loading
+  const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
 
   // References for managing timers and DOM elements
@@ -145,13 +143,13 @@ const App = () => {
     console.log('Current gameState:', gameState);
   }, [gameState]);
 
-  // Simulate app loading (e.g., for assets, initial checks)
+  // Simulate app loading
   useEffect(() => {
     console.log('App useEffect: Simulating app loading');
     const timer = setTimeout(() => {
       setIsAppLoaded(true);
       console.log('App loaded, setting isAppLoaded to true');
-    }, 1000); // 1-second delay to ensure initial assets load
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -160,7 +158,7 @@ const App = () => {
     try {
       const response = await fetch('https://thunderfleet-backend.onrender.com/logs');
       const text = await response.text();
-      const logs = text.split('\n').filter(line => line.trim()).slice(-5); // Get last 5 logs
+      const logs = text.split('\n').filter(line => line.trim()).slice(-5);
       setPaymentLogs(logs);
       console.log('Fetched payment logs:', logs);
     } catch (err) {
@@ -169,10 +167,10 @@ const App = () => {
     }
   }, []);
 
-  // Initialize Socket.IO connection once on mount
+  // Initialize Socket.IO connection
   useEffect(() => {
     const newSocket = io('https://thunderfleet-backend.onrender.com', {
-      transports: ['polling'], // Match backend by forcing polling
+      transports: ['polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
@@ -205,7 +203,6 @@ const App = () => {
         setIsLoading(false);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        // Do not revert to 'join' state; stay in current state
       },
       disconnect: () => {
         clearTimeout(timeout);
@@ -217,7 +214,6 @@ const App = () => {
         setIsLoading(false);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        // Do not revert to 'join' state; stay in current state
       },
       joined: ({ gameId, playerId }) => {
         console.log(`Joined game ${gameId} as player ${playerId}`);
@@ -230,7 +226,7 @@ const App = () => {
         console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
         clearTimeout(joinGameTimeoutRef.current);
         setLightningInvoice(lightningInvoice);
-        setHostedInvoiceUrl(hostedInvoiceUrl);
+        setHostedInvoiceUrl(hostedInvoiceUrl || null); // Fallback to null if missing
         setIsWaitingForPayment(true);
         setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
@@ -256,7 +252,6 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        // Do not revert to 'join' state; stay in current state
       },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
@@ -396,7 +391,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [fetchPaymentLogs, playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound]);
+  }, [fetchPaymentLogs, playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
@@ -647,7 +642,7 @@ const App = () => {
       console.log('Payment timed out after 5 minutes');
       setIsWaitingForPayment(false);
       setPayButtonLoading(false);
-      setIsLoading(false); // Reset loading state
+      setIsLoading(false);
       setMessage('Payment timed out after 5 minutes. Click Retry to try again.');
       setLightningInvoice(null);
       setHostedInvoiceUrl(null);
@@ -660,7 +655,7 @@ const App = () => {
         clearTimeout(paymentTimerRef.current);
       }
     };
-  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket, betAmount]);
+  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket]);
 
   // Effect to start the placement timer when entering the placing state
   useEffect(() => {
@@ -728,7 +723,7 @@ const App = () => {
       return;
     }
 
-    setIsLoading(true); // Set loading state
+    setIsLoading(true);
     socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) }, () => {
       console.log('Join game callback triggered');
     });
@@ -736,8 +731,7 @@ const App = () => {
     joinGameTimeoutRef.current = setTimeout(() => {
       console.error('joinGame timed out');
       setMessage('Failed to join game: Server did not respond. Click Retry to try again.');
-      setIsLoading(false); // Allow retry
-      // Stay in 'waiting' state instead of reverting to 'join'
+      setIsLoading(false);
     }, JOIN_GAME_TIMEOUT);
 
     setGameState('waiting');
@@ -752,7 +746,7 @@ const App = () => {
       console.log('Opening hosted invoice URL:', hostedInvoiceUrl);
       window.open(hostedInvoiceUrl, '_blank');
     } else {
-      setMessage('No payment URL available.');
+      setMessage('No payment URL available. Please scan the QR code to pay.');
     }
   }, [hostedInvoiceUrl]);
 
@@ -767,7 +761,7 @@ const App = () => {
     setHostedInvoiceUrl(null);
     setIsWaitingForPayment(false);
     setPayButtonLoading(false);
-    setIsLoading(false); // Reset loading state
+    setIsLoading(false);
     setPaymentTimer(PAYMENT_TIMEOUT);
   }, [socket, gameId, playerId]);
 
@@ -1001,7 +995,7 @@ const App = () => {
           })}
       </div>
     );
-  }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket?.id]);
+  }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
@@ -1135,7 +1129,7 @@ const App = () => {
                 setIsDragging(false);
                 const data = JSON.parse(sessionStorage.getItem('dragData'));
                 if (!data) return;
-                const { shipIndex } = data; // Removed startX, startY
+                const { shipIndex } = data;
                 const touch = e.changedTouches[0];
                 const gridRect = gridRef.current.getBoundingClientRect();
                 const x = touch.clientX - gridRect.left;
@@ -1185,7 +1179,7 @@ const App = () => {
         style={{
           textAlign: 'center',
           padding: '40px',
-          background: 'linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)', // Updated to match original gradient
+          background: 'linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d)',
           minHeight: '100vh'
         }}
       >
@@ -1220,7 +1214,7 @@ const App = () => {
           className="join-button"
           style={{
             padding: '10px 20px',
-            backgroundColor: '#e74c3c', // Updated from blue (#3498db) to red
+            backgroundColor: '#e74c3c',
             color: '#ffffff',
             border: 'none',
             borderRadius: '5px',
@@ -1242,7 +1236,7 @@ const App = () => {
             }}
             className="join-button"
             style={{
-              background: '#e74c3c', // Updated from blue (#3498db) to red
+              background: '#e74c3c',
               marginRight: '10px',
               padding: '10px 20px',
               color: '#ffffff',
@@ -1264,7 +1258,7 @@ const App = () => {
             }}
             className="join-button"
             style={{
-              background: isSoundEnabled ? '#e74c3c' : '#f39c12', // Updated from green (#2ecc71) to orange
+              background: isSoundEnabled ? '#e74c3c' : '#f39c12',
               padding: '10px 20px',
               color: '#ffffff',
               border: 'none',
@@ -1320,7 +1314,7 @@ const App = () => {
             onClick={() => setShowTermsModal(false)}
             onTouchStart={() => setShowTermsModal(false)}
             className="join-button"
-            style={{ background: '#e74c3c' }} // Updated to match Cargo.css
+            style={{ background: '#e74c3c' }}
           >
             Close
           </button>
@@ -1369,7 +1363,7 @@ const App = () => {
             onClick={() => setShowPrivacyModal(false)}
             onTouchStart={() => setShowPrivacyModal(false)}
             className="join-button"
-            style={{ background: '#e74c3c' }} // Updated to match Cargo.css
+            style={{ background: '#e74c3c' }}
           >
             Close
           </button>
@@ -1437,18 +1431,28 @@ const App = () => {
         <p className="winnings-info">
           Win {payoutAmount} SATS!
         </p>
-        {lightningInvoice && (
+        {lightningInvoice ? (
           <div className="qr-container">
             <QRCodeSVG value={lightningInvoice} size={window.innerWidth < 320 ? 150 : 200} level="H" includeMargin={true} />
           </div>
+        ) : (
+          <p style={{ color: '#ffffff' }}>Generating invoice...</p>
         )}
         <div className="invoice-controls">
           <button
             onClick={handlePay}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
-            disabled={payButtonLoading}
+            disabled={!hostedInvoiceUrl || payButtonLoading}
+            style={{
+              background: !hostedInvoiceUrl ? '#666' : '#e74c3c',
+              padding: '10px 20px',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: !hostedInvoiceUrl ? 'not-allowed' : 'pointer',
+            }}
           >
-            Pay Now
+            {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
           <button onClick={handleCancelGame} className="cancel-button">
             Cancel
@@ -1599,10 +1603,7 @@ const App = () => {
 
   // Render the main app UI
   return (
-    <div
-      className="App"
-      // Removed backgroundColor to let Cargo.css handle it
-    >
+    <div className="App">
       {/* Show loading screen until app is fully loaded */}
       {!isAppLoaded && (
         <div
@@ -1852,218 +1853,187 @@ const App = () => {
           )}
 
           {/* Playing Game Screen */}
-          {gameState === 'playing' && (
-            <div className="playing-screen">
-              <h3 style={{ 
-                color: '#ffffff', 
+        {gameState === 'playing' && socket && (
+          <div className="playing-screen">
+            <h3
+              style={{
+                color: '#ffffff',
                 textAlign: 'center',
-                background: turn === socket?.id ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)',
+                background: turn === socket.id ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)',
                 padding: '10px',
                 borderRadius: '5px',
-                marginBottom: '10px'
-              }}>
-                {turn === socket?.id ? 'Your Turn' : 'Opponent’s Turn'}
-              </h3>
-              <p style={{ color: '#ffffff', textAlign: 'center' }}>{message}</p>
-              {isOpponentThinking && (
-                <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                  <p style={{ color: '#ffffff' }}>Opponent is thinking...</p>
-                  <div className="loading-spinner"></div>
-                </div>
-              )}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-around', 
-                flexWrap: 'wrap',
+                marginBottom: '10px',
+              }}
+            >
+              {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
+            </h3>
+            <p style={{ color: '#ffffff', textAlign: 'center', marginBottom: '10px' }}>
+              {message}
+            </p>
+            {isOpponentThinking && (
+              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <div className="loading-spinner"></div>
+                <p style={{ color: '#ffffff' }}>Opponent is thinking...</p>
+              </div>
+            )}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
                 gap: '20px',
-                padding: '10px'
-              }}>
-                <div style={{
-                  flex: '1 1 300px',
-                  maxWidth: '400px',
-                  border: turn !== socket?.id ? '3px solid rgba(46, 204, 113, 0.5)' : 'none',
-                  borderRadius: '5px',
-                  padding: '5px'
-                }}>
-                  <h4 style={{ color: '#ffffff', textAlign: 'center' }}>Your Board</h4>
-                  {renderGrid(myBoard, false)}
-                </div>
-                <div style={{
-                  flex: '1 1 300px',
-                  maxWidth: '400px',
-                  border: turn === socket?.id ? '3px solid rgba(46, 204, 113, 0.5)' : 'none',
-                  borderRadius: '5px',
-                  padding: '5px'
-                }}>
-                  <h4 style={{ color: '#ffffff', textAlign: 'center' }}>Enemy Board</h4>
-                  {renderGrid(enemyBoard, true)}
-                </div>
+                marginBottom: '20px',
+              }}
+            >
+              <div>
+                <h4 style={{ color: '#ffffff', textAlign: 'center' }}>Your Fleet</h4>
+                {renderGrid(myBoard, false)}
               </div>
-              <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                <p style={{ color: '#ffffff' }}>
-                  Shots Fired: {gameStats.shotsFired} | Hits: {gameStats.hits} | Misses: {gameStats.misses}
-                </p>
-                <button
-                  onClick={() => setIsSoundEnabled(!isSoundEnabled)}
-                  onTouchStart={() => setIsSoundEnabled(!isSoundEnabled)}
-                  className="join-button"
-                  style={{
-                    background: isSoundEnabled ? '#e74c3c' : '#f39c12',
-                    padding: '8px 16px',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
-                >
-                  {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
-                </button>
+              <div>
+                <h4 style={{ color: '#ffffff', textAlign: 'center' }}>Enemy Waters</h4>
+                {renderGrid(enemyBoard, true)}
               </div>
             </div>
-          )}
-
-          {/* Game Finished Screen */}
-          {gameState === 'finished' && (
-            <div className="finished-screen" style={{ textAlign: 'center', padding: '20px' }}>
-              {Confetti}
-              <h2 style={{ color: '#ffffff' }}>Game Over!</h2>
-              <p style={{ color: '#ffffff', fontSize: '1.2rem' }}>{message}</p>
-              {transactionMessage && (
-                <p style={{ color: '#ffffff', marginTop: '10px' }}>{transactionMessage}</p>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', marginTop: '20px' }}>
-                <div style={{ margin: '10px' }}>
-                  <h4 style={{ color: '#ffffff' }}>Your Board</h4>
-                  {renderGrid(myBoard, false)}
-                </div>
-                <div style={{ margin: '10px' }}>
-                  <h4 style={{ color: '#ffffff' }}>Enemy Board</h4>
-                  {renderGrid(enemyBoard, true)}
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', marginTop: '10px' }}>
-                <p style={{ color: '#ffffff' }}>
-                  Shots Fired: {gameStats.shotsFired} | Hits: {gameStats.hits} | Misses: {gameStats.misses}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setShowConfetti(false);
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                }}
-                onTouchStart={() => {
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setShowConfetti(false);
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                }}
-                className="join-button"
-                style={{
-                  background: '#e74c3c',
-                  padding: '10px 20px',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  margin: '10px',
-                }}
-              >
-                Play Again
-              </button>
-              <button
-                onClick={() => setShowPaymentLogs(true)}
-                onTouchStart={() => setShowPaymentLogs(true)}
-                className="join-button"
-                style={{
-                  background: '#f39c12',
-                  padding: '10px 20px',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  margin: '10px',
-                }}
-              >
-                View Payment Logs
-              </button>
+            <div style={{ textAlign: 'center', color: '#ffffff' }}>
+              <h4>Game Stats</h4>
+              <p>Shots Fired: {gameStats.shotsFired}</p>
+              <p>Hits: {gameStats.hits}</p>
+              <p>Misses: {gameStats.misses}</p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Modals */}
-          {showTermsModal && TermsModal}
-          {showPrivacyModal && PrivacyModal}
-          {showHowToPlayModal && HowToPlayModal}
-          {showPaymentLogs && PaymentLogsModal}
-
-          {/* Footer */}
-          {gameState !== 'splash' && (
-            <footer style={{
-              position: 'fixed',
-              bottom: 0,
-              width: '100%',
-              background: '#111',
-              color: '#ffffff',
-              textAlign: 'center',
-              padding: '10px 0',
-              fontSize: '0.9rem',
-            }}>
-              <p>
-                © 2025 Thunderfleet |{' '}
-                <span
-                  onClick={() => setShowTermsModal(true)}
-                  onTouchStart={() => setShowTermsModal(true)}
-                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Terms
-                </span>{' '}
-                |{' '}
-                <span
-                  onClick={() => setShowPrivacyModal(true)}
-                  onTouchStart={() => setShowPrivacyModal(true)}
-                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Privacy
-                </span>{' '}
-                |{' '}
-                <span
-                  onClick={() => setShowHowToPlayModal(true)}
-                  onTouchStart={() => setShowHowToPlayModal(true)}
-                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  How to Play
-                </span>
+        {/* Finished Game Screen */}
+        {gameState === 'finished' && (
+          <div className="finished-screen" style={{ textAlign: 'center', padding: '20px' }}>
+            <h2 style={{ color: '#ffffff' }}>{message}</h2>
+            {transactionMessage && (
+              <p style={{ color: '#ffffff', marginTop: '10px' }}>
+                {transactionMessage}
               </p>
-            </footer>
-          )}
-        </>
-      )}
+            )}
+            <div style={{ margin: '20px 0', color: '#ffffff' }}>
+              <h4>Final Game Stats</h4>
+              <p>Shots Fired: {gameStats.shotsFired}</p>
+              <p>Hits: {gameStats.hits}</p>
+              <p>Misses: {gameStats.misses}</p>
+            </div>
+            <button
+              onClick={() => {
+                console.log('Play Again button clicked');
+                setGameState('join');
+                setMessage('');
+                setTransactionMessage('');
+                setMyBoard(Array(GRID_SIZE).fill('water'));
+                setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                setShips(prev =>
+                  prev.map(ship => ({
+                    ...ship,
+                    positions: [],
+                    horizontal: true,
+                    placed: false,
+                  }))
+                );
+                setShipCount(0);
+                setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                setShowConfetti(false);
+              }}
+              onTouchStart={() => {
+                console.log('Play Again button touched');
+                setGameState('join');
+                setMessage('');
+                setTransactionMessage('');
+                setMyBoard(Array(GRID_SIZE).fill('water'));
+                setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                setShips(prev =>
+                  prev.map(ship => ({
+                    ...ship,
+                    positions: [],
+                    horizontal: true,
+                    placed: false,
+                  }))
+                );
+                setShipCount(0);
+                setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                setShowConfetti(false);
+              }}
+              className="join-button"
+              style={{
+                background: '#e74c3c',
+                padding: '10px 20px',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                margin: '10px',
+              }}
+            >
+              Play Again
+            </button>
+            <button
+              onClick={() => setShowPaymentLogs(true)}
+              onTouchStart={() => setShowPaymentLogs(true)}
+              className="join-button"
+              style={{
+                background: '#f39c12',
+                padding: '10px 20px',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                margin: '10px',
+              }}
+            >
+              View Payment Logs
+            </button>
+            {Confetti}
+          </div>
+        )}
+
+        {/* Modals */}
+        {showTermsModal && TermsModal}
+        {showPrivacyModal && PrivacyModal}
+        {showHowToPlayModal && HowToPlayModal}
+        {showPaymentLogs && PaymentLogsModal}
+
+        {/* Footer */}
+        <footer style={{
+          textAlign: 'center',
+          padding: '10px',
+          color: '#ffffff',
+          position: 'fixed',
+          bottom: 0,
+          width: '100%',
+          background: 'rgba(0, 0, 0, 0.7)',
+        }}>
+          <p>
+            <a
+              href="#terms"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowTermsModal(true);
+              }}
+              style={{ color: '#ffffff', marginRight: '10px' }}
+            >
+              Terms and Conditions
+            </a>
+            |
+            <a
+              href="#privacy"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowPrivacyModal(true);
+              }}
+              style={{ color: '#ffffff', marginLeft: '10px' }}
+            >
+              Privacy Policy
+            </a>
+          </p>
+          <p>© 2025 Thunderfleet. All rights reserved.</p>
+        </footer>
+      </>
+    )}
     </div>
   );
 };

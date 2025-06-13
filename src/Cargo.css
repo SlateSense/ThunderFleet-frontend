@@ -1,11 +1,11 @@
-/* Debug styles to ensure visibility during troubleshooting */
-* {
+/* Debug styles to ensure visibility during troubleshooting - commented out to remove red lines */
+/* * {
   outline: 1px solid red !important;
   color: #000000 !important; /* Black text for high contrast */
-  visibility: visible !important;
+/*  visibility: visible !important;
   opacity: 1 !important;
   font-size: 16px !important;
-}
+} */
 
 body {
   margin: 0;
