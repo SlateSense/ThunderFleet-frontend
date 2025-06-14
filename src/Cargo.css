@@ -38,7 +38,11 @@
 .game-logo {
   max-width: 150px;
   width: 100%;
-  height: auto;
+  height: 150px; /* Fixed height to match width for aspect ratio */
+  background-image: url('./assets/logo.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   margin-bottom: 20px;
 }
 
