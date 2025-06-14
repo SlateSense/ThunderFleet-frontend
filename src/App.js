@@ -15,9 +15,6 @@ import submarineVertical from './assets/ships/vertical/submarine.png';
 import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
-// Import the new logo
-import logo from './assets/logo.png';
-
 // Game constants defining the grid size and timing constraints
 const GRID_COLS = 9; // Number of columns in the game grid
 const GRID_ROWS = 7; // Number of rows in the game grid
@@ -1177,12 +1174,9 @@ const App = () => {
     console.log('Rendering SplashScreen');
     return (
       <div className="splash-screen">
-        <img
-          src={logo}
-          alt="Thunderfleet Logo"
-          className="game-logo"
-          onError={() => console.error('Failed to load logo image')}
-        />
+        <div className="game-logo">
+          <span className="visually-hidden">Thunderfleet Logo</span>
+        </div>
         <h1 className="game-title">
           ⚡ Lightning Sea Battle ⚡
         </h1>

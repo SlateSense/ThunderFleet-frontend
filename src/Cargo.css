@@ -169,7 +169,7 @@
   padding: 10px 20px;
   color: #ffffff;
   border: none;
-  border-radius: 5px; /* Fixed: Changed from borderRadius to border-radius */
+  border-radius: 5px;
   cursor: pointer;
 }
 
@@ -183,7 +183,7 @@
   padding: 10px 20px;
   color: #ffffff;
   border: none;
-  border-radius: 5px; /* Fixed: Changed from borderRadius to border-radius */
+  border-radius: 5px;
   cursor: pointer;
 }
 
