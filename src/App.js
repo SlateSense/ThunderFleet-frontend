@@ -1171,10 +1171,19 @@ const App = () => {
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
-    console.log('Rendering SplashScreen');
+    console.log('Rendering SplashScreen with logo path: ./logo.png');
     return (
       <div className="splash-screen">
-        <div className="game-logo" style={{ backgroundImage: `url(/logo.png)` }}>
+        <div
+          className="game-logo"
+          style={{
+            backgroundImage: `url(./logo.png)`,
+            backgroundSize: 'contain',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundColor: '#f00', // Fallback color to confirm rendering
+          }}
+        >
           <span className="visually-hidden">Thunderfleet Logo</span>
         </div>
         <h1 className="game-title">
@@ -1446,7 +1455,15 @@ const App = () => {
 
   // Render the main app UI
   return (
-    <div className="App" style={{ backgroundImage: `url(/background.png)` }}>
+    <div
+      className="App"
+      style={{
+        backgroundImage: `url(./background.png)`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       {/* Show loading screen until app is fully loaded */}
       {!isAppLoaded && (
         <div className="loading-screen">
