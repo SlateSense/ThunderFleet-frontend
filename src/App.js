@@ -292,7 +292,7 @@ const App = () => {
                 updated[shipIndex] = {
                   ...updated[shipIndex],
                   positions: serverShip.positions,
-                  horizontal: serverShip.horizontal, // Fixed: Changed shipShip to serverShip
+                  horizontal: serverShip.horizontal,
                   placed: serverShip.positions.length > 0,
                 };
               }
