@@ -19,7 +19,7 @@ import patrolVertical from './assets/ships/vertical/patrol.png';
 const GRID_COLS = 9; // Number of columns in the game grid
 const GRID_ROWS = 7; // Number of rows in the game grid
 const GRID_SIZE = GRID_COLS * GRID_ROWS; // Total number of cells in the grid
-const PLACEMENT_TIME = 30; // Time in seconds for ship placement phase
+const PLACEMENT_TIME = 45; // Time in seconds for ship placement phase (increased to 45 seconds)
 const PAYMENT_TIMEOUT = 300; // Payment verification timeout in seconds (5 minutes)
 const JOIN_GAME_TIMEOUT = 20000; // Timeout for joinGame response in milliseconds (20 seconds)
 const CONFETTI_COUNT = 50; // Number of confetti pieces
@@ -220,7 +220,8 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setMessage('Payment verified! Estimated wait time: 10-25 seconds');
+        setGameState('waitingForOpponent'); // Transition to waiting for opponent
+        setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
@@ -255,16 +256,26 @@ const App = () => {
         setMessage('Place your ships! Tap to rotate, drag to position.');
         setIsPlacementConfirmed(false);
         setPlacementSaved(false);
-        setShips(prev =>
-          prev.map(ship => ({
-            ...ship,
-            positions: [],
-            horizontal: true,
-            placed: false,
-          }))
-        );
+        // Preserve existing ship positions instead of resetting
         setMyBoard(Array(GRID_SIZE).fill('water'));
-        setShipCount(0);
+        setShips(prev =>
+          prev.map(ship => {
+            if (ship.placed) {
+              ship.positions.forEach(pos => {
+                myBoard[pos] = 'ship';
+              });
+              return ship;
+            }
+            return {
+              ...ship,
+              positions: [],
+              horizontal: true,
+              placed: false,
+            };
+          })
+        );
+        const placedCount = ships.filter(s => s.placed).length;
+        setShipCount(placedCount);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
       },
       placementSaved: () => {
@@ -1026,7 +1037,10 @@ const App = () => {
     let updatedShips;
     setMyBoard((prev) => {
       const newBoard = [...prev];
-      ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      // Clear old positions if the ship was already placed
+      if (ship.positions.length > 0) {
+        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      }
       newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
       console.log(`Placed ${ship.name} on board at positions:`, newPositions);
       return newBoard;
@@ -1044,7 +1058,8 @@ const App = () => {
       return updated;
     });
 
-    const newShipCount = ship.positions.length > 0 ? shipCount : shipCount + 1;
+    const placedCount = ships.filter(s => s.positions.length > 0).length;
+    const newShipCount = ship.positions.length > 0 ? placedCount : placedCount + 1;
     setShipCount(newShipCount);
     setMessage(
       newShipCount === 5
@@ -1081,7 +1096,7 @@ const App = () => {
             </div>
             <div
               className="ship"
-              draggable={!isPlacementConfirmed}
+              draggable={!isPlacementConfirmed} // Allow dragging even for placed ships
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', i.toString());
                 setIsDragging(i);
@@ -1518,6 +1533,15 @@ const App = () => {
                 </button>
               )}
               <p>{message}</p>
+            </div>
+          )}
+
+          {/* Waiting for Opponent Screen */}
+          {gameState === 'waitingForOpponent' && (
+            <div className="waiting-screen">
+              <h2>Waiting for Opponent</h2>
+              <p>{message}</p>
+              <div className="loading-spinner"></div>
             </div>
           )}
 
