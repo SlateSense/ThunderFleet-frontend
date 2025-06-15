@@ -32,10 +32,18 @@
 }
 
 .game-logo {
-  max-width: 150px;
+  max-width: 250px;
   width: 100%;
-  height: 150px; /* Fixed height to match width for aspect ratio */
+  height: 250px;
   margin-bottom: 20px;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  .game-logo {
+    max-width: 200px;
+    height: 200px;
+  }
 }
 
 .game-title {

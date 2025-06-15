@@ -1181,7 +1181,6 @@ const App = () => {
             backgroundSize: 'contain',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            backgroundColor: '#f00', // Fallback color to confirm rendering
           }}
         >
           <span className="visually-hidden">Thunderfleet Logo</span>
