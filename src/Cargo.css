@@ -4,7 +4,7 @@
   position: relative;
   font-family: Arial, sans-serif;
   text-align: center;
-  background-image: url('/background.png'); /* Updated path */
+  background-image: url('background.png'); /* Updated path to avoid module resolution */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -39,7 +39,7 @@
   max-width: 150px;
   width: 100%;
   height: 150px; /* Fixed height to match width for aspect ratio */
-  background-image: url('/logo.png'); /* Updated path */
+  background-image: url('logo.png'); /* Updated path to avoid module resolution */
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
