@@ -21,16 +21,16 @@ const GRID_ROWS = 7; // Number of rows in the game grid
 const GRID_SIZE = GRID_COLS * GRID_ROWS; // Total number of cells in the grid
 const PLACEMENT_TIME = 30; // Time in seconds for ship placement phase
 const PAYMENT_TIMEOUT = 300; // Payment verification timeout in seconds (5 minutes)
-const JOIN_GAME_TIMEOUT = 20000; // Timeout for joinGame response in milliseconds (20 seconds, increased for stability)
-const CONFETTI_COUNT = 50; // Number of confetti pieces (reduced for performance)
+const JOIN_GAME_TIMEOUT = 20000; // Timeout for joinGame response in milliseconds (20 seconds)
+const CONFETTI_COUNT = 50; // Number of confetti pieces
 
 // Bet options aligned with server.js for consistency (used in dropdown now)
 const BET_OPTIONS = [
-  { amount: 300, winnings: 500, fee: 100 },   // Bet: 300 sats, Win: 500 sats, Fee: 100 sats
-  { amount: 500, winnings: 800, fee: 200 },   // Bet: 500 sats, Win: 800 sats, Fee: 200 sats
-  { amount: 1000, winnings: 1700, fee: 300 }, // Bet: 1000 sats, Win: 1700 sats, Fee: 300 sats
-  { amount: 5000, winnings: 8000, fee: 2000 }, // Bet: 5000 sats, Win: 8000 sats, Fee: 2000 sats
-  { amount: 10000, winnings: 17000, fee: 3000 }, // Bet: 10000 sats, Win: 17000 sats, Fee: 3000 sats
+  { amount: 300, winnings: 500 },
+  { amount: 500, winnings: 800 },
+  { amount: 1000, winnings: 1700 },
+  { amount: 5000, winnings: 8000 },
+  { amount: 10000, winnings: 17000 },
 ];
 
 // Ship configuration defining each ship's name, size, and images
@@ -113,8 +113,6 @@ const App = () => {
   const [payButtonLoading, setPayButtonLoading] = useState(false);
   const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
   const [showConfetti, setShowConfetti] = useState(false);
-  const [paymentLogs, setPaymentLogs] = useState([]);
-  const [showPaymentLogs, setShowPaymentLogs] = useState(false);
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
@@ -148,20 +146,6 @@ const App = () => {
       console.log('App loaded, setting isAppLoaded to true');
     }, 1000);
     return () => clearTimeout(timer);
-  }, []);
-
-  // Function to fetch payment logs from the server
-  const fetchPaymentLogs = useCallback(async () => {
-    try {
-      const response = await fetch('https://thunderfleet-backend.onrender.com/logs');
-      const text = await response.text();
-      const logs = text.split('\n').filter(line => line.trim()).slice(-5);
-      setPaymentLogs(logs);
-      console.log('Fetched payment logs:', logs);
-    } catch (err) {
-      console.error('Error fetching payment logs:', err.message);
-      setPaymentLogs(['Error fetching payment logs']);
-    }
   }, []);
 
   // Initialize Socket.IO connection
@@ -237,12 +221,15 @@ const App = () => {
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setMessage('Payment verified! Estimated wait time: 10-25 seconds');
-        fetchPaymentLogs();
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
+        if (message.includes('Invalid webhook signature')) {
+          setMessage('Payment verification failed: Invalid webhook signature. Please try again or contact support.');
+        } else {
+          setMessage(`Error: ${message}. Click Retry to try again.`);
+        }
         clearTimeout(joinGameTimeoutRef.current);
-        setMessage(`Error: ${message}. Click Retry to try again.`);
         setIsWaitingForPayment(false);
         setPayButtonLoading(false);
         setIsLoading(false);
@@ -361,7 +348,6 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        fetchPaymentLogs();
         if (message.includes('You won')) {
           setShowConfetti(true);
           playWinSound();
@@ -388,7 +374,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [fetchPaymentLogs, playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
@@ -668,13 +654,6 @@ const App = () => {
     }
   }, [gameState]);
 
-  // Effect to fetch payment logs when entering the join state
-  useEffect(() => {
-    if (gameState === 'join') {
-      fetchPaymentLogs();
-    }
-  }, [gameState, fetchPaymentLogs]);
-
   // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
@@ -715,7 +694,7 @@ const App = () => {
       return;
     }
 
-    const sanitizedAddress = lightningAddress.trim().toLowerCase();
+    const sanitizedAddress = lightningAddress.trim().toLowerCase() + '@speed.app';
     if (!sanitizedAddress.includes('@')) {
       setMessage('Invalid Lightning address format');
       console.log('Validation failed: Invalid Lightning address format');
@@ -723,7 +702,7 @@ const App = () => {
     }
 
     setIsLoading(true);
-    socket.emit('joinGame', { lightningAddress, betAmount: parseInt(betAmount) }, () => {
+    socket.emit('joinGame', { lightningAddress: sanitizedAddress, betAmount: parseInt(betAmount) }, () => {
       console.log('Join game callback triggered');
     });
 
@@ -1422,34 +1401,6 @@ const App = () => {
     );
   }, [isSocketConnected, handleReconnect]);
 
-  // Component to render payment logs modal
-  const PaymentLogsModal = useMemo(() => {
-    console.log('Rendering PaymentLogsModal');
-    return (
-      <div className="modal">
-        <div className="modal-content">
-          <h2>Recent Payment Logs</h2>
-          {paymentLogs.length > 0 ? (
-            <ul>
-              {paymentLogs.map((log, index) => (
-                <li key={index}>{log}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No payment logs available.</p>
-          )}
-          <button
-            onClick={() => setShowPaymentLogs(false)}
-            onTouchStart={() => setShowPaymentLogs(false)}
-            className="join-button"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }, [paymentLogs]);
-
   // Render the main app UI
   return (
     <div
@@ -1484,21 +1435,27 @@ const App = () => {
               <p>
                 Enter your Lightning address and select a bet to start.
               </p>
-              <input
-                type="text"
-                placeholder="Lightning Address (e.g., user@domain)"
-                value={lightningAddress}
-                onChange={(e) => {
-                  setLightningAddress(e.target.value);
-                  console.log('Lightning address updated:', e.target.value);
-                }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Lightning Address (e.g., user)"
+                  value={lightningAddress}
+                  onChange={(e) => {
+                    setLightningAddress(e.target.value);
+                    console.log('Lightning address updated:', e.target.value);
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ marginLeft: '5px', color: '#fff' }}>
+                  @speed.app
+                </span>
+              </div>
               <div className="bet-selection">
                 <label htmlFor="bet-amount">Select Bet Amount (Sats): </label>
                 <select id="bet-amount" value={betAmount} onChange={selectBet}>
                   {BET_OPTIONS.map((option, index) => (
                     <option key={index} value={option.amount}>
-                      {option.amount} SATS (Win {option.winnings} SATS, Fee: {option.fee} SATS)
+                      {option.amount} SATS (Win {option.winnings} SATS)
                     </option>
                   ))}
                 </select>
@@ -1513,18 +1470,33 @@ const App = () => {
               </button>
               <div className="legal-notice">
                 By playing game you agree to our 
-                <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer"> Terms and Conditions </a>
+                <button
+                  onClick={() => setShowTermsModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#00f',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Terms and Conditions
+                </button>
                 and 
-                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer"> Privacy Policy</a>.
+                <button
+                  onClick={() => setShowPrivacyModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#00f',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Privacy Policy
+                </button>.
               </div>
               <p>{message}</p>
-              <button
-                onClick={() => setShowPaymentLogs(true)}
-                onTouchStart={() => setShowPaymentLogs(true)}
-                className="join-button payment-logs-button"
-              >
-                View Payment Logs
-              </button>
             </div>
           )}
 
@@ -1711,13 +1683,6 @@ const App = () => {
               >
                 Play Again
               </button>
-              <button
-                onClick={() => setShowPaymentLogs(true)}
-                onTouchStart={() => setShowPaymentLogs(true)}
-                className="join-button payment-logs-button"
-              >
-                View Payment Logs
-              </button>
               {Confetti}
             </div>
           )}
@@ -1726,7 +1691,6 @@ const App = () => {
           {showTermsModal && TermsModal}
           {showPrivacyModal && PrivacyModal}
           {showHowToPlayModal && HowToPlayModal}
-          {showPaymentLogs && PaymentLogsModal}
         </>
       )}
     </div>
