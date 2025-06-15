@@ -95,7 +95,7 @@ const App = () => {
   const [transactionMessage, setTransactionMessage] = useState('');
   const [cannonFire, setCannonFire] = useState(null);
   const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDragging, setIsDragging] = useState(null); // Changed to store the index of the dragged ship (null when not dragging)
   const [cellSize, setCellSize] = useState(40);
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
   const [timerActive, setTimerActive] = useState(false);
@@ -237,6 +237,10 @@ const App = () => {
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
       },
+      waitingForOpponent: ({ message }) => {
+        console.log('Received waitingForOpponent event:', message);
+        setMessage(message);
+      },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
         setMessage(message);
@@ -288,7 +292,7 @@ const App = () => {
                 updated[shipIndex] = {
                   ...updated[shipIndex],
                   positions: serverShip.positions,
-                  horizontal: serverShip.horizontal,
+                  horizontal: shipShip.horizontal,
                   placed: serverShip.positions.length > 0,
                 };
               }
@@ -916,7 +920,7 @@ const App = () => {
             return (
               <div
                 key={index}
-                className={`cell ${cell} ${isDragging ? 'drag-active' : ''}`}
+                className={`cell ${cell} ${isDragging !== null ? 'drag-active' : ''}`}
                 onClick={() => isEnemy && handleFire(index)}
                 onTouchStart={(e) => {
                   e.preventDefault();
@@ -1050,7 +1054,7 @@ const App = () => {
     console.log(`Ship count updated to ${newShipCount}`);
 
     playPlaceSound();
-    setIsDragging(false);
+    setIsDragging(null);
     if (updatedShips) updateServerBoard(updatedShips);
   }, [isPlacementConfirmed, ships, cellSize, shipCount, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
@@ -1080,31 +1084,31 @@ const App = () => {
               draggable={!isPlacementConfirmed}
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/plain', i.toString());
-                setIsDragging(true);
+                setIsDragging(i);
                 console.log(`Started dragging ${ship.name}`);
               }}
               onDragEnd={() => {
-                setIsDragging(false);
+                setIsDragging(null);
                 console.log(`Stopped dragging ${ship.name}`);
               }}
               onTouchStart={(e) => {
                 if (isPlacementConfirmed) return;
                 e.preventDefault();
-                setIsDragging(true);
+                setIsDragging(i);
                 const touch = e.touches[0];
                 const data = { shipIndex: i, startX: touch.clientX, startY: touch.clientY };
                 sessionStorage.setItem('dragData', JSON.stringify(data));
                 console.log(`Touch drag started for ${ship.name}`);
               }}
               onTouchMove={(e) => {
-                if (!isDragging || isPlacementConfirmed) return;
+                if (isDragging === null || isPlacementConfirmed) return;
                 e.preventDefault();
                 console.log(`Touch moving for ${ship.name}`);
               }}
               onTouchEnd={(e) => {
-                if (!isDragging || isPlacementConfirmed) return;
+                if (isDragging === null || isPlacementConfirmed) return;
                 e.preventDefault();
-                setIsDragging(false);
+                setIsDragging(null);
                 const data = JSON.parse(sessionStorage.getItem('dragData'));
                 if (!data) return;
                 const { shipIndex } = data;
@@ -1119,8 +1123,8 @@ const App = () => {
                 backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                width: ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`,
-                height: ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`,
+                width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+                height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
                 opacity: ship.placed ? 0.5 : 1,
                 cursor: isPlacementConfirmed ? 'default' : 'grab',
                 border: '2px solid #333',
@@ -1513,6 +1517,7 @@ const App = () => {
                   Retry
                 </button>
               )}
+              <p>{message}</p>
             </div>
           )}
 
@@ -1541,7 +1546,7 @@ const App = () => {
                 onDrop={handleGridDrop}
                 onDragOver={handleGridDragOver}
                 onTouchEnd={(e) => {
-                  if (!isDragging) return;
+                  if (isDragging === null) return;
                   e.preventDefault();
                   const touch = e.changedTouches[0];
                   const gridRect = gridRef.current.getBoundingClientRect();
