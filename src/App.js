@@ -1182,9 +1182,7 @@ const App = () => {
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
           }}
-        >
-          <span className="visually-hidden">Thunderfleet Logo</span>
-        </div>
+        />
         <h1 className="game-title">
           ⚡ Lightning Sea Battle ⚡
         </h1>
