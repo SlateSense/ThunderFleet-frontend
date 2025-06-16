@@ -1,44 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <script src="https://js.tryspeed.com"></script>
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lightning Sea Battle</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+    }
+    canvas {
+      border: 2px solid #333;
+    }
+    #controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #333;
+    }
+    #ship-counter {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button id="join-game">Join Game</button>
+    <button id="cancel-game" style="display: none;">Cancel Game</button>
+    <button id="rotate-ship">Rotate Ship</button>
+    <button id="save-placement" style="display: none;" disabled>Save Placement</button>
+    <div id="status"></div>
+    <div id="ship-counter">Ships placed: 0/5</div>
+  </div>
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+  <script>
+    const socket = io('https://thunderfleet-backend.onrender.com', { transports: ['polling'] });
+    const GRID_COLS = 9;
+    const GRID_ROWS = 7;
+    const CELL_SIZE = 50;
+    const GRID_SIZE = GRID_COLS * GRID_ROWS;
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    const SHIP_CONFIG = [
+      { name: 'Aircraft Carrier', size: 5 },
+      { name: 'Battleship', size: 4 },
+      { name: 'Submarine', size: 3 },
+      { name: 'Destroyer', size: 3 },
+      { name: 'Patrol Boat', size: 2 }
+    ];
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
+    let gameState = 'setup';
+    let playerGrid = Array(GRID_SIZE).fill('water');
+    let opponentGrid = Array(GRID_SIZE).fill('unknown');
+    let currentShipIndex = 0;
+    let isHorizontal = true;
+    let shipsPlaced = 0;
+    let shipPlacements = [];
+    let gameId, playerId;
+    let turn = null;
+    let selectedShip = null; // For repositioning
+
+    function setup() {
+      createCanvas(GRID_COLS * CELL_SIZE * 2 + 50, GRID_ROWS * CELL_SIZE + 50);
+      textAlign(CENTER, CENTER);
+      textSize(16);
+
+      document.getElementById('join-game').addEventListener('click', joinGame);
+      document.getElementById('cancel-game').addEventListener('click', cancelGame);
+      document.getElementById('rotate-ship').addEventListener('click', () => {
+        isHorizontal = !isHorizontal;
+      });
+      document.getElementById('save-placement').addEventListener('click', savePlacement);
+    }
+
+    function draw() {
+      background(220);
+      drawGrid(0, 0, playerGrid, true); // Player's grid on the left
+      drawGrid(GRID_COLS * CELL_SIZE + 50, 0, opponentGrid, false); // Opponent's grid on the right
+
+      if (gameState === 'placing' && currentShipIndex < SHIP_CONFIG.length && !selectedShip) {
+        let ship = SHIP_CONFIG[currentShipIndex];
+        let col = Math.floor(mouseX / CELL_SIZE);
+        let row = Math.floor(mouseY / CELL_SIZE);
+        if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+          highlightShip(col, row, ship.size, isHorizontal);
+        }
+      }
+    }
+
+    function drawGrid(xOffset, yOffset, grid, isPlayerGrid) {
+      for (let row = 0; row < GRID_ROWS; row++) {
+        for (let col = 0; col < GRID_COLS; col++) {
+          let index = row * GRID_COLS + col;
+          let x = col * CELL_SIZE + xOffset;
+          let y = row * CELL_SIZE + yOffset;
+
+          // Draw cell
+          if (grid[index] === 'water' || grid[index] === 'unknown') {
+            fill(135, 206, 235); // Sky blue for water/unknown
+          } else if (grid[index] === 'ship' && isPlayerGrid) {
+            fill(0, 128, 0); // Green for ships (only on player's grid)
+          } else if (grid[index] === 'hit') {
+            fill(255, 0, 0); // Red for hits
+          } else if (grid[index] === 'miss') {
+            fill(255, 255, 255); // White for misses
+          }
+          stroke(0);
+          rect(x, y, CELL_SIZE, CELL_SIZE);
+
+          // Draw coordinates
+          if (row === 0) {
+            fill(0);
+            noStroke();
+            text(String.fromCharCode(65 + col), x + CELL_SIZE / 2, yOffset - 10);
+          }
+          if (col === 0) {
+            fill(0);
+            noStroke();
+            text(row + 1, xOffset - 10, y + CELL_SIZE / 2);
+          }
+        }
+      }
+
+      // Label the grids
+      fill(0);
+      noStroke();
+      text(isPlayerGrid ? "Your Grid" : "Opponent's Grid", xOffset + (GRID_COLS * CELL_SIZE) / 2, GRID_ROWS * CELL_SIZE + 40);
+    }
+
+    function highlightShip(col, row, size, horizontal) {
+      let positions = [];
+      let valid = true;
+      let occupied = new Set(shipPlacements.flatMap(ship => ship.positions));
+
+      for (let i = 0; i < size; i++) {
+        let pos;
+        if (horizontal) {
+          pos = row * GRID_COLS + (col + i);
+          if (col + i >= GRID_COLS) valid = false;
+        } else {
+          pos = (row + i) * GRID_COLS + col;
+          if (row + i >= GRID_ROWS) valid = false;
+        }
+        if (pos < 0 || pos >= GRID_SIZE || occupied.has(pos)) {
+          valid = false;
+        }
+        positions.push(pos);
+      }
+
+      positions.forEach(pos => {
+        let r = Math.floor(pos / GRID_COLS);
+        let c = pos % GRID_COLS;
+        let x = c * CELL_SIZE;
+        let y = r * CELL_SIZE;
+        fill(valid ? 'rgba(0, 255, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)');
+        noStroke();
+        rect(x, y, CELL_SIZE, CELL_SIZE);
+      });
+    }
+
+    function mousePressed() {
+      if (gameState === 'placing' && currentShipIndex < SHIP_CONFIG.length) {
+        let col = Math.floor(mouseX / CELL_SIZE);
+        let row = Math.floor(mouseY / CELL_SIZE);
+        if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+          // Check if clicking on an already placed ship to reposition
+          let clickedShipIndex = shipPlacements.findIndex(ship => 
+            ship.positions.includes(row * GRID_COLS + col)
+          );
+          if (clickedShipIndex !== -1 && !selectedShip) {
+            // Pick up the ship for repositioning
+            selectedShip = shipPlacements[clickedShipIndex];
+            shipPlacements.splice(clickedShipIndex, 1);
+            shipsPlaced--;
+            currentShipIndex = SHIP_CONFIG.findIndex(s => s.name === selectedShip.name);
+            updateShipCounter();
+            updateSaveButton();
+            return;
+          }
+          placeShip(col, row);
+        }
+      } else if (gameState === 'playing' && turn === playerId) {
+        let col = Math.floor((mouseX - (GRID_COLS * CELL_SIZE + 50)) / CELL_SIZE);
+        let row = Math.floor(mouseY / CELL_SIZE);
+        if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+          let pos = row * GRID_COLS + col;
+          if (opponentGrid[pos] === 'unknown') {
+            socket.emit('fire', { gameId, position: pos });
+          }
+        }
+      }
+    }
+
+    function placeShip(col, row) {
+      let ship = selectedShip || SHIP_CONFIG[currentShipIndex];
+      let positions = [];
+      let valid = true;
+      let occupied = new Set(shipPlacements.flatMap(s => s.positions));
+
+      for (let i = 0; i < ship.size; i++) {
+        let pos;
+        if (isHorizontal) {
+          pos = row * GRID_COLS + (col + i);
+          if (col + i >= GRID_COLS) valid = false;
+        } else {
+          pos = (row + i) * GRID_COLS + col;
+          if (row + i >= GRID_ROWS) valid = false;
+        }
+        if (pos < 0 || pos >= GRID_SIZE || occupied.has(pos)) {
+          valid = false;
+          break;
+        }
+        positions.push(pos);
+      }
+
+      if (valid) {
+        shipPlacements.push({
+          name: ship.name,
+          positions,
+          horizontal: isHorizontal
+        });
+        positions.forEach(pos => {
+          playerGrid[pos] = 'ship';
+        });
+        shipsPlaced++;
+        currentShipIndex++;
+        selectedShip = null; // Reset selected ship after placing
+        updateShipCounter();
+        updateSaveButton();
+        socket.emit('updateBoard', { playerId, gameId, placements: shipPlacements });
+      }
+    }
+
+    function updateShipCounter() {
+      document.getElementById('ship-counter').innerText = `Ships placed: ${shipsPlaced}/${SHIP_CONFIG.length}`;
+    }
+
+    function updateSaveButton() {
+      const saveButton = document.getElementById('save-placement');
+      saveButton.disabled = shipsPlaced !== SHIP_CONFIG.length;
+    }
+
+    function joinGame() {
+      const lightningAddress = prompt('Enter your Lightning Address:');
+      const betAmount = parseInt(prompt('Enter bet amount (300, 500, 1000, 5000, 10000):'));
+      if (lightningAddress && [300, 500, 1000, 5000, 10000].includes(betAmount)) {
+        socket.emit('joinGame', { lightningAddress, betAmount });
+        document.getElementById('join-game').style.display = 'none';
+        document.getElementById('cancel-game').style.display = 'inline-block';
+      } else {
+        alert('Invalid input. Please try again.');
+      }
+    }
+
+    function cancelGame() {
+      socket.emit('cancelGame', { gameId, playerId });
+      resetGame();
+    }
+
+    function savePlacement() {
+      socket.emit('savePlacement', { gameId, placements: shipPlacements });
+      document.getElementById('save-placement').style.display = 'none';
+      document.getElementById('rotate-ship').style.display = 'none';
+    }
+
+    function resetGame() {
+      gameState = 'setup';
+      playerGrid = Array(GRID_SIZE).fill('water');
+      opponentGrid = Array(GRID_SIZE).fill('unknown');
+      currentShipIndex = 0;
+      shipsPlaced = 0;
+      shipPlacements = [];
+      turn = null;
+      selectedShip = null;
+      document.getElementById('join-game').style.display = 'inline-block';
+      document.getElementById('cancel-game').style.display = 'none';
+      document.getElementById('save-placement').style.display = 'none';
+      document.getElementById('rotate-ship').style.display = 'inline-block';
+      document.getElementById('status').innerText = '';
+      updateShipCounter();
+      updateSaveButton();
+    }
+
+    socket.on('joined', (data) => {
+      gameId = data.gameId;
+      playerId = data.playerId;
+      gameState = 'placing';
+      document.getElementById('status').innerText = 'Place your ships!';
+      document.getElementById('save-placement').style.display = 'inline-block';
+    });
+
+    socket.on('waitingForOpponent', (data) => {
+      document.getElementById('status').innerText = data.message;
+    });
+
+    socket.on('matchmakingTimer', (data) => {
+      document.getElementById('status').innerText = data.message;
+    });
+
+    socket.on('startPlacing', () => {
+      gameState = 'placing';
+      document.getElementById('status').innerText = 'Place your ships!';
+    });
+
+    socket.on('placementSaved', () => {
+      document.getElementById('status').innerText = 'Placement saved. Waiting for opponent...';
+    });
+
+    socket.on('placementAutoSaved', () => {
+      document.getElementById('status').innerText = 'Placement auto-saved due to timeout.';
+      gameState = 'waiting';
+    });
+
+    socket.on('games', (data) => {
+      if (data.grid) {
+        playerGrid = data.grid;
+        shipPlacements = data.ships || shipPlacements;
+      }
+      document.getElementById('status').innerText = `Players ready: ${data.count}/2`;
+    });
+
+    socket.on('startGame', (data) => {
+      gameState = 'playing';
+      turn = data.turn;
+      document.getElementById('status').innerText = data.message;
+      document.getElementById('cancel-game').style.display = 'none';
+    });
+
+    socket.on('nextTurn', (data) => {
+      turn = data.turn;
+      document.getElementById('status').innerText = turn === playerId ? 'Your turn!' : "Opponent's turn";
+    });
+
+    socket.on('fireResult', (data) => {
+      let grid = data.player === playerId ? opponentGrid : playerGrid;
+      let pos = data.position;
+      grid[pos] = data.hit ? 'hit' : 'miss';
+    });
+
+    socket.on('gameEnd', (data) => {
+      gameState = 'ended';
+      document.getElementById('status').innerText = data.message;
+      setTimeout(resetGame, 5000);
+    });
+
+    socket.on('transaction', (data) => {
+      document.getElementById('status').innerText += `\n${data.message}`;
+    });
+
+    socket.on('error', (data) => {
+      alert(data.message);
+      resetGame();
+    });
+
+    socket.on('paymentRequest', (data) => {
+      alert(`Pay the invoice:\nLightning Invoice: ${data.lightningInvoice}\nHosted URL: ${data.hostedInvoiceUrl}`);
+    });
+
+    socket.on('paymentVerified', () => {
+      document.getElementById('status').innerText = 'Payment verified! Joining game...';
+    });
+  </script>
+</body>
 </html>
