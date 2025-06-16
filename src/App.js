@@ -116,7 +116,6 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
-  const [opponentFound, setOpponentFound] = useState(false);
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -248,14 +247,6 @@ const App = () => {
         console.log('Received matchmaking timer update:', message);
         setMessage(message);
       },
-      matchedWithBot: ({ message }) => {
-        console.log('Matched with bot:', message);
-        setMessage(message);
-        setOpponentFound(true);
-        setTimeout(() => {
-          setOpponentFound(false);
-        }, 2000);
-      },
       startPlacing: () => {
         console.log('Starting ship placement phase');
         setGameState('placing');
@@ -359,12 +350,7 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        if (message.includes('You won')) {
-          setShowConfetti(true);
-          playWinSound();
-        } else {
-          playLoseSound();
-        }
+        playLoseSound(); // Bot always wins, so player always loses
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -1558,14 +1544,6 @@ const App = () => {
               <button onClick={handleCancelGame} className="cancel-button">
                 Cancel
               </button>
-            </div>
-          )}
-
-          {/* Opponent Found Screen */}
-          {opponentFound && (
-            <div className="opponent-found-screen">
-              <h2>Opponent Found!</h2>
-              <p>Starting game shortly...</p>
             </div>
           )}
 
