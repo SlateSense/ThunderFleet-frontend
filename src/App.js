@@ -1065,24 +1065,24 @@ const App = () => {
         placed: true,
       };
       updatedShips = updated;
-      console.log(`Updated ship ${ship.name} with new positions:`, newPositions);
+
+      // Calculate the new ship count based on placed ships
+      const placedCount = updated.filter(s => s.positions.length > 0).length;
+      setShipCount(placedCount);
+      setMessage(
+        placedCount === 5
+          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+          : `${placedCount} of 5 ships placed. You can still reposition ships.`
+      );
+      console.log(`Ship count updated to ${placedCount}`);
+
       return updated;
     });
-
-    const placedCount = ships.filter(s => s.positions.length > 0).length;
-    const newShipCount = ship.positions.length > 0 ? placedCount : placedCount + 1;
-    setShipCount(newShipCount);
-    setMessage(
-      newShipCount === 5
-        ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
-        : `${newShipCount} of 5 ships placed. You can still reposition ships.`
-    );
-    console.log(`Ship count updated to ${newShipCount}`);
 
     playPlaceSound();
     setIsDragging(null);
     if (updatedShips) updateServerBoard(updatedShips);
-  }, [isPlacementConfirmed, ships, cellSize, shipCount, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle drag over events on the grid
   const handleGridDragOver = useCallback((e) => {
@@ -1107,15 +1107,15 @@ const App = () => {
     console.log(`Touch drag started for ship ${shipIndex}`);
   };
 
-  // Function to handle touch move
-  const handleTouchMove = (e) => {
+  // Function to handle touch move, wrapped in useCallback
+  const handleTouchMove = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
     console.log(`Touch moving for ship ${isDragging}`);
-  };
+  }, [isDragging, isPlacementConfirmed]);
 
-  // Function to handle touch end
-  const handleTouchEnd = (e) => {
+  // Function to handle touch end, wrapped in useCallback
+  const handleTouchEnd = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
     setIsDragging(null);
@@ -1128,7 +1128,7 @@ const App = () => {
     const y = touch.clientY - gridRect.top;
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
     handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
-  };
+  }, [isDragging, isPlacementConfirmed, handleGridDrop]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
