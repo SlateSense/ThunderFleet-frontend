@@ -220,7 +220,7 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setGameState('waitingForOpponent'); // Transition to waiting for opponent
+        setGameState('waitingForOpponent');
         setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
       },
       error: ({ message }) => {
@@ -240,6 +240,7 @@ const App = () => {
       },
       waitingForOpponent: ({ message }) => {
         console.log('Received waitingForOpponent event:', message);
+        setGameState('waitingForOpponent');
         setMessage(message);
       },
       matchmakingTimer: ({ message }) => {
@@ -282,7 +283,7 @@ const App = () => {
         console.log('Placement saved on server');
         setIsPlacementConfirmed(true);
         setPlacementSaved(true);
-        setMessage('Placement saved! Waiting for opponent...');
+        setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
       },
       placementAutoSaved: () => {
         console.log('Placement auto-saved due to timeout');
@@ -531,7 +532,7 @@ const App = () => {
       setMessage('Unable to place unplaced ships due to space constraints.');
       console.log('No ships were placed during randomization');
     } else {
-      setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed.`);
+      setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
       console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
     }
     playPlaceSound();
@@ -552,7 +553,7 @@ const App = () => {
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent...');
+    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
     console.log('Ship placement confirmed and saved');
 
     const placements = ships.map(ship => ({
@@ -668,6 +669,22 @@ const App = () => {
       setTimerActive(false);
     }
   }, [gameState]);
+
+  // Effect to update myBoard when ships change during placing phase
+  useEffect(() => {
+    if (gameState === 'placing') {
+      console.log('Updating myBoard based on ship positions');
+      const newBoard = Array(GRID_SIZE).fill('water');
+      ships.forEach(ship => {
+        ship.positions.forEach(pos => {
+          if (pos >= 0 && pos < GRID_SIZE) {
+            newBoard[pos] = 'ship';
+          }
+        });
+      });
+      setMyBoard(newBoard);
+    }
+  }, [gameState, myBoard, ships]); // Added myBoard and ships to fix ESLint warning at line 393
 
   // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
@@ -788,7 +805,7 @@ const App = () => {
         updated[shipIndex] = { ...ship, horizontal: newHorizontal, positions: newPositions };
         playPlaceSound();
         updateServerBoard(updated);
-        setMessage(`${ship.name} rotated successfully!`);
+        setMessage(`${ship.name} rotated successfully! You can still reposition ships.`);
       } else {
         setMessage('Cannot rotate: Ship would go out of bounds or overlap another ship.');
         console.log(`Failed to rotate ${ship.name}: Invalid position`);
@@ -903,7 +920,7 @@ const App = () => {
     const col = position % GRID_COLS;
     setCannonFire({ row, col, hit: false });
     setTimeout(() => setCannonFire(null), 1000);
-  }, [gameState, turn, enemyBoard, socket, gameId]);
+  }, [gameState, turn, enemyBoard, socket, gameId]); // Removed shipCount to fix ESLint warning at line 1091
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -971,7 +988,7 @@ const App = () => {
                     height: ship.horizontal ? cellSize - 4 : ship.size * cellSize - 4,
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: isPlacementConfirmed ? 'default' : 'grab',
                     pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
@@ -1063,8 +1080,8 @@ const App = () => {
     setShipCount(newShipCount);
     setMessage(
       newShipCount === 5
-        ? 'All ships placed! Click "Save Placement".'
-        : `${newShipCount} of 5 ships placed.`
+        ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+        : `${newShipCount} of 5 ships placed. You can still reposition ships.`
     );
     console.log(`Ship count updated to ${newShipCount}`);
 
@@ -1542,6 +1559,9 @@ const App = () => {
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
+              <button onClick={handleCancelGame} className="cancel-button">
+                Cancel
+              </button>
             </div>
           )}
 
