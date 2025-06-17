@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
-import QRCodeSVG from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import './Cargo.css';
+import explosionSound from './sounds/explosion.mp3';
+import splashSound from './sounds/splash.mp3';
+import victorySound from './sounds/victory.mp3';
+import loseSound from './sounds/lose.mp3'; // Re-added this import
+import placeSound from './sounds/place.mp3';
+import timerSound from './sounds/timer.mp3';
 
 // Constants for game configuration
 const GRID_ROWS = 10;
@@ -91,13 +97,13 @@ const App = () => {
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Initialize Audio objects for sound effects using paths from public/sounds/
-  const hitSound = useRef(new Audio('/sounds/explosion.mp3'));
-  const missSound = useRef(new Audio('/sounds/splash.mp3'));
-  const winSound = useRef(new Audio('/sounds/victory.mp3'));
-  const loseSound = useRef(new Audio('/sounds/lose.mp3'));
-  const placeShipSound = useRef(new Audio('/sounds/place.mp3'));
-  const timerTickSound = useRef(new Audio('/sounds/timer.mp3'));
+  // Initialize Audio objects for sound effects
+  const hitSound = useRef(new Audio(explosionSound));
+  const missSound = useRef(new Audio(splashSound));
+  const winSound = useRef(new Audio(victorySound));
+  const loseSound = useRef(new Audio(loseSound)); // Fixed: Now using the imported loseSound
+  const placeShipSound = useRef(new Audio(placeSound));
+  const timerTickSound = useRef(new Audio(timerSound));
 
   // Function to play a sound if sound is enabled
   const playSound = useCallback((sound) => {
@@ -375,7 +381,7 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playSound(loseSound);
+        playSound(loseSound); // This will now work with the imported loseSound
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -671,7 +677,7 @@ const App = () => {
 
     setMyBoard(newBoard);
     setShips(newShips);
-    const placedCount = newShips.filter(s => s.placed).length;
+    const placedCount = newShips.filter(s => s.positions.length > 0).length;
     setShipCount(placedCount);
     if (successfulPlacements < SHIP_CONFIG.length) {
       setMessage('Some ships couldn’t be placed. Adjust manually or try again.');
