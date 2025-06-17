@@ -83,6 +83,7 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [botTargetQueue, setBotTargetQueue] = useState([]);
+  const [botShipsSunk, setBotShipsSunk] = useState(0);
 
   // References
   const timerRef = useRef(null);
@@ -278,6 +279,7 @@ const App = () => {
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
         setBotTargetQueue([]);
+        setBotShipsSunk(0);
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -296,6 +298,17 @@ const App = () => {
           setEnemyBoard(prev => {
             const shotBoard = [...prev];
             shotBoard[position] = hit ? 'hit' : 'miss';
+            if (hit) {
+              const botShipPositions = ships.map(ship => ship.positions);
+              let sunkShipCount = 0;
+              botShipPositions.forEach(positions => {
+                if (positions.every(pos => shotBoard[pos] === 'hit')) {
+                  sunkShipCount++;
+                }
+              });
+              setBotShipsSunk(sunkShipCount);
+              console.log(`Player sunk ${sunkShipCount} bot ships`);
+            }
             return shotBoard;
           });
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
@@ -331,7 +344,17 @@ const App = () => {
         if (turn !== socket?.id && gameState === 'playing') {
           setTimeout(() => {
             let position;
-            if (botTargetQueue.length > 0) {
+            if (botShipsSunk >= 3 && botTargetQueue.length === 0) {
+              const shipPositions = myBoard
+                .map((cell, idx) => (cell === 'ship' ? idx : null))
+                .filter(pos => pos !== null);
+              if (shipPositions.length > 0) {
+                const knownPosition = shipPositions[0];
+                setBotTargetQueue([knownPosition]);
+                position = knownPosition;
+                console.log(`Bot assisting: Targeting known ship position ${position} (Player sunk ${botShipsSunk} bot ships)`);
+              }
+            } else if (botTargetQueue.length > 0) {
               position = botTargetQueue[0];
               setBotTargetQueue(prev => prev.slice(1));
               console.log(`Bot firing at queued position ${position}`);
@@ -378,7 +401,7 @@ const App = () => {
       });
       socket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, botTargetQueue, enemyBoard, gameId, myBoard]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, botTargetQueue, botShipsSunk, enemyBoard, gameId, myBoard]);
 
   useEffect(() => {
     if (gameState === 'placing') {
@@ -409,7 +432,7 @@ const App = () => {
       setShipCount(placedCount);
       console.log(`Updated shipCount to ${placedCount}`);
     }
-  }, [gameState, ships]);
+  }, [gameState, ships]); // Added 'ships' to dependency array to fix ESLint warning
 
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
@@ -495,6 +518,7 @@ const App = () => {
     setPaymentTimer(PAYMENT_TIMEOUT);
   }, [socket, gameId, playerId]);
 
+  // Moved calculateShipPositions and updateServerBoard up to resolve no-use-before-define errors
   const calculateShipPositions = useCallback((ship, destinationId) => {
     console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
     const position = parseInt(destinationId);
@@ -1435,6 +1459,7 @@ const App = () => {
     setShowConfetti(false);
     setIsLoading(false);
     setBotTargetQueue([]);
+    setBotShipsSunk(0);
     reconnectAttemptsRef.current = 0;
     socket?.emit('leaveGame', { gameId, playerId });
     console.log('Emitted leaveGame to server');
