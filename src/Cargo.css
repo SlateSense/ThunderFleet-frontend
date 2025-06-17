@@ -7,13 +7,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between; /* Adjusted to space out content and footer */
   padding: 20px;
   box-sizing: border-box;
   position: relative;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a1a2b 0%, #1b3a5b 100%); /* Added gradient background for theme */
-  transition: opacity 0.5s ease-in-out; /* Added transition for screen changes */
+  background: linear-gradient(135deg, #0a1a2b 0%, #2a4a7b 80%, #1b3a5b 100%); /* Deeper sea gradient */
+  transition: opacity 0.5s ease-in-out;
 }
 
 .App.fade-in {
@@ -22,6 +22,29 @@
 
 .App.fade-out {
   opacity: 0;
+}
+
+/* Loading Screen */
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0a1a2b; /* Darker sea background */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.loading-screen h2 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-top: 15px;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
 }
 
 /* Splash Screen */
@@ -51,14 +74,14 @@
 .game-logo {
   width: 150px;
   height: 150px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)); /* Added glow effect */
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
 }
 
 .game-title {
   font-size: 2rem;
-  margin-bottom: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
 .button-group {
@@ -68,8 +91,16 @@
   margin-top: 20px;
 }
 
+.sound-toggle {
+  background-color: #2ecc71;
+}
+
+.sound-toggle:hover {
+  background-color: #27ae60;
+}
+
 /* Join Screen */
-.join-screen {
+.join-game {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -79,6 +110,7 @@
   padding: 20px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); /* Subtle glow */
   animation: slideIn 0.5s ease-out;
 }
 
@@ -93,8 +125,8 @@
   }
 }
 
-.join-screen input,
-.join-screen select {
+.join-game input,
+.join-game select {
   padding: 10px;
   font-size: 1rem;
   border: 1px solid #ccc;
@@ -104,45 +136,23 @@
   box-sizing: border-box;
   background: #fff;
   color: #333;
-  transition: border-color 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.join-screen input:focus,
-.join-screen select:focus {
+.join-game input:focus,
+.join-game select:focus {
   border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
   outline: none;
 }
 
-.bet-selection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-}
-
-.bet-selection label {
-  font-size: 1rem;
-  margin-bottom: 5px;
-}
-
-.legal-notice {
-  font-size: 0.9rem;
-  color: #ccc;
-  margin-top: 10px;
-}
-
-.legal-notice a {
-  color: #00f;
-  text-decoration: underline;
-}
-
-.payment-logs-button {
-  margin-top: 10px;
-  background: #555;
+.bet-select {
+  background: #fff;
+  color: #333;
 }
 
 /* Waiting Screen */
-.waiting-screen {
+.waiting {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -152,26 +162,8 @@
   padding: 20px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
   animation: slideIn 0.5s ease-out;
-}
-
-.bot-indicator {
-  font-size: 1rem;
-  color: #00ff00;
-  background: rgba(0, 255, 0, 0.1);
-  padding: 5px 10px;
-  border-radius: 5px;
-  text-shadow: 0 0 5px #00ff00;
-  animation: glow 1.5s infinite alternate;
-}
-
-@keyframes glow {
-  from {
-    box-shadow: 0 0 5px #00ff00;
-  }
-  to {
-    box-shadow: 0 0 15px #00ff00;
-  }
 }
 
 /* Payment Modal */
@@ -185,12 +177,14 @@
   border-radius: 10px;
   max-width: 400px;
   width: 100%;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .winnings-info {
   font-size: 1.1rem;
   color: #ffd700;
   margin: 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .qr-container {
@@ -205,7 +199,8 @@
 }
 
 .pay-button,
-.cancel-button {
+.cancel-button,
+.retry-button {
   padding: 10px 20px;
   font-size: 1rem;
   border: none;
@@ -215,7 +210,8 @@
 }
 
 .pay-button:hover,
-.cancel-button:hover {
+.cancel-button:hover,
+.retry-button:hover {
   transform: scale(1.05);
 }
 
@@ -236,6 +232,12 @@
 .cancel-button {
   background: #dc3545;
   color: #fff;
+}
+
+.retry-button {
+  background: #007bff;
+  color: #fff;
+  margin-top: 10px;
 }
 
 .payment-status {
@@ -292,7 +294,7 @@
 }
 
 /* Placing Screen */
-.placing-screen {
+.placing {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -302,7 +304,7 @@
   animation: slideIn 0.5s ease-out;
 }
 
-.ships-list {
+.unplaced-ships {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -338,8 +340,13 @@
   border: 2px solid #333;
   border-radius: 4px;
   box-sizing: border-box;
-  background: linear-gradient(45deg, #666, #999); /* Metallic texture */
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3); /* Subtle glow */
+  background: linear-gradient(45deg, #666, #999);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  transition: transform 0.2s;
+}
+
+.ship:hover {
+  transform: scale(1.05);
 }
 
 .ship-label {
@@ -351,28 +358,7 @@
   width: 100%;
 }
 
-.orientation-button {
-  padding: 5px 10px;
-  font-size: 0.9rem;
-  background: #555;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.1s;
-}
-
-.orientation-button:hover {
-  background: #666;
-  transform: scale(1.05);
-}
-
-.orientation-button:disabled {
-  background: #333;
-  cursor: not-allowed;
-}
-
-.action-buttons {
+.placement-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -380,40 +366,43 @@
   margin-top: 10px;
 }
 
-.action-button {
+.placement-button {
   padding: 10px 20px;
   font-size: 1rem;
-  background: #555;
-  color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.3s, transform 0.1s;
 }
 
-.action-button:hover {
+.placement-button:hover {
   transform: scale(1.05);
 }
 
-.action-button:disabled {
+.placement-button:disabled {
   background: #333;
   cursor: not-allowed;
 }
 
-.place-remaining {
-  background: #007bff;
+.placement-button:nth-child(1) {
+  background: #007bff; /* Randomize Ships */
 }
 
-.clear-board {
-  background: #dc3545;
+.placement-button:nth-child(2) {
+  background: #dc3545; /* Clear Board */
 }
 
-.save-placement {
-  background: #28a745;
+.save-button {
+  background: #28a745; /* Save Placement */
+}
+
+.board-label {
+  font-size: 1.2rem;
+  margin: 5px 0;
 }
 
 /* Playing Screen */
-.playing-screen {
+.playing {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -423,22 +412,20 @@
   animation: slideIn 0.5s ease-out;
 }
 
-.your-turn {
-  color: #00ff00;
-}
-
-.opponent-turn {
-  color: #ff4500;
-}
-
-.game-boards {
+.boards-container {
   display: flex;
   flex-direction: column;
   gap: 20px;
   align-items: center;
 }
 
-.game-boards h4 {
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.board-label {
   margin: 5px 0;
   font-size: 1.2rem;
 }
@@ -453,11 +440,12 @@
 .game-stats {
   margin-top: 20px;
   background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
+  padding: 15px;
   border-radius: 5px;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
 }
 
-.game-stats h4 {
+.game-stats h3 {
   margin: 5px 0;
 }
 
@@ -467,17 +455,24 @@
 }
 
 /* Finished Screen */
-.finished-screen {
+.finished {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
-  max-width: 500px;
+  max-width: 700px;
   width: 100%;
   padding: 20px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
   animation: slideIn 0.5s ease-out;
+}
+
+.transaction-message {
+  color: #ffd700;
+  font-size: 1rem;
+  margin: 5px 0;
 }
 
 /* Grid Styles */
@@ -486,6 +481,7 @@
   background: #1e90ff;
   position: relative;
   box-sizing: content-box;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .grid {
@@ -497,7 +493,11 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-sizing: border-box;
   position: relative;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, transform 0.1s;
+}
+
+.cell:hover {
+  transform: scale(1.05);
 }
 
 .cell.water {
@@ -516,20 +516,19 @@
   background: #333;
 }
 
-.cell.place-hover {
-  background: rgba(0, 255, 0, 0.3) !important; /* Hover effect for placing */
-  transition: background 0.2s;
-}
-
 .cell.drag-active:hover {
   background: rgba(255, 255, 0, 0.3) !important;
+}
+
+.cell[cursor="crosshair"]:hover {
+  background: rgba(255, 0, 0, 0.3) !important; /* Hover effect for firing */
 }
 
 .ship-on-grid {
   position: absolute;
   z-index: 2;
-  background: linear-gradient(45deg, #666, #999); /* Metallic texture */
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3); /* Subtle glow */
+  background: linear-gradient(45deg, #666, #999);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .cannonball-effect {
@@ -565,37 +564,6 @@
   }
 }
 
-/* Timer */
-.timer-container {
-  width: 100%;
-  max-width: 300px;
-  margin: 10px auto;
-}
-
-.timer-bar {
-  width: 100%;
-  height: 10px;
-  background: #333;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.timer-progress {
-  height: 100%;
-  background: #28a745;
-  transition: width 1s linear;
-}
-
-.timer-text {
-  margin-top: 5px;
-  font-size: 0.9rem;
-}
-
-.time-warning {
-  color: #ff4500;
-  font-weight: bold;
-}
-
 /* Loading Spinner */
 .loading-spinner {
   width: 30px;
@@ -616,7 +584,7 @@
 }
 
 /* Confetti */
-.confetti-container {
+.confetti {
   position: fixed;
   top: 0;
   left: 0;
@@ -626,12 +594,12 @@
   z-index: 1000;
 }
 
-.confetti-piece {
+.confetti-particle {
   position: absolute;
   width: 10px;
   height: 10px;
   opacity: 0.8;
-  animation: fall 3s linear infinite;
+  animation: fall linear;
 }
 
 @keyframes fall {
@@ -647,7 +615,7 @@
 
 /* Buttons */
 .join-button,
-.action-button {
+.placement-button {
   padding: 12px 24px;
   font-size: 1.1rem;
   background: #007bff;
@@ -659,15 +627,19 @@
 }
 
 .join-button:hover,
-.action-button:hover {
+.placement-button:hover {
   background: #0056b3;
   transform: scale(1.05);
 }
 
 .join-button:disabled,
-.action-button:disabled {
+.placement-button:disabled {
   background: #666;
   cursor: not-allowed;
+}
+
+.join-button.loading {
+  background: #666;
 }
 
 /* Modals */
@@ -692,6 +664,7 @@
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
 .modal-content h2 {
@@ -706,33 +679,42 @@
   margin-bottom: 10px;
 }
 
-/* Fallback UI */
-.fallback-ui {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: 10px;
+/* Message */
+.message {
+  font-size: 1rem;
+  margin: 10px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Loading Screen */
-.loading-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
+/* Footer */
+.footer {
+  margin-top: 20px;
+  padding: 10px 0;
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.loading-screen h2 {
-  color: #fff;
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.footer-link {
+  background: none;
+  border: none;
+  color: #00f;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.footer p {
+  margin: 5px 0 0;
+  font-size: 0.8rem;
+  color: #ccc;
 }
 
 /* Responsive Adjustments */
@@ -746,19 +728,19 @@
     font-size: 1.5rem;
   }
 
-  .join-screen input,
-  .join-screen select {
+  .join-game input,
+  .join-game select {
     font-size: 0.9rem;
     padding: 8px;
   }
 
   .join-button,
-  .action-button {
+  .placement-button {
     padding: 10px 20px;
     font-size: 1rem;
   }
 
-  .ships-list {
+  .unplaced-ships {
     max-width: 100%;
   }
 
@@ -767,13 +749,13 @@
     max-width: 200px;
   }
 
-  .game-boards {
+  .boards-container {
     flex-direction: column;
     gap: 15px;
   }
 
   .grid-container {
-    transform: scale(0.9); /* Slightly scale down for better fit */
+    transform: scale(0.9);
   }
 }
 
@@ -792,7 +774,7 @@
   }
 
   .join-button,
-  .action-button {
+  .placement-button {
     padding: 8px 16px;
     font-size: 0.9rem;
   }
@@ -812,10 +794,14 @@
   }
 
   .grid-container {
-    transform: scale(0.8); /* Further scale down for smaller screens */
+    transform: scale(0.8);
   }
 
   .ship {
     max-width: 150px;
+  }
+
+  .board-label {
+    font-size: 1rem;
   }
 }

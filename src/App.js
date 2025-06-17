@@ -134,9 +134,10 @@ const App = () => {
     const timer = setTimeout(() => {
       setIsAppLoaded(true);
       console.log('App loaded, setting isAppLoaded to true');
+      console.log('Current gameState after loading:', gameState);
     }, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [gameState]);
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -1176,13 +1177,13 @@ const App = () => {
   }, [placementSaved, ships, cellSize, isDragging, handleTouchMove, handleTouchEnd]);
 
   const SplashScreen = useMemo(() => {
-    console.log('Rendering SplashScreen with logo path: ./logo.png');
+    console.log('Rendering SplashScreen with logo path: /logo.png');
     return (
       <div className="splash-screen">
         <div
           className="game-logo"
           style={{
-            backgroundImage: `url(./logo.png)`,
+            backgroundImage: `url(/logo.png)`, // Updated path to use public folder
             backgroundSize: 'contain',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
@@ -1468,7 +1469,7 @@ const App = () => {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>
-        <p>Loading...</p>
+        <h2>Loading Lightning Sea Battle...</h2>
       </div>
     );
   }
