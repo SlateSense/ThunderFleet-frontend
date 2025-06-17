@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
 import QRCodeSVG from 'qrcode.react';
-import useSound from './useSound';
 import './Cargo.css';
+
+// Import sound files from src/assets/sounds/
+import explosionSound from './assets/sounds/explosion.mp3';
+import splashSound from './assets/sounds/splash.mp3';
+import victorySound from './assets/sounds/victory.mp3';
+ 
+import placeSound from './assets/sounds/place.mp3';
+import timerSound from './assets/sounds/timer.mp3';
 
 // Constants for game configuration
 const GRID_ROWS = 10;
@@ -92,13 +99,32 @@ const App = () => {
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Sound effects
-  const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
-  const playMissSound = useSound('/sounds/splash.mp3', isSoundEnabled);
-  const playWinSound = useSound('/sounds/victory.mp3', isSoundEnabled);
-  const playLoseSound = useSound('/sounds/lose.mp3', isSoundEnabled);
-  const playPlaceSound = useSound('/sounds/place.mp3', isSoundEnabled);
-  const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
+  // Initialize Audio objects for sound effects (moved before useEffect to fix no-use-before-define)
+  const hitSound = useRef(new Audio(explosionSound));
+  const missSound = useRef(new Audio(splashSound));
+  const winSound = useRef(new Audio(victorySound));
+  const loseSound = useRef(new Audio());
+  const placeShipSound = useRef(new Audio(placeSound));
+  const timerTickSound = useRef(new Audio(timerSound));
+
+  // Function to play a sound if sound is enabled
+  const playSound = useCallback((sound) => {
+    if (isSoundEnabled) {
+      sound.current.currentTime = 0; // Reset to start
+      sound.current.play().catch((error) => {
+        console.error('Error playing sound:', error);
+      });
+    }
+  }, [isSoundEnabled]);
+
+  // Cleanup Audio objects on unmount
+  useEffect(() => {
+    return () => {
+      [hitSound, missSound, winSound, loseSound, placeShipSound, timerTickSound].forEach((sound) => {
+        sound.current.pause();
+      });
+    };
+  }, []);
 
   // Log gameState changes
   useEffect(() => {
@@ -266,7 +292,7 @@ const App = () => {
             console.log(`Updated local ship count to ${placedCount}`);
             return updated;
           });
-          playPlaceSound();
+          playSound(placeShipSound);
         }
       },
       startGame: ({ turn, message }) => {
@@ -283,7 +309,7 @@ const App = () => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
-        hit ? playHitSound() : playMissSound();
+        hit ? playSound(hitSound) : playSound(missSound);
         setGameStats(prev => ({
           ...prev,
           shotsFired: player === socket?.id ? prev.shotsFired + 1 : prev.shotsFired,
@@ -357,7 +383,7 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playLoseSound();
+        playSound(loseSound);
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -378,7 +404,7 @@ const App = () => {
       });
       socket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, botTargetQueue, enemyBoard, gameId, myBoard]);
+  }, [playSound, betAmount, gameState, botTargetQueue, enemyBoard, gameId, myBoard]);
 
   useEffect(() => {
     if (gameState === 'placing') {
@@ -576,7 +602,7 @@ const App = () => {
         });
 
         updated[shipIndex] = { ...ship, horizontal: newHorizontal, positions: newPositions };
-        playPlaceSound();
+        playSound(placeShipSound);
         updateServerBoard(updated);
         setMessage(`${ship.name} rotated successfully! You can still reposition ships.`);
       } else {
@@ -586,7 +612,7 @@ const App = () => {
 
       return updated;
     });
-  }, [placementSaved, ships, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [placementSaved, ships, calculateShipPositions, playSound, updateServerBoard]);
 
   const randomizeShips = useCallback(() => {
     if (placementSaved) {
@@ -662,9 +688,9 @@ const App = () => {
       setMessage('Ships randomized! Drag to reposition or Save Placement.');
       console.log('All ships successfully randomized');
     }
-    playPlaceSound();
+    playSound(placeShipSound);
     updateServerBoard(newShips);
-  }, [placementSaved, ships, playPlaceSound, updateServerBoard]);
+  }, [placementSaved, ships, playSound, updateServerBoard]);
 
   const clearBoard = useCallback(() => {
     if (placementSaved) {
@@ -788,10 +814,10 @@ const App = () => {
       return updated;
     });
 
-    playPlaceSound();
+    playSound(placeShipSound);
     setIsDragging(null);
     if (updatedShips) updateServerBoard(updatedShips);
-  }, [placementSaved, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [placementSaved, ships, cellSize, calculateShipPositions, playSound, updateServerBoard]);
 
   const handleTouchEnd = useCallback((e) => {
     if (isDragging === null || placementSaved) return;
@@ -884,7 +910,7 @@ const App = () => {
 
     setMyBoard(newBoard);
     setShips(newShips);
-    const placedCount = newShips.filter(s => s.positions.length > 0).length;
+    const placedCount = newShips.filter(s => s.placed).length;
     setShipCount(placedCount);
     if (successfulPlacements === 0) {
       setMessage('Unable to place unplaced ships due to space constraints.');
@@ -893,9 +919,9 @@ const App = () => {
       setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
       console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
     }
-    playPlaceSound();
+    playSound(placeShipSound);
     updateServerBoard(newShips);
-  }, [isPlacementConfirmed, ships, myBoard, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, ships, myBoard, playSound, updateServerBoard]);
 
   const saveShipPlacement = useCallback(() => {
     if (placementSaved || !socket) {
@@ -921,8 +947,8 @@ const App = () => {
 
     socket.emit('savePlacement', { gameId, placements });
     console.log('Emitted savePlacement to server:', placements);
-    playPlaceSound();
-  }, [placementSaved, ships, gameId, playPlaceSound, randomizeUnplacedShips, socket]);
+    playSound(placeShipSound);
+  }, [placementSaved, ships, gameId, playSound, randomizeUnplacedShips, socket]);
 
   const autoSavePlacement = useCallback(() => {
     console.log('Auto-saving placement due to time running out');
@@ -966,7 +992,7 @@ const App = () => {
         setTimeLeft(timeLeft - 1);
         if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) {
           console.log(`Playing timer sound at ${timeLeft} seconds remaining`);
-          playTimerSound();
+          playSound(timerTickSound);
         }
       }, 1000);
     } else if (timerActive && timeLeft === 0) {
@@ -981,7 +1007,7 @@ const App = () => {
         clearTimeout(timerRef.current);
       }
     };
-  }, [timerActive, timeLeft, autoSavePlacement, playTimerSound]);
+  }, [timerActive, timeLeft, autoSavePlacement, playSound]);
 
   useEffect(() => {
     if (isWaitingForPayment && paymentTimer > 0) {
@@ -1381,9 +1407,9 @@ const App = () => {
       console.log('Triggering confetti for win');
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 5000);
-      playWinSound();
+      playSound(winSound);
     }
-  }, [gameState, message, playWinSound]);
+  }, [gameState, message, playSound]);
 
   const renderGameStats = useCallback(() => {
     console.log('Rendering game stats');
