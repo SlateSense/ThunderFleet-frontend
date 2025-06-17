@@ -7,7 +7,7 @@ import './Cargo.css';
 import explosionSound from './assets/sounds/explosion.mp3';
 import splashSound from './assets/sounds/splash.mp3';
 import victorySound from './assets/sounds/victory.mp3';
- 
+import loseSoundFile from './assets/sounds/lose.mp3'; // Added this import
 import placeSound from './assets/sounds/place.mp3';
 import timerSound from './assets/sounds/timer.mp3';
 
@@ -99,11 +99,11 @@ const App = () => {
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Initialize Audio objects for sound effects (moved before useEffect to fix no-use-before-define)
+  // Initialize Audio objects for sound effects
   const hitSound = useRef(new Audio(explosionSound));
   const missSound = useRef(new Audio(splashSound));
   const winSound = useRef(new Audio(victorySound));
-  const loseSound = useRef(new Audio());
+  const loseSound = useRef(new Audio(loseSoundFile)); // Updated to use the imported file
   const placeShipSound = useRef(new Audio(placeSound));
   const timerTickSound = useRef(new Audio(timerSound));
 
