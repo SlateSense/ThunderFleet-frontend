@@ -3,14 +3,6 @@ import io from 'socket.io-client';
 import QRCodeSVG from 'qrcode.react';
 import './Cargo.css';
 
-// Import sound files from src/assets/sounds/
-import explosionSound from './assets/sounds/explosion.mp3';
-import splashSound from './assets/sounds/splash.mp3';
-import victorySound from './assets/sounds/victory.mp3';
-import loseSoundFile from './assets/sounds/lose.mp3'; // Added this import
-import placeSound from './assets/sounds/place.mp3';
-import timerSound from './assets/sounds/timer.mp3';
-
 // Constants for game configuration
 const GRID_ROWS = 10;
 const GRID_COLS = 10;
@@ -99,13 +91,13 @@ const App = () => {
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Initialize Audio objects for sound effects
-  const hitSound = useRef(new Audio(explosionSound));
-  const missSound = useRef(new Audio(splashSound));
-  const winSound = useRef(new Audio(victorySound));
-  const loseSound = useRef(new Audio(loseSoundFile)); // Updated to use the imported file
-  const placeShipSound = useRef(new Audio(placeSound));
-  const timerTickSound = useRef(new Audio(timerSound));
+  // Initialize Audio objects for sound effects using paths from public/sounds/
+  const hitSound = useRef(new Audio('/sounds/explosion.mp3'));
+  const missSound = useRef(new Audio('/sounds/splash.mp3'));
+  const winSound = useRef(new Audio('/sounds/victory.mp3'));
+  const loseSound = useRef(new Audio('/sounds/lose.mp3'));
+  const placeShipSound = useRef(new Audio('/sounds/place.mp3'));
+  const timerTickSound = useRef(new Audio('/sounds/timer.mp3'));
 
   // Function to play a sound if sound is enabled
   const playSound = useCallback((sound) => {
