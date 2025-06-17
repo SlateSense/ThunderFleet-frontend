@@ -1181,7 +1181,7 @@ const App = () => {
           }}
         />
         <h1 className="game-title">
-          ⚡ Lightning Sea Battle ⚡
+          ⚡ Thunder Fleet ⚡
         </h1>
         <button
           onClick={() => {

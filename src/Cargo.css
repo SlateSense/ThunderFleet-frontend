@@ -12,8 +12,8 @@
   box-sizing: border-box;
   position: relative;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a1a2b 0%, #1b3a5b 100%); /* Added gradient background for theme */
-  transition: opacity 0.5s ease-in-out; /* Added transition for screen changes */
+  background: linear-gradient(135deg, #0a1a2b 0%, #1b3a5b 100%);
+  transition: opacity 0.5s ease-in-out;
 }
 
 .App.fade-in {
@@ -48,24 +48,28 @@
   }
 }
 
+/* Logo Styling - Increased Size */
 .game-logo {
-  width: 150px;
-  height: 150px;
-  margin-bottom: 10px;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)); /* Added glow effect */
+  width: 200px; /* Increased from assumed 150px to 200px */
+  height: 200px; /* Increased from assumed 150px to 200px */
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  margin-bottom: 10px; /* Reduced from assumed 20px to 10px */
 }
 
 .game-title {
   font-size: 2rem;
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* Reduced from assumed 20px to 10px */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 10px; /* Reduced from assumed 15px to 10px */
+  margin-top: 10px; /* Reduced from assumed 20px to 10px */
 }
 
 /* Join Screen */
@@ -338,8 +342,8 @@
   border: 2px solid #333;
   border-radius: 4px;
   box-sizing: border-box;
-  background: linear-gradient(45deg, #666, #999); /* Metallic texture */
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3); /* Subtle glow */
+  background: linear-gradient(45deg, #666, #999);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .ship-label {
@@ -517,7 +521,7 @@
 }
 
 .cell.place-hover {
-  background: rgba(0, 255, 0, 0.3) !important; /* Hover effect for placing */
+  background: rgba(0, 255, 0, 0.3) !important;
   transition: background 0.2s;
 }
 
@@ -528,8 +532,8 @@
 .ship-on-grid {
   position: absolute;
   z-index: 2;
-  background: linear-gradient(45deg, #666, #999); /* Metallic texture */
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3); /* Subtle glow */
+  background: linear-gradient(45deg, #666, #999);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .cannonball-effect {
@@ -738,18 +742,19 @@
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .game-logo {
-    width: 120px;
-    height: 120px;
+    width: 150px; /* Slightly smaller for mobile, but still increased */
+    height: 150px;
+    margin-bottom: 8px; /* Further reduced spacing */
   }
 
   .game-title {
     font-size: 1.5rem;
+    margin-bottom: 8px;
   }
 
-  .join-screen input,
-  .join-screen select {
-    font-size: 0.9rem;
-    padding: 8px;
+  .button-group {
+    gap: 8px;
+    margin-top: 8px;
   }
 
   .join-button,
@@ -758,22 +763,26 @@
     font-size: 1rem;
   }
 
-  .ships-list {
-    max-width: 100%;
+  .modal-content {
+    width: 95%;
+    padding: 15px;
   }
 
-  .ship {
-    width: 100%;
-    max-width: 200px;
+  .payment-modal {
+    padding: 15px;
   }
 
-  .game-boards {
-    flex-direction: column;
-    gap: 15px;
+  .qr-container svg {
+    width: 150px;
+    height: 150px;
   }
 
   .grid-container {
-    transform: scale(0.9); /* Slightly scale down for better fit */
+    transform: scale(0.9);
+  }
+
+  .ship {
+    max-width: 200px;
   }
 }
 
@@ -783,12 +792,19 @@
   }
 
   .game-logo {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 5px;
   }
 
   .game-title {
     font-size: 1.2rem;
+    margin-bottom: 5px;
+  }
+
+  .button-group {
+    gap: 5px;
+    margin-top: 5px;
   }
 
   .join-button,
@@ -812,7 +828,7 @@
   }
 
   .grid-container {
-    transform: scale(0.8); /* Further scale down for smaller screens */
+    transform: scale(0.8);
   }
 
   .ship {
