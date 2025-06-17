@@ -5,7 +5,6 @@ import './Cargo.css';
 import explosionSound from './sounds/explosion.mp3';
 import splashSound from './sounds/splash.mp3';
 import victorySound from './sounds/victory.mp3';
-import loseSound from './sounds/lose.mp3'; // Re-added this import
 import placeSound from './sounds/place.mp3';
 import timerSound from './sounds/timer.mp3';
 
@@ -101,7 +100,7 @@ const App = () => {
   const hitSound = useRef(new Audio(explosionSound));
   const missSound = useRef(new Audio(splashSound));
   const winSound = useRef(new Audio(victorySound));
-  const loseSound = useRef(new Audio(loseSound)); // Fixed: Now using the imported loseSound
+  const loseSound = useRef(new Audio('/sounds/lose.mp3')); // Updated to use public path
   const placeShipSound = useRef(new Audio(placeSound));
   const timerTickSound = useRef(new Audio(timerSound));
 
@@ -381,7 +380,7 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playSound(loseSound); // This will now work with the imported loseSound
+        playSound(loseSound);
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
