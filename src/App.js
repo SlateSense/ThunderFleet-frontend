@@ -1,77 +1,43 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
-import { QRCodeSVG } from 'qrcode.react';
+import QRCodeSVG from 'qrcode.react';
+import useSound from './useSound';
 import './Cargo.css';
 
-// Ship images for horizontal and vertical orientations
-import carrierHorizontal from './assets/ships/horizontal/carrier.png';
-import battleshipHorizontal from './assets/ships/horizontal/battleship.png';
-import submarineHorizontal from './assets/ships/horizontal/submarine.png';
-import cruiserHorizontal from './assets/ships/horizontal/cruiser.png';
-import patrolHorizontal from './assets/ships/horizontal/patrol.png';
-import carrierVertical from './assets/ships/vertical/carrier.png';
-import battleshipVertical from './assets/ships/vertical/battleship.png';
-import submarineVertical from './assets/ships/vertical/submarine.png';
-import cruiserVertical from './assets/ships/vertical/cruiser.png';
-import patrolVertical from './assets/ships/vertical/patrol.png';
-
-// Game constants defining the grid size and timing constraints
-const GRID_COLS = 9;
-const GRID_ROWS = 7;
-const GRID_SIZE = GRID_COLS * GRID_ROWS;
-const PLACEMENT_TIME = 45;
+// Constants for game configuration
+const GRID_ROWS = 10;
+const GRID_COLS = 10;
+const GRID_SIZE = GRID_ROWS * GRID_COLS;
+const SHIP_CONFIG = [
+  { name: 'Carrier', size: 5, horizontalImg: '/ships/carrier-horizontal.png', verticalImg: '/ships/carrier-vertical.png' },
+  { name: 'Battleship', size: 4, horizontalImg: '/ships/battleship-horizontal.png', verticalImg: '/ships/battleship-vertical.png' },
+  { name: 'Destroyer', size: 3, horizontalImg: '/ships/destroyer-horizontal.png', verticalImg: '/ships/destroyer-vertical.png' },
+  { name: 'Submarine', size: 3, horizontalImg: '/ships/submarine-horizontal.png', verticalImg: '/ships/submarine-vertical.png' },
+  { name: 'Patrol Boat', size: 2, horizontalImg: '/ships/patrol-horizontal.png', verticalImg: '/ships/patrol-vertical.png' },
+];
+const PLACEMENT_TIME = 60;
 const PAYMENT_TIMEOUT = 300;
-const JOIN_GAME_TIMEOUT = 20000;
-const CONFETTI_COUNT = 50;
-
-// Bet options aligned with server.js for consistency
+const JOIN_GAME_TIMEOUT = 10000;
+const CONFETTI_COUNT = 100;
 const BET_OPTIONS = [
   { amount: 300, winnings: 500 },
-  { amount: 500, winnings: 800 },
-  { amount: 1000, winnings: 1700 },
-  { amount: 5000, winnings: 8000 },
-  { amount: 10000, winnings: 17000 },
+  { amount: 500, winnings: 900 },
+  { amount: 1000, winnings: 1800 },
+  { amount: 2500, winnings: 4500 },
 ];
 
-// Ship configuration defining each ship's name, size, and images
-const SHIP_CONFIG = [
-  { name: 'Aircraft Carrier', size: 5, horizontalImg: carrierHorizontal, verticalImg: carrierVertical },
-  { name: 'Battleship', size: 4, horizontalImg: battleshipHorizontal, verticalImg: battleshipVertical },
-  { name: 'Submarine', size: 3, horizontalImg: submarineHorizontal, verticalImg: submarineVertical },
-  { name: 'Destroyer', size: 3, horizontalImg: cruiserHorizontal, verticalImg: cruiserVertical },
-  { name: 'Patrol Boat', size: 2, horizontalImg: patrolHorizontal, verticalImg: patrolVertical },
-];
-
-// Seeded random number generator for consistent randomization
-const mulberry32 = (a) => {
-  return function() {
+// Seeded random number generator
+function mulberry32(a) {
+  return function () {
     let t = a += 0x6D2B79F5;
     t = Math.imul((t ^ (t >>> 15)), (t | 1));
-    t ^= (t + Math.imul((t ^ (t >>> 7)), (t | 61)));
-    return (((t ^ (t >>> 14)) >>> 0) / 4294967296);
+    t ^= t + Math.imul((t ^ (t >>> 7)), (t | 61));
+    return (((t ^ (t >>> 14)) >>> 0)) / 4294967296;
   };
-};
-
-// Sound effects hook to play audio files for game events
-const useSound = (src, isSoundEnabled) => {
-  const [audio] = useState(() => {
-    const audio = new Audio(src);
-    audio.addEventListener('loadedmetadata', () => {
-      console.log(`Audio file ${src} loaded with duration: ${audio.duration} seconds`);
-    });
-    return audio;
-  });
-  return useCallback(() => {
-    if (isSoundEnabled) {
-      audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
-    }
-  }, [isSoundEnabled, audio, src]);
-};
+}
 
 const App = () => {
-  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
-
-  // State variables for managing game state and UI
+  // State variables
   const [gameState, setGameState] = useState('splash');
   const [gameId, setGameId] = useState(null);
   const [playerId, setPlayerId] = useState(null);
@@ -116,8 +82,9 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
+  const [botTargetQueue, setBotTargetQueue] = useState([]);
 
-  // References for managing timers and DOM elements
+  // References
   const timerRef = useRef(null);
   const paymentTimerRef = useRef(null);
   const joinGameTimeoutRef = useRef(null);
@@ -125,7 +92,7 @@ const App = () => {
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Sound effects for various game events
+  // Sound effects
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
   const playMissSound = useSound('/sounds/splash.mp3', isSoundEnabled);
   const playWinSound = useSound('/sounds/victory.mp3', isSoundEnabled);
@@ -133,7 +100,7 @@ const App = () => {
   const playPlaceSound = useSound('/sounds/place.mp3', isSoundEnabled);
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
 
-  // Log gameState changes for debugging
+  // Log gameState changes
   useEffect(() => {
     console.log('Current gameState:', gameState);
   }, [gameState]);
@@ -150,16 +117,16 @@ const App = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io('https://thunderfleet-backend.onrender.com', {
+    const socket = io('https://thunderfleet-backend.onrender.com', {
       transports: ['polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
-    setSocket(newSocket);
+    setSocket(socket);
 
     console.log('Setting up socket listeners');
     const timeout = setTimeout(() => {
-      if (!newSocket.connected) {
+      if (!socket.connected) {
         setIsSocketConnected(false);
         setMessage("Failed to connect to the server. Please try again.");
       }
@@ -169,9 +136,9 @@ const App = () => {
       connect: () => {
         clearTimeout(timeout);
         reconnectAttemptsRef.current = 0;
-        console.log('[Frontend] Connected:', newSocket.id);
+        console.log('[Frontend] Connected:', socket.id);
         setIsSocketConnected(true);
-        setPlayerId(newSocket.id);
+        setPlayerId(socket.id);
         setMessage('');
       },
       connect_error: (error) => {
@@ -279,7 +246,6 @@ const App = () => {
       },
       games: ({ count, grid, ships: serverShips }) => {
         console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
-        setShipCount(count);
         if (grid && serverShips) {
           setMyBoard(grid);
           setShips(prev => {
@@ -295,6 +261,9 @@ const App = () => {
                 };
               }
             });
+            const placedCount = updated.filter(s => s.positions.length > 0).length;
+            setShipCount(placedCount);
+            console.log(`Updated local ship count to ${placedCount}`);
             return updated;
           });
           playPlaceSound();
@@ -305,9 +274,10 @@ const App = () => {
         setGameState('playing');
         setTurn(turn);
         setMessage(message);
-        setIsOpponentThinking(turn !== newSocket.id);
+        setIsOpponentThinking(turn !== socket?.id);
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
+        setBotTargetQueue([]);
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -316,17 +286,17 @@ const App = () => {
         hit ? playHitSound() : playMissSound();
         setGameStats(prev => ({
           ...prev,
-          shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
-          hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
-          misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
+          shotsFired: player === socket?.id ? prev.shotsFired + 1 : prev.shotsFired,
+          hits: player === socket?.id && hit ? prev.hits + 1 : prev.hits,
+          misses: player === socket?.id && !hit ? prev.misses + 1 : prev.misses,
         }));
-        if (player === newSocket.id) {
+        if (player === socket?.id) {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
-            const ShotBoard = [...prev];
-            ShotBoard[position] = hit ? 'hit' : 'miss';
-            return ShotBoard;
+            const shotBoard = [...prev];
+            shotBoard[position] = hit ? 'hit' : 'miss';
+            return shotBoard;
           });
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
         } else {
@@ -336,21 +306,58 @@ const App = () => {
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+          if (hit) {
+            const adjacentPositions = [
+              position - GRID_COLS,
+              position + GRID_COLS,
+              position - 1,
+              position + 1,
+            ].filter(pos => 
+              pos >= 0 && pos < GRID_SIZE &&
+              (pos % GRID_COLS === position % GRID_COLS || Math.floor(pos / GRID_COLS) === Math.floor(position / GRID_COLS)) &&
+              myBoard[pos] !== 'hit' && myBoard[pos] !== 'miss'
+            );
+            setBotTargetQueue(prev => [...prev, ...adjacentPositions]);
+            console.log(`Bot hit at ${position}, queuing adjacent cells:`, adjacentPositions);
+          }
         }
         setIsOpponentThinking(false);
       },
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
         setTurn(turn);
-        setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
-        setIsOpponentThinking(turn !== newSocket.id);
+        setMessage(turn === socket?.id ? 'Your turn to fire!' : 'Opponent\'s turn');
+        setIsOpponentThinking(turn !== socket?.id);
+        if (turn !== socket?.id && gameState === 'playing') {
+          setTimeout(() => {
+            let position;
+            if (botTargetQueue.length > 0) {
+              position = botTargetQueue[0];
+              setBotTargetQueue(prev => prev.slice(1));
+              console.log(`Bot firing at queued position ${position}`);
+            } else {
+              const availablePositions = myBoard
+                .map((cell, idx) => (myBoard[idx] !== 'hit' && myBoard[idx] !== 'miss' ? idx : null))
+                .filter(pos => pos !== null);
+              position = availablePositions[Math.floor(seededRandom.current() * availablePositions.length)];
+              console.log(`Bot firing randomly at position ${position}`);
+            }
+            if (position !== undefined) {
+              socket.emit('fire', { gameId, position });
+              const row = Math.floor(position / GRID_COLS);
+              const col = position % GRID_COLS;
+              setCannonFire({ row, col, hit: false });
+              setTimeout(() => setCannonFire(null), 1000);
+            }
+          }, 1000);
+        }
       },
       gameEnd: ({ message }) => {
         console.log('Game ended:', message);
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playLoseSound(); // Bot always wins, so player always loses
+        playLoseSound();
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -359,285 +366,20 @@ const App = () => {
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
-      newSocket.on(event, handler);
+      socket.on(event, handler);
     });
 
-    newSocket.connect();
+    socket.connect();
 
     return () => {
       clearTimeout(timeout);
       Object.entries(handlers).forEach(([event, handler]) => {
-        newSocket.off(event, handler);
+        socket.off(event, handler);
       });
-      newSocket.disconnect();
+      socket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, botTargetQueue, enemyBoard, gameId, myBoard]);
 
-  // Function to calculate ship positions based on drop location
-  const calculateShipPositions = useCallback((ship, destinationId) => {
-    console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
-    const position = parseInt(destinationId);
-    let row = Math.floor(position / GRID_COLS);
-    let col = position % GRID_COLS;
-
-    if (!ship.horizontal) {
-      const maxRow = GRID_ROWS - ship.size;
-      if (row > maxRow) {
-        console.log(`Adjusting row from ${row} to ${maxRow} for vertical ship`);
-        row = maxRow;
-      }
-    } else {
-      const maxCol = GRID_COLS - ship.size;
-      if (col > maxCol) {
-        console.log(`Adjusting col from ${col} to ${maxCol} for horizontal ship`);
-        col = maxCol;
-      }
-    }
-
-    const positions = [];
-    for (let i = 0; i < ship.size; i++) {
-      const pos = ship.horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-      if (pos >= GRID_SIZE) {
-        console.log(`Position ${pos} exceeds grid size ${GRID_SIZE}`);
-        return null;
-      }
-      if (ship.horizontal && col + i >= GRID_COLS) {
-        console.log(`Horizontal ship exceeds column boundary at col ${col + i}`);
-        return null;
-      }
-      if (!ship.horizontal && row + i >= GRID_ROWS) {
-        console.log(`Vertical ship exceeds row boundary at row ${row + i}`);
-        return null;
-      }
-      if (myBoard[pos] === 'ship' && !ship.positions.includes(pos)) {
-        console.log(`Position ${pos} is already occupied by another ship`);
-        return null;
-      }
-      positions.push(pos);
-    }
-    console.log(`Calculated positions for ${ship.name}:`, positions);
-    return positions;
-  }, [myBoard]);
-
-  // Function to update the server with the current board state
-  const updateServerBoard = useCallback((updatedShips) => {
-    if (gameState !== 'placing' || isPlacementConfirmed || !socket) {
-      console.log('Cannot update server board: Invalid game state, placement confirmed, or no socket');
-      return;
-    }
-    console.log('Updating server with current board state');
-    const placements = (updatedShips || ships).map(ship => ({
-      name: ship.name,
-      positions: ship.positions,
-      horizontal: ship.horizontal,
-    }));
-    socket.emit('updateBoard', { gameId, playerId: socket?.id, placements });
-    console.log('Server board update emitted:', placements);
-  }, [gameId, gameState, isPlacementConfirmed, ships, socket]);
-
-  // Function to randomize unplaced ships on the board
-  const randomizeUnplacedShips = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
-      return;
-    }
-
-    const unplacedShips = ships.filter(ship => !ship.placed);
-    console.log(`Found ${unplacedShips.length} unplaced ships to randomize`);
-    if (unplacedShips.length === 0) {
-      console.log('No unplaced ships to randomize');
-      return;
-    }
-
-    const newBoard = [...myBoard];
-    const newShips = [...ships];
-    let successfulPlacements = 0;
-
-    unplacedShips.forEach((ship) => {
-      let placed = false;
-      let attempts = 0;
-      const shipSize = ship.size;
-      const shipId = ship.id;
-
-      console.log(`Attempting to place ship ${ship.name} (size: ${shipSize})`);
-      while (!placed && attempts < 100) {
-        attempts++;
-        const horizontal = seededRandom.current() > 0.5;
-        const row = Math.floor(seededRandom.current() * GRID_ROWS);
-        const col = Math.floor(seededRandom.current() * GRID_COLS);
-        const positions = [];
-        let valid = true;
-
-        for (let i = 0; i < shipSize; i++) {
-          const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-          if (
-            pos >= GRID_SIZE ||
-            (horizontal && col + shipSize > GRID_COLS) ||
-            (!horizontal && row + shipSize > GRID_ROWS) ||
-            newBoard[pos] === 'ship'
-          ) {
-            valid = false;
-            console.log(`Attempt ${attempts}: Invalid position for ${ship.name} at pos ${pos}`);
-            break;
-          }
-          positions.push(pos);
-        }
-
-        if (valid) {
-          positions.forEach(pos => (newBoard[pos] = 'ship'));
-          const shipIndex = newShips.findIndex(s => s.id === shipId);
-          if (shipIndex !== -1) {
-            newShips[shipIndex] = {
-              ...newShips[shipIndex],
-              positions,
-              horizontal,
-              placed: true,
-            };
-            successfulPlacements++;
-            console.log(`Successfully placed ${ship.name} at positions:`, positions);
-          }
-          placed = true;
-        }
-      }
-
-      if (!placed) {
-        console.log(`Failed to place ship ${ship.name} after 100 attempts`);
-      }
-    });
-
-    setMyBoard(newBoard);
-    setShips(newShips);
-    const placedCount = newShips.filter(s => s.placed).length;
-    setShipCount(placedCount);
-    if (successfulPlacements === 0) {
-      setMessage('Unable to place unplaced ships due to space constraints.');
-      console.log('No ships were placed during randomization');
-    } else {
-      setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
-      console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
-    }
-    playPlaceSound();
-    updateServerBoard(newShips);
-  }, [isPlacementConfirmed, ships, myBoard, playPlaceSound, updateServerBoard]);
-
-  // Function to save ship placement to the server
-  const saveShipPlacement = useCallback(() => {
-    if (placementSaved || !socket) {
-      console.log('Placement already saved or no socket, cannot save again');
-      return;
-    }
-    const unplacedShips = ships.filter(ship => !ship.placed);
-    if (unplacedShips.length > 0) {
-      console.log(`Randomizing ${unplacedShips.length} unplaced ships before saving`);
-      randomizeUnplacedShips();
-    }
-
-    setPlacementSaved(true);
-    setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
-    console.log('Ship placement confirmed and saved');
-
-    const placements = ships.map(ship => ({
-      name: ship.name,
-      positions: ship.positions,
-      horizontal: ship.horizontal,
-    }));
-
-    socket.emit('savePlacement', { gameId, placements });
-    console.log('Emitted savePlacement to server:', placements);
-    playPlaceSound();
-  }, [placementSaved, ships, gameId, playPlaceSound, randomizeUnplacedShips, socket]);
-
-  // Function to auto-save placement when time runs out
-  const autoSavePlacement = useCallback(() => {
-    console.log('Auto-saving placement due to time running out');
-    randomizeUnplacedShips();
-    saveShipPlacement();
-  }, [randomizeUnplacedShips, saveShipPlacement]);
-
-  // Effect to adjust cell size based on screen width for mobile optimization
-  const handleResize = useCallback(() => {
-    const width = window.innerWidth;
-    console.log(`Window resized to width: ${width}px`);
-    if (width < 480) {
-      setCellSize(30);
-      console.log('Set cell size to 30px for small phones');
-    } else if (width < 768) {
-      setCellSize(35);
-      console.log('Set cell size to 35px for tablets');
-    } else {
-      setCellSize(40);
-      console.log('Set cell size to 40px for desktop');
-    }
-  }, []);
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [handleResize]);
-
-  // Effect to initialize seeded random number generator based on playerId
-  useEffect(() => {
-    if (playerId) {
-      const seed = playerId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + Date.now();
-      seededRandom.current = mulberry32(seed);
-      console.log(`Initialized seeded random generator with seed: ${seed}`);
-    }
-  }, [playerId]);
-
-  // Effect to manage the placement timer
-  useEffect(() => {
-    if (timerActive && timeLeft > 0) {
-      console.log(`Placement timer active, time left: ${timeLeft} seconds`);
-      timerRef.current = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-        if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) {
-          console.log(`Playing timer sound at ${timeLeft} seconds remaining`);
-          playTimerSound();
-        }
-      }, 1000);
-    } else if (timerActive && timeLeft === 0) {
-      console.log('Placement time up, auto-saving placement');
-      setTimerActive(false);
-      setMessage('Time up! Saving placement...');
-      autoSavePlacement();
-    }
-    return () => {
-      if (timerRef.current) {
-        console.log('Clearing placement timer');
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [timerActive, timeLeft, autoSavePlacement, playTimerSound]);
-
-  // Effect to manage the payment verification timer
-  useEffect(() => {
-    if (isWaitingForPayment && paymentTimer > 0) {
-      console.log(`Payment timer active, time left: ${paymentTimer} seconds`);
-      paymentTimerRef.current = setTimeout(() => {
-        setPaymentTimer(paymentTimer - 1);
-      }, 1000);
-    } else if (isWaitingForPayment && paymentTimer === 0) {
-      console.log('Payment timed out after 5 minutes');
-      setIsWaitingForPayment(false);
-      setPayButtonLoading(false);
-      setIsLoading(false);
-      setMessage('Payment timed out after 5 minutes. Click Retry to try again.');
-      setLightningInvoice(null);
-      setHostedInvoiceUrl(null);
-      socket?.emit('cancelGame', { gameId, playerId });
-      console.log('Emitted cancelGame due to payment timeout');
-    }
-    return () => {
-      if (paymentTimerRef.current) {
-        console.log('Clearing payment timer');
-        clearTimeout(paymentTimerRef.current);
-      }
-    };
-  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket]);
-
-  // Effect to start the placement timer when entering the placing state
   useEffect(() => {
     if (gameState === 'placing') {
       console.log('Entering placing state, starting timer');
@@ -651,7 +393,6 @@ const App = () => {
     }
   }, [gameState]);
 
-  // Effect to update myBoard when ships change during placing phase
   useEffect(() => {
     if (gameState === 'placing') {
       console.log('Updating myBoard based on ship positions');
@@ -664,10 +405,12 @@ const App = () => {
         });
       });
       setMyBoard(newBoard);
+      const placedCount = ships.filter(ship => ship.positions.length > 0).length;
+      setShipCount(placedCount);
+      console.log(`Updated shipCount to ${placedCount}`);
     }
   }, [gameState, ships]);
 
-  // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
       setMessage('Max reconnection attempts reached. Please refresh the page.');
@@ -679,7 +422,6 @@ const App = () => {
     setMessage('Attempting to reconnect...');
   }, [socket]);
 
-  // Function to select a bet amount and update payout
   const selectBet = useCallback((event) => {
     const selectedAmount = event.target.value;
     console.log('Selecting bet:', selectedAmount);
@@ -688,7 +430,6 @@ const App = () => {
     setPayoutAmount(selectedOption ? selectedOption.winnings : null);
   }, []);
 
-  // Function to handle joining the game
   const handleJoinGame = useCallback(() => {
     if (!socket) {
       setMessage('Cannot join game: No socket connection.');
@@ -730,7 +471,6 @@ const App = () => {
     console.log('Emitted joinGame event to server');
   }, [socket, lightningAddress, betAmount]);
 
-  // Function to handle payment button click
   const handlePay = useCallback(() => {
     if (hostedInvoiceUrl) {
       setPayButtonLoading(true);
@@ -741,7 +481,6 @@ const App = () => {
     }
   }, [hostedInvoiceUrl]);
 
-  // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
     if (!socket) return;
     console.log('Cancelling game:', { gameId, playerId });
@@ -756,10 +495,63 @@ const App = () => {
     setPaymentTimer(PAYMENT_TIMEOUT);
   }, [socket, gameId, playerId]);
 
-  // Function to toggle ship orientation
+  const calculateShipPositions = useCallback((ship, destinationId) => {
+    console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
+    const position = parseInt(destinationId);
+    let row = Math.floor(position / GRID_COLS);
+    let col = position % GRID_COLS;
+
+    if (ship.horizontal) {
+      const maxCol = GRID_COLS - ship.size;
+      col = Math.max(0, Math.min(col, maxCol));
+    } else {
+      const maxRow = GRID_ROWS - ship.size;
+      row = Math.max(0, Math.min(row, maxRow));
+    }
+
+    const positions = [];
+    for (let i = 0; i < ship.size; i++) {
+      const pos = ship.horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
+      if (pos >= GRID_SIZE) {
+        console.log(`Position ${pos} exceeds grid size ${GRID_SIZE}`);
+        return null;
+      }
+      if (ship.horizontal && col + i >= GRID_COLS) {
+        console.log(`Horizontal ship exceeds column boundary at col ${col + i}`);
+        return null;
+      }
+      if (!ship.horizontal && row + i >= GRID_ROWS) {
+        console.log(`Vertical ship exceeds row boundary at row ${row + i}`);
+        return null;
+      }
+      if (myBoard[pos] === 'ship' && !ship.positions.includes(pos)) {
+        console.log(`Position ${pos} is already occupied by another ship`);
+        return null;
+      }
+      positions.push(pos);
+    }
+    console.log(`Calculated positions for ${ship.name}:`, positions);
+    return positions;
+  }, [myBoard]);
+
+  const updateServerBoard = useCallback((updatedShips) => {
+    if (gameState !== 'placing' || isPlacementConfirmed || !socket) {
+      console.log('Cannot update server board: Invalid game state, placement confirmed, or no socket');
+      return;
+    }
+    console.log('Updating server with current board state');
+    const placements = (updatedShips || ships).map(ship => ({
+      name: ship.name,
+      positions: ship.positions,
+      horizontal: ship.horizontal,
+    }));
+    socket.emit('updateBoard', { gameId, playerId: socket?.id, placements });
+    console.log('Server board update emitted:', placements);
+  }, [gameId, gameState, isPlacementConfirmed, ships, socket]);
+
   const toggleOrientation = useCallback((shipIndex) => {
-    if (isPlacementConfirmed || !ships[shipIndex].placed) {
-      console.log(`Cannot toggle orientation for ship ${shipIndex}: Placement confirmed or ship not placed`);
+    if (placementSaved || !ships[shipIndex].placed) {
+      console.log(`Cannot toggle orientation for ship ${shipIndex}: Placement saved or ship not placed`);
       return;
     }
 
@@ -794,12 +586,11 @@ const App = () => {
 
       return updated;
     });
-  }, [isPlacementConfirmed, ships, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [placementSaved, ships, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
-  // Function to randomize all ships on the board
   const randomizeShips = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
+    if (placementSaved) {
+      console.log('Cannot randomize ships: Placement already saved');
       return;
     }
 
@@ -873,12 +664,11 @@ const App = () => {
     }
     playPlaceSound();
     updateServerBoard(newShips);
-  }, [isPlacementConfirmed, ships, playPlaceSound, updateServerBoard]);
+  }, [placementSaved, ships, playPlaceSound, updateServerBoard]);
 
-  // Function to clear the board
   const clearBoard = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot clear board: Placement already confirmed');
+    if (placementSaved) {
+      console.log('Cannot clear board: Placement already saved');
       return;
     }
     console.log('Clearing the board');
@@ -887,9 +677,8 @@ const App = () => {
     setShipCount(0);
     setMessage('Board cleared. Place your ships!');
     updateServerBoard();
-  }, [isPlacementConfirmed, updateServerBoard]);
+  }, [placementSaved, updateServerBoard]);
 
-  // Function to handle firing a shot
   const handleFire = useCallback((position) => {
     if (gameState !== 'playing' || turn !== socket?.id || enemyBoard[position] !== 'water') {
       console.log(`Cannot fire at position ${position}: Invalid state, turn, or cell`);
@@ -903,7 +692,322 @@ const App = () => {
     setTimeout(() => setCannonFire(null), 1000);
   }, [gameState, turn, enemyBoard, socket, gameId]);
 
-  // Function to render the game grid
+  const handleDragStart = (e, shipIndex) => {
+    e.dataTransfer.setData('text/plain', shipIndex.toString());
+    setIsDragging(shipIndex);
+    console.log(`Started dragging ship ${shipIndex}`);
+  };
+
+  const handleTouchStart = (e, shipIndex) => {
+    e.preventDefault();
+    setIsDragging(shipIndex);
+    const touch = e.touches[0];
+    const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
+    sessionStorage.setItem('dragData', JSON.stringify(data));
+    console.log(`Touch drag started for ship ${shipIndex}`);
+  };
+
+  const handleTouchMove = useCallback((e) => {
+    if (isDragging === null || placementSaved) return;
+    e.preventDefault();
+    console.log(`Touch moving for ship ${isDragging}`);
+  }, [isDragging, placementSaved]);
+
+  const handleGridDrop = useCallback((e) => {
+    let shipIndex, x, y;
+    if (e.dataTransfer) {
+      e.preventDefault();
+      if (placementSaved) {
+        console.log('Cannot drop ship: Placement saved');
+        return;
+      }
+      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = Math.max(0, e.clientX - rect.left);
+      y = Math.max(0, e.clientY - rect.top);
+      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    } else {
+      shipIndex = e.shipIndex;
+      x = Math.max(0, e.x);
+      y = Math.max(0, e.y);
+      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    }
+
+    if (placementSaved) {
+      console.log('Cannot drop ship: Placement saved');
+      return;
+    }
+
+    const ship = ships[shipIndex];
+    const col = Math.min(Math.max(Math.floor(x / cellSize), 0), GRID_COLS - 1);
+    const row = Math.min(Math.max(Math.floor(y / cellSize), 0), GRID_ROWS - 1);
+    const position = row * GRID_COLS + col;
+
+    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
+      setMessage('Invalid drop position!');
+      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
+      return;
+    }
+
+    const newPositions = calculateShipPositions(ship, position.toString());
+    if (!newPositions) {
+      setMessage('Invalid placement!');
+      console.log('Invalid placement: Ship cannot be placed here');
+      return;
+    }
+
+    let updatedShips;
+    setMyBoard((prev) => {
+      const newBoard = [...prev];
+      if (ship.positions.length > 0) {
+        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      }
+      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
+      return newBoard;
+    });
+
+    setShips((prev) => {
+      const updated = [...prev];
+      updated[shipIndex] = {
+        ...updated[shipIndex],
+        positions: newPositions,
+        placed: true,
+      };
+      updatedShips = updated;
+
+      const placedCount = updated.filter(s => s.positions.length > 0).length;
+      setShipCount(placedCount);
+      setMessage(
+        placedCount === 5
+          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+          : `${placedCount} of 5 ships placed. You can still reposition ships.`
+      );
+      console.log(`Ship count updated to ${placedCount}`);
+
+      return updated;
+    });
+
+    playPlaceSound();
+    setIsDragging(null);
+    if (updatedShips) updateServerBoard(updatedShips);
+  }, [placementSaved, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
+
+  const handleTouchEnd = useCallback((e) => {
+    if (isDragging === null || placementSaved) return;
+    e.preventDefault();
+    setIsDragging(null);
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (!data) return;
+    const { shipIndex } = data;
+    const touch = e.changedTouches[0];
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - gridRect.left;
+    const y = touch.clientY - gridRect.top;
+    console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
+    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
+  }, [isDragging, placementSaved, handleGridDrop]);
+
+  const handleGridDragOver = useCallback((e) => {
+    e.preventDefault();
+    console.log('Drag over grid');
+  }, []);
+
+  const randomizeUnplacedShips = useCallback(() => {
+    if (isPlacementConfirmed) {
+      console.log('Cannot randomize ships: Placement already confirmed');
+      return;
+    }
+
+    const unplacedShips = ships.filter(ship => !ship.placed);
+    console.log(`Found ${unplacedShips.length} unplaced ships to randomize`);
+    if (unplacedShips.length === 0) {
+      console.log('No unplaced ships to randomize');
+      return;
+    }
+
+    const newBoard = [...myBoard];
+    const newShips = [...ships];
+    let successfulPlacements = 0;
+
+    unplacedShips.forEach((ship) => {
+      let placed = false;
+      let attempts = 0;
+      const shipSize = ship.size;
+      const shipId = ship.id;
+
+      console.log(`Attempting to place ship ${ship.name} (size: ${shipSize})`);
+      while (!placed && attempts < 100) {
+        attempts++;
+        const horizontal = seededRandom.current() > 0.5;
+        const row = Math.floor(seededRandom.current() * GRID_ROWS);
+        const col = Math.floor(seededRandom.current() * GRID_COLS);
+        const positions = [];
+        let valid = true;
+
+        for (let i = 0; i < shipSize; i++) {
+          const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
+          if (
+            pos >= GRID_SIZE ||
+            (horizontal && col + shipSize > GRID_COLS) ||
+            (!horizontal && row + shipSize > GRID_ROWS) ||
+            newBoard[pos] === 'ship'
+          ) {
+            valid = false;
+            console.log(`Attempt ${attempts}: Invalid position for ${ship.name} at pos ${pos}`);
+            break;
+          }
+          positions.push(pos);
+        }
+
+        if (valid) {
+          positions.forEach(pos => (newBoard[pos] = 'ship'));
+          const shipIndex = newShips.findIndex(s => s.id === shipId);
+          if (shipIndex !== -1) {
+            newShips[shipIndex] = {
+              ...newShips[shipIndex],
+              positions,
+              horizontal,
+              placed: true,
+            };
+            successfulPlacements++;
+            console.log(`Successfully placed ${ship.name} at positions:`, positions);
+          }
+          placed = true;
+        }
+      }
+
+      if (!placed) {
+        console.log(`Failed to place ship ${ship.name} after 100 attempts`);
+      }
+    });
+
+    setMyBoard(newBoard);
+    setShips(newShips);
+    const placedCount = newShips.filter(s => s.positions.length > 0).length;
+    setShipCount(placedCount);
+    if (successfulPlacements === 0) {
+      setMessage('Unable to place unplaced ships due to space constraints.');
+      console.log('No ships were placed during randomization');
+    } else {
+      setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
+      console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
+    }
+    playPlaceSound();
+    updateServerBoard(newShips);
+  }, [isPlacementConfirmed, ships, myBoard, playPlaceSound, updateServerBoard]);
+
+  const saveShipPlacement = useCallback(() => {
+    if (placementSaved || !socket) {
+      console.log('Placement already saved or no socket, cannot save again');
+      return;
+    }
+    const unplacedShips = ships.filter(ship => !ship.placed);
+    if (unplacedShips.length > 0) {
+      console.log(`Randomizing ${unplacedShips.length} unplaced ships before saving`);
+      randomizeUnplacedShips();
+    }
+
+    setPlacementSaved(true);
+    setIsPlacementConfirmed(true);
+    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+    console.log('Ship placement confirmed and saved');
+
+    const placements = ships.map(ship => ({
+      name: ship.name,
+      positions: ship.positions,
+      horizontal: ship.horizontal,
+    }));
+
+    socket.emit('savePlacement', { gameId, placements });
+    console.log('Emitted savePlacement to server:', placements);
+    playPlaceSound();
+  }, [placementSaved, ships, gameId, playPlaceSound, randomizeUnplacedShips, socket]);
+
+  const autoSavePlacement = useCallback(() => {
+    console.log('Auto-saving placement due to time running out');
+    randomizeUnplacedShips();
+    saveShipPlacement();
+  }, [randomizeUnplacedShips, saveShipPlacement]);
+
+  const handleResize = useCallback(() => {
+    const width = window.innerWidth;
+    console.log(`Window resized to width: ${width}px`);
+    if (width < 480) {
+      setCellSize(30);
+      console.log('Set cell size to 30px for small phones');
+    } else if (width < 768) {
+      setCellSize(35);
+      console.log('Set cell size to 35px for tablets');
+    } else {
+      setCellSize(40);
+      console.log('Set cell size to 40px for desktop');
+    }
+  }, []);
+
+  useEffect(() => {
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [handleResize]);
+
+  useEffect(() => {
+    if (playerId) {
+      const seed = playerId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + Date.now();
+      seededRandom.current = mulberry32(seed);
+      console.log(`Initialized seeded random generator with seed: ${seed}`);
+    }
+  }, [playerId]);
+
+  useEffect(() => {
+    if (timerActive && timeLeft > 0) {
+      console.log(`Placement timer active, time left: ${timeLeft} seconds`);
+      timerRef.current = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+        if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) {
+          console.log(`Playing timer sound at ${timeLeft} seconds remaining`);
+          playTimerSound();
+        }
+      }, 1000);
+    } else if (timerActive && timeLeft === 0) {
+      console.log('Placement time up, auto-saving placement');
+      setTimerActive(false);
+      setMessage('Time up! Saving placement...');
+      autoSavePlacement();
+    }
+    return () => {
+      if (timerRef.current) {
+        console.log('Clearing placement timer');
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [timerActive, timeLeft, autoSavePlacement, playTimerSound]);
+
+  useEffect(() => {
+    if (isWaitingForPayment && paymentTimer > 0) {
+      console.log(`Payment timer active, time left: ${paymentTimer} seconds`);
+      paymentTimerRef.current = setTimeout(() => {
+        setPaymentTimer(paymentTimer - 1);
+      }, 1000);
+    } else if (isWaitingForPayment && paymentTimer === 0) {
+      console.log('Payment timed out after 5 minutes');
+      setIsWaitingForPayment(false);
+      setPayButtonLoading(false);
+      setIsLoading(false);
+      setMessage('Payment timed out after 5 minutes. Click Retry to try again.');
+      setLightningInvoice(null);
+      setHostedInvoiceUrl(null);
+      socket?.emit('cancelGame', { gameId, playerId });
+      console.log('Emitted cancelGame due to payment timeout');
+    }
+    return () => {
+      if (paymentTimerRef.current) {
+        console.log('Clearing payment timer');
+        clearTimeout(paymentTimerRef.current);
+      }
+    };
+  }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket]);
+
   const renderGrid = useCallback((board, isEnemy) => {
     console.log(`Rendering ${isEnemy ? 'enemy' : 'player'} grid`);
     return (
@@ -915,6 +1019,8 @@ const App = () => {
           height: GRID_ROWS * cellSize + 4,
           position: 'relative',
         }}
+        onDragOver={isEnemy ? undefined : handleGridDragOver}
+        onDrop={isEnemy ? undefined : handleGridDrop}
       >
         <div
           className="grid"
@@ -961,6 +1067,19 @@ const App = () => {
                 <div
                   key={`ship-${ship.id}`}
                   className="ship-on-grid"
+                  draggable={!placementSaved}
+                  onDragStart={(e) => handleDragStart(e, ship.id)}
+                  onDragEnd={() => {
+                    setIsDragging(null);
+                    console.log(`Stopped dragging ${ship.name}`);
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleTouchStart(e, ship.id);
+                    if (!placementSaved) toggleOrientation(ship.id);
+                  }}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   style={{
                     position: 'absolute',
                     top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize + 2,
@@ -970,156 +1089,23 @@ const App = () => {
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
                     backgroundPosition: "center",
-                    opacity: isPlacementConfirmed ? 1 : 0.8,
-                    cursor: isPlacementConfirmed ? 'default' : 'grab',
-                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
+                    opacity: placementSaved ? 1 : 0.8,
+                    cursor: placementSaved ? 'default' : 'grab',
+                    pointerEvents: placementSaved ? 'none' : 'auto',
                     touchAction: 'none',
                   }}
-                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    if (!isPlacementConfirmed) toggleOrientation(ship.id);
-                  }}
+                  onClick={() => !placementSaved && toggleOrientation(ship.id)}
                 />
               )
             );
           })}
       </div>
     );
-  }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket]);
+  }, [cellSize, ships, isDragging, gameState, turn, cannonFire, placementSaved, handleFire, toggleOrientation, socket, handleTouchMove, handleTouchEnd, handleGridDragOver, handleGridDrop]);
 
-  // Function to handle dropping a ship on the grid
-  const handleGridDrop = useCallback((e) => {
-    let shipIndex, x, y;
-    if (e.dataTransfer) {
-      e.preventDefault();
-      if (isPlacementConfirmed) {
-        console.log('Cannot drop ship: Placement confirmed');
-        return;
-      }
-      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
-      const rect = e.currentTarget.getBoundingClientRect();
-      x = e.clientX - rect.left;
-      y = e.clientY - rect.top;
-      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
-    } else {
-      shipIndex = e.shipIndex;
-      x = e.x;
-      y = e.y;
-      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
-    }
-
-    if (isPlacementConfirmed) {
-      console.log('Cannot drop ship: Placement confirmed');
-      return;
-    }
-
-    const ship = ships[shipIndex];
-    const col = Math.floor(x / cellSize);
-    const row = Math.floor(y / cellSize);
-    const position = row * GRID_COLS + col;
-
-    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
-      setMessage('Invalid drop position!');
-      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
-      return;
-    }
-
-    const newPositions = calculateShipPositions(ship, position.toString());
-    if (!newPositions) {
-      setMessage('Invalid placement!');
-      console.log('Invalid placement: Ship cannot be placed here');
-      return;
-    }
-
-    let updatedShips;
-    setMyBoard((prev) => {
-      const newBoard = [...prev];
-      if (ship.positions.length > 0) {
-        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
-      }
-      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
-      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
-      return newBoard;
-    });
-
-    setShips((prev) => {
-      const updated = [...prev];
-      updated[shipIndex] = {
-        ...updated[shipIndex],
-        positions: newPositions,
-        placed: true,
-      };
-      updatedShips = updated;
-
-      // Calculate the new ship count based on placed ships
-      const placedCount = updated.filter(s => s.positions.length > 0).length;
-      setShipCount(placedCount);
-      setMessage(
-        placedCount === 5
-          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
-          : `${placedCount} of 5 ships placed. You can still reposition ships.`
-      );
-      console.log(`Ship count updated to ${placedCount}`);
-
-      return updated;
-    });
-
-    playPlaceSound();
-    setIsDragging(null);
-    if (updatedShips) updateServerBoard(updatedShips);
-  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
-
-  // Function to handle drag over events on the grid
-  const handleGridDragOver = useCallback((e) => {
-    e.preventDefault();
-    console.log('Drag over grid');
-  }, []);
-
-  // Function to handle drag start
-  const handleDragStart = (e, shipIndex) => {
-    e.dataTransfer.setData('text/plain', shipIndex.toString());
-    setIsDragging(shipIndex);
-    console.log(`Started dragging ship ${shipIndex}`);
-  };
-
-  // Function to handle touch start
-  const handleTouchStart = (e, shipIndex) => {
-    e.preventDefault();
-    setIsDragging(shipIndex);
-    const touch = e.touches[0];
-    const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
-    sessionStorage.setItem('dragData', JSON.stringify(data));
-    console.log(`Touch drag started for ship ${shipIndex}`);
-  };
-
-  // Function to handle touch move, wrapped in useCallback
-  const handleTouchMove = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) return;
-    e.preventDefault();
-    console.log(`Touch moving for ship ${isDragging}`);
-  }, [isDragging, isPlacementConfirmed]);
-
-  // Function to handle touch end, wrapped in useCallback
-  const handleTouchEnd = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) return;
-    e.preventDefault();
-    setIsDragging(null);
-    const data = JSON.parse(sessionStorage.getItem('dragData'));
-    if (!data) return;
-    const { shipIndex } = data;
-    const touch = e.changedTouches[0];
-    const gridRect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - gridRect.left;
-    const y = touch.clientY - gridRect.top;
-    console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
-    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
-  }, [isDragging, isPlacementConfirmed, handleGridDrop]);
-
-  // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Not rendering ship list: Placement confirmed');
+    if (placementSaved) {
+      console.log('Not rendering ship list: Placement saved');
       return null;
     }
     console.log('Rendering ship list for placement');
@@ -1134,7 +1120,7 @@ const App = () => {
               </div>
               <div
                 className="ship"
-                draggable={!isPlacementConfirmed}
+                draggable={!placementSaved}
                 onDragStart={(e) => handleDragStart(e, i)}
                 onDragEnd={() => {
                   setIsDragging(null);
@@ -1150,7 +1136,7 @@ const App = () => {
                   width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
                   height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
                   opacity: 1,
-                  cursor: isPlacementConfirmed ? 'default' : 'grab',
+                  cursor: placementSaved ? 'default' : 'grab',
                   border: '2px solid #333',
                   borderRadius: '4px',
                   marginBottom: '10px',
@@ -1164,9 +1150,8 @@ const App = () => {
         ))}
       </div>
     );
-  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleTouchMove, handleTouchEnd]);
+  }, [placementSaved, ships, cellSize, isDragging, handleTouchMove, handleTouchEnd]);
 
-  // Component to render the splash screen
   const SplashScreen = useMemo(() => {
     console.log('Rendering SplashScreen with logo path: ./logo.png');
     return (
@@ -1228,7 +1213,6 @@ const App = () => {
     );
   }, [isSoundEnabled]);
 
-  // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {
     console.log('Rendering TermsModal');
     return (
@@ -1258,7 +1242,6 @@ const App = () => {
     );
   }, []);
 
-  // Component to render the privacy policy modal
   const PrivacyModal = useMemo(() => {
     console.log('Rendering PrivacyModal');
     return (
@@ -1287,7 +1270,6 @@ const App = () => {
     );
   }, []);
 
-  // Component to render the how-to-play modal
   const HowToPlayModal = useMemo(() => {
     console.log('Rendering HowToPlayModal');
     return (
@@ -1317,7 +1299,6 @@ const App = () => {
     );
   }, []);
 
-  // Component to render the payment modal
   const PaymentModal = useMemo(() => {
     console.log('Rendering PaymentModal');
     return (
@@ -1367,365 +1348,373 @@ const App = () => {
         )}
       </div>
     );
-  }, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame]);
+  }, [lightningInvoice, hostedInvoiceUrl, betAmount, payoutAmount, isWaitingForPayment, paymentTimer, payButtonLoading, handlePay, handleCancelGame]);
 
-  // Component to render confetti for winning
   const Confetti = useMemo(() => {
-    if (!showConfetti) return null;
     console.log('Rendering Confetti');
-    const confettiPieces = Array.from({ length: CONFETTI_COUNT }).map((_, i) => {
-      const left = Math.random() * 100;
-      const animationDelay = Math.random() * 2;
-      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-      const backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-      return (
-        <div
-          key={i}
-          className="confetti-piece"
-          style={{
-            left: `${left}%`,
-            animationDelay: `${animationDelay}s`,
-            backgroundColor,
-          }}
-        ></div>
-      );
-    });
-    return <div className="confetti-container">{confettiPieces}</div>;
-  }, [showConfetti]);
-
-  // Component to render the default fallback UI when disconnected
-  const DefaultFallbackUI = useMemo(() => {
-    console.log('Rendering DefaultFallbackUI');
+    const particles = Array.from({ length: CONFETTI_COUNT }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      animationDuration: 3 + Math.random() * 2,
+      rotation: Math.random() * 360,
+    }));
     return (
-      <div className="fallback-ui">
-        <h2>
-          {isSocketConnected ? 'Loading Game...' : 'Disconnected from Server'}
-        </h2>
-        <p>
-          {isSocketConnected
-            ? 'Please wait while we set up your game.'
-            : 'Attempting to reconnect...'}
-        </p>
-        {!isSocketConnected && (
-          <button
-            onClick={handleReconnect}
-            onTouchStart={handleReconnect}
-            className="join-button"
-          >
-            Retry Connection
-          </button>
-        )}
+      <div className="confetti">
+        {particles.map(particle => (
+          <div
+            key={particle.id}
+            className="confetti-particle"
+            style={{
+              left: `${particle.left}%`,
+              animationDuration: `${particle.animationDuration}s`,
+              transform: `rotate(${particle.rotation}deg)`,
+              backgroundColor: `hsl(${Math.random() * 360}, 70%, 60%)`,
+            }}
+          />
+        ))}
       </div>
     );
-  }, [isSocketConnected, handleReconnect]);
+  }, []);
 
-  // Render the main app UI
+  useEffect(() => {
+    if (gameState === 'finished' && message.includes('You win')) {
+      console.log('Triggering confetti for win');
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+      playWinSound();
+    }
+  }, [gameState, message, playWinSound]);
+
+  const renderGameStats = useCallback(() => {
+    console.log('Rendering game stats');
+    const accuracy = gameStats.shotsFired > 0 ? ((gameStats.hits / gameStats.shotsFired) * 100).toFixed(1) : 0;
+    return (
+      <div className="game-stats">
+        <h3>Game Stats</h3>
+        <p>Shots Fired: {gameStats.shotsFired}</p>
+        <p>Hits: {gameStats.hits}</p>
+        <p>Misses: {gameStats.misses}</p>
+        <p>Accuracy: {accuracy}%</p>
+      </div>
+    );
+  }, [gameStats]);
+
+  const handleResetGame = useCallback(() => {
+    console.log('Resetting game');
+    setGameState('join');
+    setGameId(null);
+    setPlayerId(null);
+    setLightningAddress('');
+    setBetAmount('300');
+    setPayoutAmount('500');
+    setMyBoard(Array(GRID_SIZE).fill('water'));
+    setEnemyBoard(Array(GRID_SIZE).fill('water'));
+    setShips(SHIP_CONFIG.map((ship, index) => ({
+      ...ship,
+      id: index,
+      positions: [],
+      horizontal: true,
+      placed: false,
+    })));
+    setShipCount(0);
+    setTurn(null);
+    setMessage('');
+    setTransactionMessage('');
+    setCannonFire(null);
+    setIsPlacementConfirmed(false);
+    setIsDragging(null);
+    setTimeLeft(PLACEMENT_TIME);
+    setTimerActive(false);
+    setLightningInvoice(null);
+    setHostedInvoiceUrl(null);
+    setPlacementSaved(false);
+    setIsWaitingForPayment(false);
+    setIsOpponentThinking(false);
+    setPaymentTimer(PAYMENT_TIMEOUT);
+    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+    setShowConfetti(false);
+    setIsLoading(false);
+    setBotTargetQueue([]);
+    reconnectAttemptsRef.current = 0;
+    socket?.emit('leaveGame', { gameId, playerId });
+    console.log('Emitted leaveGame to server');
+  }, [socket, gameId, playerId]);
+
+  if (!isAppLoaded) {
+    console.log('App not loaded, rendering loading screen');
+    return (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  console.log(`Rendering main app, gameState: ${gameState}`);
   return (
-    <div
-      className="App"
-      style={{
-        backgroundImage: `url(./background.png)`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
-      {/* Show loading screen until app is fully loaded */}
-      {!isAppLoaded && (
-        <div className="loading-screen">
-          <h2>Loading...</h2>
+    <div className="app">
+      {showConfetti && <Confetti />}
+      {showTermsModal && <TermsModal />}
+      {showPrivacyModal && <PrivacyModal />}
+      {showHowToPlayModal && <HowToPlayModal />}
+
+      {gameState === 'splash' && <SplashScreen />}
+
+      {gameState === 'join' && (
+        <div className="join-game">
+          <h1>⚡ Lightning Sea Battle ⚡</h1>
+          <p>Enter your Lightning address to join the game!</p>
+          <input
+            type="text"
+            placeholder="Enter Lightning Address (e.g., user@domain)"
+            value={lightningAddress}
+            onChange={(e) => {
+              console.log('Lightning address input changed:', e.target.value);
+              setLightningAddress(e.target.value);
+            }}
+            className="lightning-input"
+            disabled={isLoading}
+          />
+          <p>Select your bet amount:</p>
+          <select
+            value={betAmount}
+            onChange={selectBet}
+            className="bet-select"
+            disabled={isLoading}
+          >
+            {BET_OPTIONS.map((option, index) => (
+              <option key={index} value={option.amount}>
+                Bet {option.amount} SATS (Win {option.winnings} SATS)
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleJoinGame}
+            onTouchStart={handleJoinGame}
+            className={`join-button ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Joining...' : 'Join Game'}
+          </button>
+          <div className="button-group">
+            <button
+              onClick={() => {
+                console.log('How to Play button clicked');
+                setShowHowToPlayModal(true);
+              }}
+              onTouchStart={() => {
+                console.log('How to Play button touched');
+                setShowHowToPlayModal(true);
+              }}
+              className="join-button"
+            >
+              How to Play
+            </button>
+            <button
+              onClick={() => {
+                console.log('Sound toggle button clicked');
+                setIsSoundEnabled(!isSoundEnabled);
+              }}
+              onTouchStart={() => {
+                console.log('Sound toggle button touched');
+                setIsSoundEnabled(!isSoundEnabled);
+              }}
+              className="join-button sound-toggle"
+            >
+              {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
+            </button>
+          </div>
+          {message && <p className="message">{message}</p>}
+          {!isSocketConnected && (
+            <button
+              onClick={handleReconnect}
+              onTouchStart={handleReconnect}
+              className="retry-button"
+            >
+              Retry Connection
+            </button>
+          )}
         </div>
       )}
 
-      {/* Main App Content */}
-      {isAppLoaded && (
-        <>
-          {/* Splash Screen */}
-          {gameState === 'splash' && SplashScreen}
-
-          {/* Default Fallback UI when disconnected or loading */}
-          {(gameState !== 'splash' && !socket) && DefaultFallbackUI}
-
-          {/* Join Game Screen */}
-          {gameState === 'join' && socket && (
-            <div className="join-screen">
-              <h2>Join the Battle ⚡</h2>
-              <p>
-                Enter your Lightning address and select a bet to start.
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="text"
-                  placeholder="Lightning Address (e.g., user)"
-                  value={lightningAddress}
-                  onChange={(e) => {
-                    setLightningAddress(e.target.value);
-                    console.log('Lightning address updated:', e.target.value);
-                  }}
-                  style={{ flex: 1 }}
-                />
-                <span style={{ marginLeft: '5px', color: '#fff' }}>
-                  @speed.app
-                </span>
-              </div>
-              <div className="bet-selection">
-                <label htmlFor="bet-amount">Select Bet Amount (Sats): </label>
-                <select id="bet-amount" value={betAmount} onChange={selectBet}>
-                  {BET_OPTIONS.map((option, index) => (
-                    <option key={index} value={option.amount}>
-                      {option.amount} SATS (Win {option.winnings} SATS)
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={handleJoinGame}
-                onTouchStart={handleJoinGame}
-                className="join-button"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Joining...' : 'Join Game'}
-              </button>
-              <div className="legal-notice">
-                By playing game you agree to our 
-                <button
-                  onClick={() => setShowTermsModal(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#00f',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Terms and Conditions
-                </button>
-                and 
-                <button
-                  onClick={() => setShowPrivacyModal(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#00f',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Privacy Policy
-                </button>.
-              </div>
-              <p>{message}</p>
-            </div>
+      {(gameState === 'waiting' || gameState === 'waitingForOpponent') && (
+        <div className="waiting">
+          <h1>⚡ Lightning Sea Battle ⚡</h1>
+          {isWaitingForPayment && <PaymentModal />}
+          <p className="message">{message}</p>
+          <div className="loading-spinner"></div>
+          <button
+            onClick={handleCancelGame}
+            onTouchStart={handleCancelGame}
+            className="cancel-button"
+          >
+            Cancel
+          </button>
+          {!isSocketConnected && (
+            <button
+              onClick={handleReconnect}
+              onTouchStart={handleReconnect}
+              className="retry-button"
+            >
+              Retry Connection
+            </button>
           )}
-
-          {/* Waiting for Payment Screen */}
-          {gameState === 'waiting' && (
-            <div className="waiting-screen">
-              {PaymentModal}
-              {!isLoading && (
-                <button
-                  onClick={handleJoinGame}
-                  onTouchStart={handleJoinGame}
-                  className="join-button"
-                >
-                  Retry
-                </button>
-              )}
-              <p>{message}</p>
-            </div>
-          )}
-
-          {/* Waiting for Opponent Screen */}
-          {gameState === 'waitingForOpponent' && (
-            <div className="waiting-screen">
-              <h2>Waiting for Opponent</h2>
-              <p>{message}</p>
-              <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button">
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {/* Ship Placement Screen */}
-          {gameState === 'placing' && (
-            <div className="placing-screen">
-              <h3>
-                Place Your Ships ({shipCount}/5)
-              </h3>
-              <p>{message}</p>
-              <div className="timer-container">
-                <div className="timer-bar">
-                  <div
-                    className="timer-progress"
-                    style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="timer-text">
-                  Time left:{' '}
-                  <span className={timeLeft <= 10 ? 'time-warning' : ''}>
-                    {timeLeft} seconds
-                  </span>
-                </div>
-              </div>
-              <div className="fleet-container">
-                {renderShipList()}
-                <div
-                  onDrop={handleGridDrop}
-                  onDragOver={handleGridDragOver}
-                  onTouchEnd={(e) => {
-                    if (isDragging === null) return;
-                    e.preventDefault();
-                    const touch = e.changedTouches[0];
-                    const gridRect = gridRef.current.getBoundingClientRect();
-                    const x = touch.clientX - gridRect.left;
-                    const y = touch.clientY - gridRect.top;
-                    const data = JSON.parse(sessionStorage.getItem('dragData'));
-                    if (data) {
-                      handleGridDrop({ x, y, shipIndex: parseInt(data.shipIndex) });
-                    }
-                  }}
-                >
-                  {renderGrid(myBoard, false)}
-                </div>
-              </div>
-              <div className="action-buttons">
-                <button
-                  onClick={randomizeShips}
-                  onTouchStart={randomizeShips}
-                  className="action-button"
-                  disabled={isPlacementConfirmed}
-                >
-                  Randomize
-                </button>
-                <button
-                  onClick={randomizeUnplacedShips}
-                  onTouchStart={randomizeUnplacedShips}
-                  className="action-button place-remaining"
-                  disabled={isPlacementConfirmed}
-                >
-                  Place Remaining
-                </button>
-                <button
-                  onClick={clearBoard}
-                  onTouchStart={clearBoard}
-                  className="action-button clear-board"
-                  disabled={isPlacementConfirmed}
-                >
-                  Clear Board
-                </button>
-                <button
-                  onClick={saveShipPlacement}
-                  onTouchStart={saveShipPlacement}
-                  className="action-button save-placement"
-                  disabled={shipCount < 5 || isPlacementConfirmed}
-                >
-                  Save Placement
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Playing Game Screen */}
-          {gameState === 'playing' && socket && (
-            <div className="playing-screen">
-              <h3
-                className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-              >
-                {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-              </h3>
-              <p>{message}</p>
-              {isOpponentThinking && (
-                <div className="opponent-thinking">
-                  <div className="loading-spinner"></div>
-                  <p>Opponent is thinking...</p>
-                </div>
-              )}
-              <div className="game-boards">
-                <div>
-                  <h4>Your Fleet</h4>
-                  {renderGrid(myBoard, false)}
-                </div>
-                <div>
-                  <h4>Enemy Waters</h4>
-                  {renderGrid(enemyBoard, true)}
-                </div>
-              </div>
-              <div className="game-stats">
-                <h4>Game Stats</h4>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Finished Game Screen */}
-          {gameState === 'finished' && (
-            <div className="finished-screen">
-              <h2>{message}</h2>
-              {transactionMessage && (
-                <p>{transactionMessage}</p>
-              )}
-              <div className="game-stats">
-                <h4>Final Game Stats</h4>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
-              </div>
-              <button
-                onClick={() => {
-                  console.log('Play Again button clicked');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShowConfetti(false);
-                }}
-                onTouchStart={() => {
-                  console.log('Play Again button touched');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShowConfetti(false);
-                }}
-                className="join-button"
-              >
-                Play Again
-              </button>
-              {Confetti}
-            </div>
-          )}
-
-          {/* Modals */}
-          {showTermsModal && TermsModal}
-          {showPrivacyModal && PrivacyModal}
-          {showHowToPlayModal && HowToPlayModal}
-        </>
+        </div>
       )}
+
+      {gameState === 'placing' && (
+        <div className="placing">
+          <h1>⚡ Lightning Sea Battle ⚡</h1>
+          <p className="message">{message}</p>
+          <div className="timer-container">
+            <div className="timer-bar">
+              <div
+                className="timer-progress"
+                style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
+              ></div>
+            </div>
+            <div className="timer-text">
+              Time left:{' '}
+              <span className={timeLeft <= 10 ? 'time-warning' : ''}>
+                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+              </span>
+            </div>
+          </div>
+          <div className="board-label">Your Board</div>
+          {renderGrid(myBoard, false)}
+          {renderShipList()}
+          <div className="placement-controls">
+            <button
+              onClick={randomizeShips}
+              onTouchStart={randomizeShips}
+              className="placement-button"
+              disabled={placementSaved}
+            >
+              Randomize Ships
+            </button>
+            <button
+              onClick={clearBoard}
+              onTouchStart={clearBoard}
+              className="placement-button"
+              disabled={placementSaved}
+            >
+              Clear Board
+            </button>
+            <button
+              onClick={saveShipPlacement}
+              onTouchStart={saveShipPlacement}
+              className="placement-button save-button"
+              disabled={shipCount < 5 || placementSaved}
+            >
+              Save Placement
+            </button>
+          </div>
+          {!isSocketConnected && (
+            <button
+              onClick={handleReconnect}
+              onTouchStart={handleReconnect}
+              className="retry-button"
+            >
+              Retry Connection
+            </button>
+          )}
+        </div>
+      )}
+
+      {gameState === 'playing' && (
+        <div className="playing">
+          <h1>⚡ Lightning Sea Battle ⚡</h1>
+          <p className="message">{message}</p>
+          {isOpponentThinking && (
+            <div className="opponent-thinking">
+              <p>Opponent is thinking...</p>
+              <div className="loading-spinner"></div>
+            </div>
+          )}
+          <div className="boards-container">
+            <div className="board-section">
+              <div className="board-label">Your Board</div>
+              {renderGrid(myBoard, false)}
+            </div>
+            <div className="board-section">
+              <div className="board-label">Enemy Board</div>
+              {renderGrid(enemyBoard, true)}
+            </div>
+          </div>
+          {renderGameStats()}
+          {!isSocketConnected && (
+            <button
+              onClick={handleReconnect}
+              onTouchStart={handleReconnect}
+              className="retry-button"
+            >
+              Retry Connection
+            </button>
+          )}
+        </div>
+      )}
+
+      {gameState === 'finished' && (
+        <div className="finished">
+          <h1>⚡ Lightning Sea Battle ⚡</h1>
+          <p className="message">{message}</p>
+          {transactionMessage && <p className="transaction-message">{transactionMessage}</p>}
+          <div className="boards-container">
+            <div className="board-section">
+              <div className="board-label">Your Board</div>
+              {renderGrid(myBoard, false)}
+            </div>
+            <div className="board-section">
+              <div className="board-label">Enemy Board</div>
+              {renderGrid(enemyBoard, true)}
+            </div>
+          </div>
+          {renderGameStats()}
+          <button
+            onClick={handleResetGame}
+            onTouchStart={handleResetGame}
+            className="join-button"
+          >
+            Play Again
+          </button>
+          {!isSocketConnected && (
+            <button
+              onClick={handleReconnect}
+              onTouchStart={handleReconnect}
+              className="retry-button"
+            >
+              Retry Connection
+            </button>
+          )}
+        </div>
+      )}
+
+      <footer className="footer">
+        <div className="footer-links">
+          <button
+            onClick={() => setShowTermsModal(true)}
+            onTouchStart={() => setShowTermsModal(true)}
+            className="footer-link"
+          >
+            Terms
+          </button>
+          <button
+            onClick={() => setShowPrivacyModal(true)}
+            onTouchStart={() => setShowPrivacyModal(true)}
+            className="footer-link"
+          >
+            Privacy
+          </button>
+          <button
+            onClick={() => setShowHowToPlayModal(true)}
+            onTouchStart={() => setShowHowToPlayModal(true)}
+            className="footer-link"
+          >
+            How to Play
+          </button>
+        </div>
+        <p>© 2025 ThunderFleet. All rights reserved.</p>
+      </footer>
     </div>
   );
 };
