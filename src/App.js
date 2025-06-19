@@ -774,37 +774,45 @@ const App = () => {
       const newHorizontal = !ship.horizontal;
       const startPos = ship.positions[0];
 
-      if (!startPos) return prev; // Add this check
+      if (startPos === undefined) return prev;
 
+      // Calculate new positions for the rotated ship
       const newPositions = calculateShipPositions(
         { ...ship, horizontal: newHorizontal },
         startPos.toString()
       );
 
-      if (newPositions) {
-        // Remove old ship positions from board
-        setMyBoard(prevBoard => {
-          const newBoard = [...prevBoard];
-          ship.positions.forEach(pos => {
-            newBoard[pos] = 'water';
-          });
-          // Add new ship positions
-          newPositions.forEach(pos => {
-            newBoard[pos] = 'ship';
-          });
-          return newBoard;
-        });
+      // Check for overlap with other ships
+      const otherShipsPositions = updated
+        .filter((_, idx) => idx !== shipIndex)
+        .flatMap(s => s.positions);
 
-        updated[shipIndex] = {
-          ...ship,
-          horizontal: newHorizontal,
-          positions: newPositions,
-          placed: true
-        };
-        playPlaceSound();
-        updateServerBoard(updated);
+      const overlap = newPositions.some(pos => otherShipsPositions.includes(pos));
+      if (!newPositions || overlap) {
+        setMessage('Cannot rotate: Overlaps with another ship or out of bounds.');
+        return prev;
       }
 
+      // Remove old ship positions from board
+      setMyBoard(prevBoard => {
+        const newBoard = [...prevBoard];
+        ship.positions.forEach(pos => {
+          newBoard[pos] = 'water';
+        });
+        newPositions.forEach(pos => {
+          newBoard[pos] = 'ship';
+        });
+        return newBoard;
+      });
+
+      updated[shipIndex] = {
+        ...ship,
+        horizontal: newHorizontal,
+        positions: newPositions,
+        placed: true
+      };
+      playPlaceSound();
+      updateServerBoard(updated);
       return updated;
     });
   }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
