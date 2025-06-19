@@ -774,54 +774,48 @@ const App = () => {
       const newHorizontal = !ship.horizontal;
       const startPos = ship.positions[0];
 
-      if (!startPos) return prev;
+      if (startPos === undefined) return prev;
 
-      // Calculate new positions without affecting other ships
-      const otherShips = updated.filter((_, idx) => idx !== shipIndex);
-      const otherPositions = new Set(otherShips.flatMap(s => s.positions));
+      // Calculate new positions for the rotated ship
+      const newPositions = calculateShipPositions(
+        { ...ship, horizontal: newHorizontal },
+        startPos.toString()
+      );
 
-      const row = Math.floor(startPos / GRID_COLS);
-      const col = startPos % GRID_COLS;
-      const newPositions = [];
+      // Check for overlap with other ships
+      const otherShipsPositions = updated
+        .filter((_, idx) => idx !== shipIndex)
+        .flatMap(s => s.positions);
 
-      // Check if new orientation is valid
-      let valid = true;
-      for (let i = 0; i < ship.size; i++) {
-        const pos = newHorizontal ? 
-          row * GRID_COLS + (col + i) : 
-          (row + i) * GRID_COLS + col;
-        
-        if (pos >= GRID_SIZE || 
-            (newHorizontal && col + i >= GRID_COLS) || 
-            (!newHorizontal && row + i >= GRID_ROWS) ||
-            otherPositions.has(pos)) {
-          valid = false;
-          break;
-        }
-        newPositions.push(pos);
+      const overlap = newPositions.some(pos => otherShipsPositions.includes(pos));
+      if (!newPositions || overlap) {
+        setMessage('Cannot rotate: Overlaps with another ship or out of bounds.');
+        return prev;
       }
 
-      if (!valid) return prev;
-
-      // Update the board
+      // Remove old ship positions from board
       setMyBoard(prevBoard => {
         const newBoard = [...prevBoard];
-        ship.positions.forEach(pos => newBoard[pos] = 'water');
-        newPositions.forEach(pos => newBoard[pos] = 'ship');
+        ship.positions.forEach(pos => {
+          newBoard[pos] = 'water';
+        });
+        newPositions.forEach(pos => {
+          newBoard[pos] = 'ship';
+        });
         return newBoard;
       });
 
       updated[shipIndex] = {
         ...ship,
         horizontal: newHorizontal,
-        positions: newPositions
+        positions: newPositions,
+        placed: true
       };
-
-      updateServerBoard(updated);
       playPlaceSound();
+      updateServerBoard(updated);
       return updated;
     });
-  }, [isPlacementConfirmed, updateServerBoard, playPlaceSound]);
+  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to randomize all ships on the board
   const randomizeShips = useCallback(() => {
@@ -832,8 +826,13 @@ const App = () => {
 
     console.log('Randomizing all ships');
     const newBoard = Array(GRID_SIZE).fill('water');
-    const updatedShips = [...ships];
-    const occupied = new Set();
+    const newShips = ships.map(ship => ({
+      ...ship,
+      positions: [],
+      horizontal: true,
+      placed: false,
+    }));
+    let successfulPlacements = 0;
 
     SHIP_CONFIG.forEach((shipConfig, index) => {
       let placed = false;
@@ -854,25 +853,25 @@ const App = () => {
             pos >= GRID_SIZE ||
             (horizontal && col + shipConfig.size > GRID_COLS) ||
             (!horizontal && row + shipConfig.size > GRID_ROWS) ||
-            occupied.has(pos)
+            newBoard[pos] === 'ship'
           ) {
             valid = false;
+            console.log(`Attempt ${attempts}: Invalid position for ${shipConfig.name} at pos ${pos}`);
             break;
           }
           positions.push(pos);
         }
 
         if (valid) {
-          positions.forEach(pos => {
-            occupied.add(pos);
-            newBoard[pos] = 'ship';
-          });
-          updatedShips[index] = {
-            ...updatedShips[index],
+          positions.forEach(pos => (newBoard[pos] = 'ship'));
+          newShips[index] = {
+            ...newShips[index],
             positions,
             horizontal,
-            placed: true
+            placed: true,
           };
+          successfulPlacements++;
+          console.log(`Successfully placed ${shipConfig.name} at positions:`, positions);
           placed = true;
         }
       }
@@ -883,10 +882,18 @@ const App = () => {
     });
 
     setMyBoard(newBoard);
-    setShips(updatedShips);
-    setShipCount(updatedShips.filter(s => s.placed).length);
+    setShips(newShips);
+    const placedCount = newShips.filter(s => s.placed).length;
+    setShipCount(placedCount);
+    if (successfulPlacements < SHIP_CONFIG.length) {
+      setMessage('Some ships couldn’t be placed. Adjust manually or try again.');
+      console.log(`Randomized ${successfulPlacements} out of ${SHIP_CONFIG.length} ships`);
+    } else {
+      setMessage('Ships randomized! Drag to reposition or Save Placement.');
+      console.log('All ships successfully randomized');
+    }
     playPlaceSound();
-    updateServerBoard(updatedShips);
+    updateServerBoard(newShips);
   }, [isPlacementConfirmed, ships, playPlaceSound, updateServerBoard]);
 
   // Function to clear the board
