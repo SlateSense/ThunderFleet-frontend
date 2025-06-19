@@ -132,6 +132,7 @@ const App = () => {
   const playLoseSound = useSound('/sounds/lose.mp3', isSoundEnabled);
   const playPlaceSound = useSound('/sounds/place.mp3', isSoundEnabled);
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
+  const playErrorSound = useSound('/sounds/error.mp3', isSoundEnabled);
 
   // Log gameState changes for debugging
   useEffect(() => {
@@ -522,20 +523,28 @@ const App = () => {
 
   // Function to save ship placement to the server
   const saveShipPlacement = useCallback(() => {
-    if (placementSaved || !socket) {
-      console.log('Placement already saved or no socket, cannot save again');
+    if (placementSaved || !socket) return;
+
+    // Validate all ship placements
+    const invalidShips = ships.filter(ship => {
+      return !ship.positions || 
+             ship.positions.length === 0 || 
+             ship.positions.some(pos => pos < 0 || pos >= GRID_SIZE);
+    });
+
+    if (invalidShips.length > 0) {
+      setMessage('Invalid ship placement. Please check all ships are properly placed.');
       return;
     }
+
     const unplacedShips = ships.filter(ship => !ship.placed);
     if (unplacedShips.length > 0) {
-      console.log(`Randomizing ${unplacedShips.length} unplaced ships before saving`);
       randomizeUnplacedShips();
     }
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
-    console.log('Ship placement confirmed and saved');
+    setMessage('Placement saved! Waiting for opponent... You can still reposition ships until the game starts.');
 
     const placements = ships.map(ship => ({
       name: ship.name,
@@ -544,9 +553,8 @@ const App = () => {
     }));
 
     socket.emit('savePlacement', { gameId, placements });
-    console.log('Emitted savePlacement to server:', placements);
     playPlaceSound();
-  }, [placementSaved, ships, gameId, playPlaceSound, randomizeUnplacedShips, socket]);
+  }, [placementSaved, ships, gameId, socket, playPlaceSound, randomizeUnplacedShips]);
 
   // Function to auto-save placement when time runs out
   const autoSavePlacement = useCallback(() => {
@@ -758,43 +766,48 @@ const App = () => {
 
   // Function to toggle ship orientation
   const toggleOrientation = useCallback((shipIndex) => {
-    if (isPlacementConfirmed || !ships[shipIndex].placed) {
-      console.log(`Cannot toggle orientation for ship ${shipIndex}: Placement confirmed or ship not placed`);
-      return;
-    }
+    if (isPlacementConfirmed) return;
 
     setShips(prev => {
       const updated = [...prev];
       const ship = updated[shipIndex];
       const newHorizontal = !ship.horizontal;
+      const startPos = ship.positions[0];
 
-      console.log(`Toggling orientation for ${ship.name} to ${newHorizontal ? 'horizontal' : 'vertical'}`);
+      if (!startPos) return prev; // Add this check
+
       const newPositions = calculateShipPositions(
         { ...ship, horizontal: newHorizontal },
-        ship.positions[0].toString()
+        startPos.toString()
       );
 
       if (newPositions) {
+        // Remove old ship positions from board
         setMyBoard(prevBoard => {
           const newBoard = [...prevBoard];
-          ship.positions.forEach(pos => (newBoard[pos] = 'water'));
-          newPositions.forEach(pos => (newBoard[pos] = 'ship'));
-          console.log(`Updated board for ${ship.name} with new positions:`, newPositions);
+          ship.positions.forEach(pos => {
+            newBoard[pos] = 'water';
+          });
+          // Add new ship positions
+          newPositions.forEach(pos => {
+            newBoard[pos] = 'ship';
+          });
           return newBoard;
         });
 
-        updated[shipIndex] = { ...ship, horizontal: newHorizontal, positions: newPositions };
+        updated[shipIndex] = {
+          ...ship,
+          horizontal: newHorizontal,
+          positions: newPositions,
+          placed: true
+        };
         playPlaceSound();
         updateServerBoard(updated);
-        setMessage(`${ship.name} rotated successfully! You can still reposition ships.`);
-      } else {
-        setMessage('Cannot rotate: Ship would go out of bounds or overlap another ship.');
-        console.log(`Failed to rotate ${ship.name}: Invalid position`);
       }
 
       return updated;
     });
-  }, [isPlacementConfirmed, ships, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to randomize all ships on the board
   const randomizeShips = useCallback(() => {
@@ -961,6 +974,15 @@ const App = () => {
                 <div
                   key={`ship-${ship.id}`}
                   className="ship-on-grid"
+                  draggable={!isPlacementConfirmed}  // Add this line
+                  onDragStart={(e) => !isPlacementConfirmed && handleDragStart(e, ship.id)}
+                  onDragEnd={() => setIsDragging(null)}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    if (!isPlacementConfirmed) {
+                      handleTouchStart(e, ship.id);
+                    }
+                  }}
                   style={{
                     position: 'absolute',
                     top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize + 2,
@@ -976,10 +998,6 @@ const App = () => {
                     touchAction: 'none',
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    if (!isPlacementConfirmed) toggleOrientation(ship.id);
-                  }}
                 />
               )
             );
@@ -1358,11 +1376,10 @@ const App = () => {
               <div className="timer-text">
                 Time left:{' '}
                 <span className={paymentTimer <= 30 ? 'time-warning' : ''}>
-                  {Math.floor(paymentTimer / 60)}:{(paymentTimer % 60).toString().padStart(2, '0')}
+                  {paymentTimer} seconds
                 </span>
               </div>
             </div>
-            <div className="loading-spinner"></div>
           </div>
         )}
       </div>
@@ -1418,6 +1435,21 @@ const App = () => {
       </div>
     );
   }, [isSocketConnected, handleReconnect]);
+
+  // Error handling function
+  const handleError = useCallback((error) => {
+    console.error('Game error:', error);
+    setMessage(error.message || 'An error occurred. Please try again.');
+    playErrorSound();
+  }, [playErrorSound]);
+
+  // Register error handler with socket
+  useEffect(() => {
+    if (socket) {
+      socket.on('error', handleError);
+      return () => socket.off('error', handleError);
+    }
+  }, [socket, handleError]);
 
   // Render the main app UI
   return (
