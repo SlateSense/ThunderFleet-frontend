@@ -357,6 +357,16 @@ const App = () => {
         console.log('Transaction message:', message);
         setTransactionMessage(message);
       },
+      updateBoard: ({ success }) => {
+        if (success) {
+          console.log('Board update confirmed by server');
+        } else {
+          setMessage('Failed to save board changes. Please try again.');
+          console.log('Server failed to update board, reverting state');
+          setMyBoard(prev => [...prev]);
+          setShips(prev => [...prev]);
+        }
+      },
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -506,20 +516,132 @@ const App = () => {
       }
     });
 
+    // Set temporary state and wait for server confirmation
     setMyBoard(newBoard);
     setShips(newShips);
     const placedCount = newShips.filter(s => s.placed).length;
     setShipCount(placedCount);
-    if (successfulPlacements === 0) {
-      setMessage('Unable to place unplaced ships due to space constraints.');
-      console.log('No ships were placed during randomization');
-    } else {
-      setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
-      console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
+
+    // Update server and wait for confirmation
+    if (socket) {
+      socket.emit('updateBoard', { gameId, playerId: socket?.id, placements: newShips.map(ship => ({
+        name: ship.name,
+        positions: ship.positions,
+        horizontal: ship.horizontal,
+      })) }, (response) => {
+        if (response && response.success) {
+          setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
+          console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
+        } else {
+          setMessage('Failed to save randomized ships. Please try again.');
+          console.log('Server failed to update board');
+          // Revert to previous state if server fails
+          setMyBoard(prev => [...prev]);
+          setShips(prev => [...prev]);
+        }
+      });
     }
+
     playPlaceSound();
-    updateServerBoard(newShips);
-  }, [isPlacementConfirmed, ships, myBoard, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, ships, myBoard, playPlaceSound, socket, gameId]);
+
+  // Function to randomize all ships on the board
+  const randomizeShips = useCallback(() => {
+    if (isPlacementConfirmed) {
+      console.log('Cannot randomize ships: Placement already confirmed');
+      return;
+    }
+
+    console.log('Randomizing all ships');
+    const newBoard = Array(GRID_SIZE).fill('water');
+    const newShips = ships.map(ship => ({
+      ...ship,
+      positions: [],
+      horizontal: true,
+      placed: false,
+    }));
+    let successfulPlacements = 0;
+
+    SHIP_CONFIG.forEach((shipConfig, index) => {
+      let placed = false;
+      let attempts = 0;
+
+      console.log(`Attempting to place ${shipConfig.name} (size: ${shipConfig.size})`);
+      while (!placed && attempts < 100) {
+        attempts++;
+        const horizontal = seededRandom.current() > 0.5;
+        const row = Math.floor(seededRandom.current() * GRID_ROWS);
+        const col = Math.floor(seededRandom.current() * GRID_COLS);
+        const positions = [];
+        let valid = true;
+
+        for (let i = 0; i < shipConfig.size; i++) {
+          const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
+          if (
+            pos >= GRID_SIZE ||
+            (horizontal && col + shipConfig.size > GRID_COLS) ||
+            (!horizontal && row + shipConfig.size > GRID_ROWS) ||
+            newBoard[pos] === 'ship'
+          ) {
+            valid = false;
+            console.log(`Attempt ${attempts}: Invalid position for ${shipConfig.name} at pos ${pos}`);
+            break;
+          }
+          positions.push(pos);
+        }
+
+        if (valid) {
+          positions.forEach(pos => (newBoard[pos] = 'ship'));
+          newShips[index] = {
+            ...newShips[index],
+            positions,
+            horizontal,
+            placed: true,
+          };
+          successfulPlacements++;
+          console.log(`Successfully placed ${shipConfig.name} at positions:`, positions);
+          placed = true;
+        }
+      }
+
+      if (!placed) {
+        console.log(`Failed to place ship ${shipConfig.name} after 100 attempts`);
+      }
+    });
+
+    // Set temporary state and wait for server confirmation
+    setMyBoard(newBoard);
+    setShips(newShips);
+    const placedCount = newShips.filter(s => s.placed).length;
+    setShipCount(placedCount);
+
+    // Update server and wait for confirmation
+    if (socket) {
+      socket.emit('updateBoard', { gameId, playerId: socket?.id, placements: newShips.map(ship => ({
+        name: ship.name,
+        positions: ship.positions,
+        horizontal: ship.horizontal,
+      })) }, (response) => {
+        if (response && response.success) {
+          if (successfulPlacements < SHIP_CONFIG.length) {
+            setMessage('Some ships couldn’t be placed. Adjust manually or try again.');
+            console.log(`Randomized ${successfulPlacements} out of ${SHIP_CONFIG.length} ships`);
+          } else {
+            setMessage('Ships randomized! Drag to reposition or Save Placement.');
+            console.log('All ships successfully randomized');
+          }
+        } else {
+          setMessage('Failed to save randomized ships. Please try again.');
+          console.log('Server failed to update board');
+          // Revert to previous state if server fails
+          setMyBoard(prev => [...prev]);
+          setShips(prev => [...prev]);
+        }
+      });
+    }
+
+    playPlaceSound();
+  }, [isPlacementConfirmed, ships, playPlaceSound, socket, gameId]);
 
   // Function to save ship placement to the server
   const saveShipPlacement = useCallback(() => {
@@ -793,9 +915,10 @@ const App = () => {
         return prev;
       }
 
-      // Remove old ship positions from board
+      // Update board only for the rotated ship, preserving other ships
       setMyBoard(prevBoard => {
         const newBoard = [...prevBoard];
+        // Clear only the positions of the rotated ship
         ship.positions.forEach(pos => {
           newBoard[pos] = 'water';
         });
@@ -816,85 +939,6 @@ const App = () => {
       return updated;
     });
   }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
-
-  // Function to randomize all ships on the board
-  const randomizeShips = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
-      return;
-    }
-
-    console.log('Randomizing all ships');
-    const newBoard = Array(GRID_SIZE).fill('water');
-    const newShips = ships.map(ship => ({
-      ...ship,
-      positions: [],
-      horizontal: true,
-      placed: false,
-    }));
-    let successfulPlacements = 0;
-
-    SHIP_CONFIG.forEach((shipConfig, index) => {
-      let placed = false;
-      let attempts = 0;
-
-      console.log(`Attempting to place ${shipConfig.name} (size: ${shipConfig.size})`);
-      while (!placed && attempts < 100) {
-        attempts++;
-        const horizontal = seededRandom.current() > 0.5;
-        const row = Math.floor(seededRandom.current() * GRID_ROWS);
-        const col = Math.floor(seededRandom.current() * GRID_COLS);
-        const positions = [];
-        let valid = true;
-
-        for (let i = 0; i < shipConfig.size; i++) {
-          const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-          if (
-            pos >= GRID_SIZE ||
-            (horizontal && col + shipConfig.size > GRID_COLS) ||
-            (!horizontal && row + shipConfig.size > GRID_ROWS) ||
-            newBoard[pos] === 'ship'
-          ) {
-            valid = false;
-            console.log(`Attempt ${attempts}: Invalid position for ${shipConfig.name} at pos ${pos}`);
-            break;
-          }
-          positions.push(pos);
-        }
-
-        if (valid) {
-          positions.forEach(pos => (newBoard[pos] = 'ship'));
-          newShips[index] = {
-            ...newShips[index],
-            positions,
-            horizontal,
-            placed: true,
-          };
-          successfulPlacements++;
-          console.log(`Successfully placed ${shipConfig.name} at positions:`, positions);
-          placed = true;
-        }
-      }
-
-      if (!placed) {
-        console.log(`Failed to place ship ${shipConfig.name} after 100 attempts`);
-      }
-    });
-
-    setMyBoard(newBoard);
-    setShips(newShips);
-    const placedCount = newShips.filter(s => s.placed).length;
-    setShipCount(placedCount);
-    if (successfulPlacements < SHIP_CONFIG.length) {
-      setMessage('Some ships couldn’t be placed. Adjust manually or try again.');
-      console.log(`Randomized ${successfulPlacements} out of ${SHIP_CONFIG.length} ships`);
-    } else {
-      setMessage('Ships randomized! Drag to reposition or Save Placement.');
-      console.log('All ships successfully randomized');
-    }
-    playPlaceSound();
-    updateServerBoard(newShips);
-  }, [isPlacementConfirmed, ships, playPlaceSound, updateServerBoard]);
 
   // Function to clear the board
   const clearBoard = useCallback(() => {
@@ -1166,7 +1210,12 @@ const App = () => {
                   setIsDragging(null);
                   console.log(`Stopped dragging ${ship.name}`);
                 }}
-                onTouchStart={(e) => handleTouchStart(e, i)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  if (!isPlacementConfirmed) {
+                    handleTouchStart(e, i);
+                  }
+                }}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 style={{
