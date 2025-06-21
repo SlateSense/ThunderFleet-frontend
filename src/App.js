@@ -153,8 +153,9 @@ const App = () => {
   useEffect(() => {
     const newSocket = io('https://thunderfleet-backend.onrender.com', {
       transports: ['polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 10, // Increased from 5 for more retries
+      reconnectionDelay: 2000,  // Increased to 2s for stability
+      reconnectionDelayMax: 5000,
     });
     setSocket(newSocket);
 
@@ -162,7 +163,7 @@ const App = () => {
     const timeout = setTimeout(() => {
       if (!newSocket.connected) {
         setIsSocketConnected(false);
-        setMessage("Failed to connect to the server. Please try again.");
+        setMessage("Failed to connect to the server: xhr poll error. Click Retry to try again or refresh the page if persistent.");
       }
     }, 5000);
 
@@ -179,7 +180,7 @@ const App = () => {
         clearTimeout(timeout);
         console.log('[Frontend] Socket connection error:', error.message);
         setIsSocketConnected(false);
-        setMessage(`Failed to connect to server: ${error.message}. Click Retry to try again.`);
+        setMessage(`Failed to connect to server: ${error.message}. Click Retry to try again or refresh the page if persistent.`);
         setIsWaitingForPayment(false);
         setPayButtonLoading(false);
         setIsLoading(false);
@@ -190,7 +191,7 @@ const App = () => {
         clearTimeout(timeout);
         console.log('[Frontend] Disconnected from server');
         setIsSocketConnected(false);
-        setMessage('Disconnected from server. Click Retry to try again.');
+        setMessage('Disconnected from server. Click Retry to try again or refresh the page if persistent.');
         setIsWaitingForPayment(false);
         setPayButtonLoading(false);
         setIsLoading(false);
@@ -229,7 +230,7 @@ const App = () => {
         if (message.includes('Invalid webhook signature')) {
           setMessage('Payment verification failed: Invalid webhook signature. Please try again or contact support.');
         } else {
-          setMessage(`Error: ${message}. Click Retry to try again.`);
+          setMessage(`Error: ${message}. Click Retry to try again or refresh the page if persistent.`);
         }
         clearTimeout(joinGameTimeoutRef.current);
         setIsWaitingForPayment(false);
@@ -268,13 +269,11 @@ const App = () => {
       },
       placementSaved: () => {
         console.log('Placement saved on server');
-        setIsPlacementConfirmed(true);
         setPlacementSaved(true);
         setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
       },
       placementAutoSaved: () => {
         console.log('Placement auto-saved due to timeout');
-        setIsPlacementConfirmed(true);
         setPlacementSaved(true);
         setMessage('Time up! Ships auto-placed. Waiting for opponent...');
       },
@@ -449,7 +448,7 @@ const App = () => {
   // Function to randomize unplaced ships on the board
   const randomizeUnplacedShips = useCallback(() => {
     if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
+      console.log('Cannot randomize ships: Placement confirmed');
       return;
     }
 
@@ -532,6 +531,7 @@ const App = () => {
         if (response && response.success) {
           setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
           console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
+          setPlacementSaved(placedCount === 5); // Only set placementSaved if all ships are placed
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
           console.log('Server failed to update board');
@@ -548,7 +548,7 @@ const App = () => {
   // Function to randomize all ships on the board
   const randomizeShips = useCallback(() => {
     if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
+      console.log('Cannot randomize ships: Placement confirmed');
       return;
     }
 
@@ -630,6 +630,7 @@ const App = () => {
             setMessage('Ships randomized! Drag to reposition or Save Placement.');
             console.log('All ships successfully randomized');
           }
+          setPlacementSaved(placedCount === 5); // Only set placementSaved if all ships are placed
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
           console.log('Server failed to update board');
@@ -666,7 +667,7 @@ const App = () => {
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent... You can still reposition ships until the game starts.');
+    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
 
     const placements = ships.map(ship => ({
       name: ship.name,
@@ -684,6 +685,29 @@ const App = () => {
     randomizeUnplacedShips();
     saveShipPlacement();
   }, [randomizeUnplacedShips, saveShipPlacement]);
+
+  // Function to clear the board
+  const clearBoard = useCallback(() => {
+    if (isPlacementConfirmed) {
+      console.log('Cannot clear board: Placement already confirmed');
+      return;
+    }
+    console.log('Clearing the board');
+    setMyBoard(Array(GRID_SIZE).fill('water'));
+    setShips(prev => prev.map(ship => ({ ...ship, positions: [], placed: false })));
+    setShipCount(0);
+    setMessage('Board cleared. Place your ships!');
+    if (socket) {
+      socket.emit('updateBoard', { gameId, playerId: socket?.id, placements: [] }, (response) => {
+        if (!response || !response.success) {
+          setMessage('Failed to clear board on server. Please try again.');
+          console.log('Server failed to update board');
+          setMyBoard(prev => [...prev]);
+          setShips(prev => [...prev]);
+        }
+      });
+    }
+  }, [isPlacementConfirmed, socket, gameId]);
 
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
@@ -851,7 +875,7 @@ const App = () => {
 
     joinGameTimeoutRef.current = setTimeout(() => {
       console.error('joinGame timed out');
-      setMessage('Failed to join game: Server did not respond. Click Retry to try again.');
+      setMessage('Failed to join game: Server did not respond. Click Retry to try again or refresh the page if persistent.');
       setIsLoading(false);
     }, JOIN_GAME_TIMEOUT);
 
@@ -939,20 +963,6 @@ const App = () => {
       return updated;
     });
   }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
-
-  // Function to clear the board
-  const clearBoard = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot clear board: Placement already confirmed');
-      return;
-    }
-    console.log('Clearing the board');
-    setMyBoard(Array(GRID_SIZE).fill('water'));
-    setShips(prev => prev.map(ship => ({ ...ship, positions: [], placed: false })));
-    setShipCount(0);
-    setMessage('Board cleared. Place your ships!');
-    updateServerBoard();
-  }, [isPlacementConfirmed, updateServerBoard]);
 
   // Function to handle firing a shot
   const handleFire = useCallback((position) => {
