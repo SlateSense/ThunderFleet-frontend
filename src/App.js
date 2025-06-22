@@ -439,11 +439,19 @@ const App = () => {
     console.log('Updating server with current board state');
     const placements = (updatedShips || ships).map(ship => ({
       name: ship.name,
-      positions: ship.positions,
+      positions: ship.positions.filter(pos => pos >= 0 && pos < GRID_SIZE),
       horizontal: ship.horizontal,
     }));
-    socket.emit('updateBoard', { gameId, playerId: socket?.id, placements });
-    console.log('Server board update emitted:', placements);
+    socket.emit('updateBoard', { gameId, playerId: socket?.id, placements }, (response) => {
+      if (!response || !response.success) {
+        setMessage('Failed to save board changes. Please try again.');
+        console.log('Server failed to update board, reverting state');
+        setMyBoard(prev => [...prev]);
+        setShips(prev => [...prev]);
+      } else {
+        console.log('Board update confirmed by server');
+      }
+    });
   }, [gameId, gameState, isPlacementConfirmed, ships, socket]);
 
   // Function to randomize unplaced ships on the board
@@ -666,7 +674,7 @@ const App = () => {
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent... You can still reposition ships until the game starts.');
+    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
 
     const placements = ships.map(ship => ({
       name: ship.name,
@@ -896,29 +904,33 @@ const App = () => {
       const newHorizontal = !ship.horizontal;
       const startPos = ship.positions[0];
 
-      if (startPos === undefined) return prev;
+      if (startPos === undefined) {
+        setMessage('Cannot rotate: Ship not placed yet.');
+        return prev;
+      }
 
-      // Calculate new positions for the rotated ship
       const newPositions = calculateShipPositions(
         { ...ship, horizontal: newHorizontal },
         startPos.toString()
       );
 
-      // Check for overlap with other ships
+      if (!newPositions || newPositions.some(pos => pos < 0 || pos >= GRID_SIZE)) {
+        setMessage('Cannot rotate: Overlaps or out of bounds.');
+        return prev;
+      }
+
       const otherShipsPositions = updated
         .filter((_, idx) => idx !== shipIndex)
         .flatMap(s => s.positions);
 
       const overlap = newPositions.some(pos => otherShipsPositions.includes(pos));
-      if (!newPositions || overlap) {
-        setMessage('Cannot rotate: Overlaps with another ship or out of bounds.');
+      if (overlap) {
+        setMessage('Cannot rotate: Overlaps with another ship.');
         return prev;
       }
 
-      // Update board only for the rotated ship, preserving other ships
       setMyBoard(prevBoard => {
         const newBoard = [...prevBoard];
-        // Clear only the positions of the rotated ship
         ship.positions.forEach(pos => {
           newBoard[pos] = 'water';
         });
