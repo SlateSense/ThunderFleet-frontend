@@ -221,8 +221,11 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setGameState('waitingForOpponent');
-        setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
+        setMessage('Payment verified! Connecting to game...');
+        setTimeout(() => {
+          setGameState('waitingForOpponent');
+          setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
+        }, 2000); // 2-second delay
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
@@ -325,9 +328,9 @@ const App = () => {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
-            const ShotBoard = [...prev];
-            ShotBoard[position] = hit ? 'hit' : 'miss';
-            return ShotBoard;
+            const newBoard = [...prev];
+            newBoard[position] = hit ? 'hit' : 'miss';
+            return newBoard;
           });
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
         } else {
@@ -337,8 +340,16 @@ const App = () => {
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+          // Ensure opponent thinking state resets if bot is stuck
+          if (this.players && this.players[player] && this.players[player].isBot && !hit) {
+            setIsOpponentThinking(false);
+          }
         }
-        setIsOpponentThinking(false);
+        // Force a turn update if the bot is stuck
+        if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
+          setTurn(newSocket.id); // Assume turn switches back if bot fails to fire
+          setMessage('Your turn to fire!');
+        }
       },
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
@@ -361,10 +372,10 @@ const App = () => {
         if (success) {
           console.log('Board update confirmed by server');
         } else {
-          setMessage('Failed to save board changes. Please try again.');
+          setMessage('Failed to save board changes. Reverting to previous state.');
           console.log('Server failed to update board, reverting state');
-          setMyBoard(prev => [...prev]);
-          setShips(prev => [...prev]);
+          setMyBoard(prev => [...prev]); // Revert board
+          setShips(prev => [...prev]);   // Revert ships
         }
       },
     };
@@ -444,10 +455,10 @@ const App = () => {
     }));
     socket.emit('updateBoard', { gameId, playerId: socket?.id, placements }, (response) => {
       if (!response || !response.success) {
-        setMessage('Failed to save board changes. Please try again.');
+        setMessage('Failed to save board changes. Reverting to previous state.');
         console.log('Server failed to update board, reverting state');
-        setMyBoard(prev => [...prev]);
-        setShips(prev => [...prev]);
+        setMyBoard(prev => [...prev]); // Revert board
+        setShips(prev => [...prev]);   // Revert ships
       } else {
         console.log('Board update confirmed by server');
       }
@@ -1003,6 +1014,7 @@ const App = () => {
           {board.map((cell, index) => {
             const row = Math.floor(index / GRID_COLS);
             const col = index % GRID_COLS;
+            const isHit = cell === 'hit';
             return (
               <div
                 key={index}
@@ -1020,7 +1032,7 @@ const App = () => {
                   width: cellSize,
                   height: cellSize,
                   touchAction: 'none',
-                  backgroundColor: cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : cell === 'hit' ? '#ff4500' : '#333',
+                  backgroundColor: isHit ? '#ff4500' : cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : '#333',
                 }}
                 data-grid-index={index}
               >
@@ -1179,6 +1191,13 @@ const App = () => {
   const handleTouchMove = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
+    const touch = e.touches[0];
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (data) {
+      data.startX = touch.clientX;
+      data.startY = touch.clientY;
+      sessionStorage.setItem('dragData', JSON.stringify(data));
+    }
     console.log(`Touch moving for ship ${isDragging}`);
   }, [isDragging, isPlacementConfirmed]);
 
@@ -1189,13 +1208,14 @@ const App = () => {
     setIsDragging(null);
     const data = JSON.parse(sessionStorage.getItem('dragData'));
     if (!data) return;
-    const { shipIndex } = data;
+    const { shipIndex, startX, startY } = data;
     const touch = e.changedTouches[0];
     const gridRect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - gridRect.left;
-    const y = touch.clientY - gridRect.top;
+    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
+    const y = touch.clientY - gridRect.top + (startY - touch.clientY);
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
     handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
+    sessionStorage.removeItem('dragData');
   }, [isDragging, isPlacementConfirmed, handleGridDrop]);
 
   // Function to render the list of ships for placement
