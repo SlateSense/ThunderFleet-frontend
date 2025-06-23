@@ -151,8 +151,8 @@ const App = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io('https://thunderfleet-backend.onrender.com', {
-      transports: ['polling'],
+      const newSocket = io('https://thunderfleet-backend.onrender.com', {
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
