@@ -313,11 +313,17 @@ const App = () => {
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
       },
-      fireResult: ({ player, position, hit }) => {
-        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
+      fireResult: ({ player, position, hit, sunk, shipName }) => {
+        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}, sunk=${sunk}, shipName=${shipName}`);
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
-        hit ? playHitSound() : playMissSound();
+        
+        // Play appropriate sound
+        if (sunk) {
+          playHitSound(); // Play hit sound for sunk ship
+        } else {
+          hit ? playHitSound() : playMissSound();
+        }
         
         // Update game stats
         setGameStats(prev => ({
@@ -330,22 +336,35 @@ const App = () => {
         // Handle the shot result
         if (player === newSocket.id) {
           // Player's shot
-          setCannonFire({ row, col, hit });
+          setCannonFire({ row, col, hit: hit || sunk });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
             const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
+            newBoard[position] = sunk ? 'sunk' : (hit ? 'hit' : 'miss');
             return newBoard;
           });
-          setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
+          setMessage(sunk ? `You sunk the ${shipName}!` : (hit ? 'Hit! You get another turn!' : 'Miss!'));
         } else {
           // Opponent's shot
           setMyBoard(prev => {
             const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
+            newBoard[position] = sunk ? 'sunk' : (hit ? 'hit' : 'miss');
+            
+            // If a ship was sunk, update all its positions to 'sunk'
+            if (sunk) {
+              const shipIndex = ships.findIndex(ship => ship.name === shipName);
+              if (shipIndex !== -1) {
+                const ship = ships[shipIndex];
+                ship.positions.forEach(pos => {
+                  newBoard[pos] = 'sunk';
+                });
+              }
+            }
+            
             return newBoard;
           });
-          setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+          
+          setMessage(sunk ? `Your ${shipName} has been sunk!` : (hit ? 'Opponent hit your ship!' : 'Opponent missed!'));
           
           // If it's a bot's turn and they missed, update the turn
           if (player.includes('bot_') && !hit) {
