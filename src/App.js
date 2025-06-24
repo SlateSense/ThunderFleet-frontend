@@ -313,63 +313,18 @@ const App = () => {
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
       },
-      fireResult: ({ player, position, hit, sunk, shipName, positions }) => {
-        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}, sunk=${sunk}, shipName=${shipName}`, positions);
-        
-        // Handle ship sinking (special case where position is -1 and we have positions array)
-        if (sunk && position === -1 && positions && positions.length > 0) {
-          console.log(`Processing ship sink for ${shipName} at positions:`, positions);
-          playHitSound(); // Play hit sound for sunk ship
-          
-          if (player === newSocket.id) {
-            // Player sunk opponent's ship
-            setEnemyBoard(prev => {
-              const newBoard = [...prev];
-              positions.forEach(pos => {
-                if (pos >= 0 && pos < newBoard.length) {
-                  newBoard[pos] = 'hit';
-                }
-              });
-              return newBoard;
-            });
-            setMessage(`You sunk the ${shipName}!`);
-          } else {
-            // Opponent sunk player's ship
-            setMyBoard(prev => {
-              const newBoard = [...prev];
-              positions.forEach(pos => {
-                if (pos >= 0 && pos < newBoard.length) {
-                  newBoard[pos] = 'hit';
-                }
-              });
-              return newBoard;
-            });
-            setMessage(`Your ${shipName} has been sunk!`);
-          }
-          
-          // Update game stats
-          setGameStats(prev => ({
-            ...prev,
-            hits: player === newSocket.id ? prev.hits + 1 : prev.hits,
-          }));
-          
-          return;
-        }
-        
-        // Regular hit/miss handling
+      fireResult: ({ player, position, hit }) => {
+        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
         hit ? playHitSound() : playMissSound();
-        
         setGameStats(prev => ({
           ...prev,
           shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
           hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
           misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
         }));
-        
         if (player === newSocket.id) {
-          // Player's shot
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
@@ -379,18 +334,21 @@ const App = () => {
           });
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
         } else {
-          // Opponent's shot
           setMyBoard(prev => {
             const newBoard = [...prev];
             newBoard[position] = hit ? 'hit' : 'miss';
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-          
-          // Reset opponent thinking state if bot missed
+          // Ensure opponent thinking state resets if bot is stuck
           if (this.players && this.players[player] && this.players[player].isBot && !hit) {
             setIsOpponentThinking(false);
           }
+        }
+        // Force a turn update if the bot is stuck
+        if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
+          setTurn(newSocket.id); // Assume turn switches back if bot fails to fire
+          setMessage('Your turn to fire!');
         }
       },
       nextTurn: ({ turn }) => {
