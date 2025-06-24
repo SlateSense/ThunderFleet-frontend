@@ -318,13 +318,18 @@ const App = () => {
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
         hit ? playHitSound() : playMissSound();
+        
+        // Update game stats
         setGameStats(prev => ({
           ...prev,
           shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
           hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
           misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
         }));
+
+        // Handle the shot result
         if (player === newSocket.id) {
+          // Player's shot
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
@@ -334,21 +339,19 @@ const App = () => {
           });
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
         } else {
+          // Opponent's shot
           setMyBoard(prev => {
             const newBoard = [...prev];
             newBoard[position] = hit ? 'hit' : 'miss';
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-          // Ensure opponent thinking state resets if bot is stuck
-          if (this.players && this.players[player] && this.players[player].isBot && !hit) {
+          
+          // If it's a bot's turn and they missed, update the turn
+          if (player.includes('bot_') && !hit) {
             setIsOpponentThinking(false);
+            // The turn will be updated by the nextTurn event from the server
           }
-        }
-        // Force a turn update if the bot is stuck
-        if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
-          setTurn(newSocket.id); // Assume turn switches back if bot fails to fire
-          setMessage('Your turn to fire!');
         }
       },
       nextTurn: ({ turn }) => {
