@@ -96,6 +96,7 @@ const App = () => {
   const [cannonFire, setCannonFire] = useState(null);
   const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
   const [cellSize, setCellSize] = useState(40);
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
   const [timerActive, setTimerActive] = useState(false);
@@ -151,7 +152,7 @@ const App = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-      const newSocket = io('https://thunderfleet-backend.onrender.com', {
+    const newSocket = io('https://thunderfleet-backend.onrender.com', {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -991,6 +992,36 @@ const App = () => {
     setTimeout(() => setCannonFire(null), 1000);
   }, [gameState, turn, enemyBoard, socket, gameId]);
 
+  // Function to handle drag over events on the grid
+  const handleGridDragOver = useCallback((e) => {
+    e.preventDefault();
+    if (isDragging !== null && !isPlacementConfirmed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setDragPosition({ x, y });
+      console.log(`Drag over at x:${x}, y:${y}`);
+    }
+  }, [isDragging, isPlacementConfirmed]);
+
+  // Function to handle touch move, wrapped in useCallback
+  const handleTouchMove = useCallback((e) => {
+    if (isDragging === null || isPlacementConfirmed) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    setDragPosition({ x, y });
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (data) {
+      data.startX = touch.clientX;
+      data.startY = touch.clientY;
+      sessionStorage.setItem('dragData', JSON.stringify(data));
+    }
+    console.log(`Touch moving for ship ${isDragging}`);
+  }, [isDragging, isPlacementConfirmed]);
+
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
     console.log(`Rendering ${isEnemy ? 'enemy' : 'player'} grid`);
@@ -1003,6 +1034,8 @@ const App = () => {
           height: GRID_ROWS * cellSize + 4,
           position: 'relative',
         }}
+        onDragOver={handleGridDragOver}
+        onTouchMove={handleTouchMove}
       >
         <div
           className="grid"
@@ -1015,10 +1048,14 @@ const App = () => {
             const row = Math.floor(index / GRID_COLS);
             const col = index % GRID_COLS;
             const isHit = cell === 'hit';
+            const isHovered = isDragging !== null && !isPlacementConfirmed;
+            const hoverPos = Math.floor(dragPosition.y / cellSize) * GRID_COLS + Math.floor(dragPosition.x / cellSize);
+            const isUnderShip = isHovered && calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
+
             return (
               <div
                 key={index}
-                className={`cell ${cell} ${isDragging !== null ? 'drag-active' : ''}`}
+                className={`cell ${cell} ${isUnderShip ? 'hovered' : ''} ${isDragging !== null ? 'drag-active' : ''}`}
                 onClick={() => isEnemy && handleFire(index)}
                 onTouchStart={(e) => {
                   e.preventDefault();
@@ -1050,7 +1087,7 @@ const App = () => {
                 <div
                   key={`ship-${ship.id}`}
                   className="ship-on-grid"
-                  draggable={!isPlacementConfirmed}  // Add this line
+                  draggable={!isPlacementConfirmed}
                   onDragStart={(e) => !isPlacementConfirmed && handleDragStart(e, ship.id)}
                   onDragEnd={() => setIsDragging(null)}
                   onTouchStart={(e) => {
@@ -1078,9 +1115,28 @@ const App = () => {
               )
             );
           })}
+        {/* Dragging ship preview */}
+        {isDragging !== null && !isPlacementConfirmed && (
+          <div
+            className="dragging-ship"
+            style={{
+              position: 'absolute',
+              top: Math.floor(dragPosition.y / cellSize) * cellSize + 2,
+              left: Math.floor(dragPosition.x / cellSize) * cellSize + 2,
+              width: ships[isDragging].horizontal ? ships[isDragging].size * cellSize - 4 : cellSize - 4,
+              height: ships[isDragging].horizontal ? cellSize - 4 : ships[isDragging].size * cellSize - 4,
+              backgroundImage: `url(${ships[isDragging].horizontal ? ships[isDragging].horizontalImg : ships[isDragging].verticalImg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.7,
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          />
+        )}
       </div>
     );
-  }, [cellSize, ships, isDragging, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleGridDragOver, handleTouchMove]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
@@ -1164,12 +1220,6 @@ const App = () => {
     if (updatedShips) updateServerBoard(updatedShips);
   }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
-  // Function to handle drag over events on the grid
-  const handleGridDragOver = useCallback((e) => {
-    e.preventDefault();
-    console.log('Drag over grid');
-  }, []);
-
   // Function to handle drag start
   const handleDragStart = (e, shipIndex) => {
     e.dataTransfer.setData('text/plain', shipIndex.toString());
@@ -1182,24 +1232,14 @@ const App = () => {
     e.preventDefault();
     setIsDragging(shipIndex);
     const touch = e.touches[0];
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    setDragPosition({ x, y });
     const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
     sessionStorage.setItem('dragData', JSON.stringify(data));
     console.log(`Touch drag started for ship ${shipIndex}`);
   };
-
-  // Function to handle touch move, wrapped in useCallback
-  const handleTouchMove = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const data = JSON.parse(sessionStorage.getItem('dragData'));
-    if (data) {
-      data.startX = touch.clientX;
-      data.startY = touch.clientY;
-      sessionStorage.setItem('dragData', JSON.stringify(data));
-    }
-    console.log(`Touch moving for ship ${isDragging}`);
-  }, [isDragging, isPlacementConfirmed]);
 
   // Function to handle touch end, wrapped in useCallback
   const handleTouchEnd = useCallback((e) => {
@@ -1694,18 +1734,7 @@ const App = () => {
                 <div
                   onDrop={handleGridDrop}
                   onDragOver={handleGridDragOver}
-                  onTouchEnd={(e) => {
-                    if (isDragging === null) return;
-                    e.preventDefault();
-                    const touch = e.changedTouches[0];
-                    const gridRect = gridRef.current.getBoundingClientRect();
-                    const x = touch.clientX - gridRect.left;
-                    const y = touch.clientY - gridRect.top;
-                    const data = JSON.parse(sessionStorage.getItem('dragData'));
-                    if (data) {
-                      handleGridDrop({ x, y, shipIndex: parseInt(data.shipIndex) });
-                    }
-                  }}
+                  onTouchEnd={handleTouchEnd}
                 >
                   {renderGrid(myBoard, false)}
                 </div>

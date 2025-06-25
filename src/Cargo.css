@@ -490,6 +490,7 @@
   background: #1e90ff;
   position: relative;
   box-sizing: content-box;
+  overflow: visible; /* Allow risen cells to extend beyond container */
 }
 
 .grid {
@@ -501,7 +502,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-sizing: border-box;
   position: relative;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, height 0.2s ease, transform 0.2s ease; /* Added height and transform transitions */
 }
 
 .cell.water {
@@ -520,20 +521,34 @@
   background: #333;
 }
 
-.cell.place-hover {
-  background: rgba(0, 255, 0, 0.3) !important;
-  transition: background 0.2s;
+.cell.hovered {
+  height: calc(100% + 5px); /* Rise by 5px */
+  transform: translateY(-5px); /* Lift the grid */
+  background-color: #ADD8E6; /* Lighter blue to indicate hover */
+  z-index: 5; /* Ensure it stays above other cells */
 }
 
-.cell.drag-active:hover {
-  background: rgba(255, 255, 0, 0.3) !important;
+.cell.drag-active {
+  transition: none; /* Prevent unwanted transitions during drag */
 }
 
 .ship-on-grid {
   position: absolute;
   z-index: 2;
-  background: linear-gradient(45deg, #666, #999);
+  background-size: cover; /* Use background-size to match image dimensions */
+  background-position: center;
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  transition: opacity 0.2s ease; /* Smooth opacity change when placed */
+}
+
+.dragging-ship {
+  position: absolute;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 10;
+  transition: all 0.1s ease;
 }
 
 .cannonball-effect {
@@ -784,6 +799,14 @@
   .ship {
     max-width: 200px;
   }
+
+  .dragging-ship {
+    transform: scale(0.9); /* Slightly smaller on tablets */
+  }
+  .cell.hovered {
+    height: calc(100% + 4px); /* Slightly less rise on smaller screens */
+    transform: translateY(-4px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -833,5 +856,13 @@
 
   .ship {
     max-width: 150px;
+  }
+
+  .dragging-ship {
+    transform: scale(0.8); /* Even smaller on phones */
+  }
+  .cell.hovered {
+    height: calc(100% + 3px); /* Minimal rise on small screens */
+    transform: translateY(-3px);
   }
 }
