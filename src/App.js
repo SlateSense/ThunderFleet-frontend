@@ -94,6 +94,7 @@ const App = () => {
   const [message, setMessage] = useState('');
   const [transactionMessage, setTransactionMessage] = useState('');
   const [cannonFire, setCannonFire] = useState(null);
+  const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
   const [cellSize, setCellSize] = useState(40);
@@ -907,7 +908,7 @@ const App = () => {
 
   // Function to toggle ship orientation
   const toggleOrientation = useCallback((shipIndex) => {
-    if (gameState !== 'placing') return;
+    if (isPlacementConfirmed) return;
 
     setShips(prev => {
       const updated = [...prev];
@@ -961,12 +962,12 @@ const App = () => {
       updateServerBoard(updated);
       return updated;
     });
-  }, [gameState, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to clear the board
   const clearBoard = useCallback(() => {
-    if (gameState !== 'placing') {
-      console.log('Cannot clear board: Invalid game state');
+    if (isPlacementConfirmed) {
+      console.log('Cannot clear board: Placement already confirmed');
       return;
     }
     console.log('Clearing the board');
@@ -975,7 +976,7 @@ const App = () => {
     setShipCount(0);
     setMessage('Board cleared. Place your ships!');
     updateServerBoard();
-  }, [gameState, updateServerBoard]);
+  }, [isPlacementConfirmed, updateServerBoard]);
 
   // Function to handle firing a shot
   const handleFire = useCallback((position) => {
@@ -994,18 +995,18 @@ const App = () => {
   // Function to handle drag over events on the grid
   const handleGridDragOver = useCallback((e) => {
     e.preventDefault();
-    if (isDragging !== null && gameState === 'placing') {
+    if (isDragging !== null && !isPlacementConfirmed) {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       setDragPosition({ x, y });
       console.log(`Drag over at x:${x}, y:${y}`);
     }
-  }, [isDragging, gameState, setDragPosition]);
+  }, [isDragging, isPlacementConfirmed, setDragPosition]);
 
   // Function to handle touch move
   const handleTouchMove = useCallback((e) => {
-    if (isDragging === null || gameState !== 'placing') return;
+    if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
     const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
@@ -1019,15 +1020,15 @@ const App = () => {
       sessionStorage.setItem('dragData', JSON.stringify(data));
     }
     console.log(`Touch moving for ship ${isDragging}`);
-  }, [isDragging, gameState, gridRef, setDragPosition]);
+  }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
     let shipIndex, x, y;
     if (e.dataTransfer) {
       e.preventDefault();
-      if (gameState !== 'placing') {
-        console.log('Cannot drop ship: Invalid game state');
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
         return;
       }
       shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
@@ -1042,8 +1043,8 @@ const App = () => {
       console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
     }
 
-    if (gameState !== 'placing') {
-      console.log('Cannot drop ship: Invalid game state');
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
       return;
     }
 
@@ -1101,11 +1102,11 @@ const App = () => {
     playPlaceSound();
     setIsDragging(null);
     if (updatedShips) updateServerBoard(updatedShips);
-  }, [gameState, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
-    if (isDragging === null || gameState !== 'placing') {
+    if (isDragging === null || isPlacementConfirmed) {
       setIsDragging(null);
       return;
     }
@@ -1131,22 +1132,22 @@ const App = () => {
       handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
       sessionStorage.removeItem('dragData');
     }, 50);
-  }, [isDragging, gameState, handleGridDrop, gridRef]);
+  }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
   const handleDragStart = useCallback((e, shipIndex) => {
-    if (gameState !== 'placing') {
+    if (isPlacementConfirmed) {
       e.preventDefault();
       return;
     }
     e.dataTransfer.setData('text/plain', shipIndex.toString());
     setIsDragging(shipIndex);
     console.log(`Started dragging ship ${shipIndex}`);
-  }, [gameState, setIsDragging]);
+  }, [isPlacementConfirmed, setIsDragging]);
 
   // Function to handle touch start
   const handleTouchStart = useCallback((e, shipIndex) => {
-    if (gameState !== 'placing') {
+    if (isPlacementConfirmed) {
       e.preventDefault();
       return;
     }
@@ -1160,7 +1161,7 @@ const App = () => {
     const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
     sessionStorage.setItem('dragData', JSON.stringify(data));
     console.log(`Touch drag started for ship ${shipIndex}`);
-  }, [gameState, setIsDragging, gridRef, setDragPosition]);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1190,7 +1191,7 @@ const App = () => {
             const row = Math.floor(index / GRID_COLS);
             const col = index % GRID_COLS;
             const isHit = cell === 'hit';
-            const isHovered = isDragging !== null && gameState === 'placing';
+            const isHovered = isDragging !== null && !isPlacementConfirmed;
             const hoverPos = Math.floor(dragPosition.y / cellSize) * GRID_COLS + Math.floor(dragPosition.x / cellSize);
             const isUnderShip = isHovered && calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
 
@@ -1229,7 +1230,7 @@ const App = () => {
                 <div
                   key={`ship-${ship.id}`}
                   className="ship-on-grid"
-                  draggable={gameState === 'placing'}
+                  draggable={!isPlacementConfirmed}
                   onDragStart={(e) => handleDragStart(e, ship.id)}
                   onDragEnd={() => setIsDragging(null)}
                   onTouchStart={(e) => handleTouchStart(e, ship.id)}
@@ -1242,18 +1243,20 @@ const App = () => {
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
                     backgroundPosition: "center",
-                    opacity: gameState === 'placing' ? 0.8 : 1,
-                    cursor: gameState === 'placing' ? 'grab' : 'default',
-                    pointerEvents: gameState === 'placing' ? 'auto' : 'none',
-                    touchAction: 'none',
+                    opacity: isPlacementConfirmed ? 1 : 0.8,
+                    cursor: !isPlacementConfirmed ? 'grab' : 'default',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    marginBottom: '10px',
+                    touchAction: 'none'
                   }}
-                  onClick={() => gameState === 'placing' && toggleOrientation(ship.id)}
+                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
               )
             );
           })}
         {/* Dragging ship preview */}
-        {isDragging !== null && gameState === 'placing' && (
+        {isDragging !== null && !isPlacementConfirmed && (
           <div
             className="dragging-ship"
             style={{
@@ -1273,12 +1276,12 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
-    if (gameState !== 'placing') {
-      console.log('Not rendering ship list: Invalid game state');
+    if (isPlacementConfirmed) {
+      console.log('Not rendering ship list: Placement confirmed');
       return null;
     }
     console.log('Rendering ship list for placement');
@@ -1293,7 +1296,7 @@ const App = () => {
               </div>
               <div
                 className="ship"
-                draggable={gameState === 'placing'}
+                draggable={!isPlacementConfirmed}
                 onDragStart={(e) => handleDragStart(e, i)}
                 onDragEnd={() => setIsDragging(null)}
                 onTouchStart={(e) => handleTouchStart(e, i)}
@@ -1306,7 +1309,7 @@ const App = () => {
                   width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
                   height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
                   opacity: 1,
-                  cursor: gameState === 'placing' ? 'grab' : 'default',
+                  cursor: isPlacementConfirmed ? 'default' : 'grab',
                   border: '2px solid #333',
                   borderRadius: '4px',
                   marginBottom: '10px',
@@ -1320,7 +1323,7 @@ const App = () => {
         ))}
       </div>
     );
-  }, [gameState, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
