@@ -1106,19 +1106,32 @@ const App = () => {
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) return;
+    if (isDragging === null || isPlacementConfirmed) {
+      setIsDragging(null);
+      return;
+    }
     e.preventDefault();
-    setIsDragging(null);
     const data = JSON.parse(sessionStorage.getItem('dragData'));
-    if (!data) return;
+    if (!data) {
+      setIsDragging(null);
+      return;
+    }
     const { shipIndex, startX, startY } = data;
     const touch = e.changedTouches[0];
     const gridRect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
-    const y = touch.clientY - gridRect.top + (startY - touch.clientY);
+    const x = touch.clientX - gridRect.left;
+    const y = touch.clientY - gridRect.top;
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
-    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
-    sessionStorage.removeItem('dragData');
+    
+    // Reset dragging state immediately
+    const currentDragging = isDragging;
+    setIsDragging(null);
+    
+    // Process the drop with a small delay to ensure state is updated
+    setTimeout(() => {
+      handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
+      sessionStorage.removeItem('dragData');
+    }, 50);
   }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
