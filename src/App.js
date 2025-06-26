@@ -1176,7 +1176,9 @@ const App = () => {
           position: 'relative',
         }}
         onDragOver={handleGridDragOver}
+        onDrop={handleGridDrop}
         onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div
           className="grid"
