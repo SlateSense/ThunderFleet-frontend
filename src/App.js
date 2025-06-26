@@ -1106,32 +1106,19 @@ const App = () => {
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) {
-      setIsDragging(null);
-      return;
-    }
+    if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
+    setIsDragging(null);
     const data = JSON.parse(sessionStorage.getItem('dragData'));
-    if (!data) {
-      setIsDragging(null);
-      return;
-    }
+    if (!data) return;
     const { shipIndex, startX, startY } = data;
     const touch = e.changedTouches[0];
     const gridRect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - gridRect.left;
-    const y = touch.clientY - gridRect.top;
+    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
+    const y = touch.clientY - gridRect.top + (startY - touch.clientY);
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
-    
-    // Reset dragging state immediately
-    const currentDragging = isDragging;
-    setIsDragging(null);
-    
-    // Process the drop with a small delay to ensure state is updated
-    setTimeout(() => {
-      handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
-      sessionStorage.removeItem('dragData');
-    }, 50);
+    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
+    sessionStorage.removeItem('dragData');
   }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
@@ -1176,9 +1163,7 @@ const App = () => {
           position: 'relative',
         }}
         onDragOver={handleGridDragOver}
-        onDrop={handleGridDrop}
         onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         <div
           className="grid"
@@ -1245,10 +1230,8 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    border: '2px solid #333',
-                    borderRadius: '4px',
-                    marginBottom: '10px',
-                    touchAction: 'none'
+                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
+                    touchAction: 'none',
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
@@ -1457,7 +1440,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
