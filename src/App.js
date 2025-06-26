@@ -117,7 +117,6 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
-  const [hoverCell, setHoverCell] = useState(null); // State to track the current hover cell
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -907,126 +906,77 @@ const App = () => {
     setPaymentTimer(PAYMENT_TIMEOUT);
   }, [socket, gameId, playerId]);
 
-  // Function to handle ship drag start
-  const handleDragStart = useCallback((e, shipId) => {
-    const ship = ships.find(s => s.id === shipId);
-    if (ship) {
-      e.dataTransfer.setData('ship', JSON.stringify(ship));
-      e.dataTransfer.effectAllowed = 'move';
-      setIsDragging(ship);
-    }
-  }, [ships, setIsDragging]);
-
-  // Function to handle drag over grid cell
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  // Function to handle drop on grid cell
-  const handleDrop = useCallback((e, cellIndex) => {
-    e.preventDefault();
-    const shipData = e.dataTransfer.getData('ship');
-    if (shipData) {
-      const ship = JSON.parse(shipData);
-      const newPosition = cellIndex;
-      const shipCells = getShipCells(ship, newPosition);
-      const isValid = isValidPlacement(shipCells, ship);
-      if (isValid) {
-        let oldPositions = [];
-        if (ship.placed) {
-          oldPositions = ship.positions;
-        }
-        setShips(prev => {
-          const updated = [...prev];
-          const index = updated.findIndex(s => s.id === ship.id);
-          updated[index] = { ...updated[index], positions: shipCells, placed: true };
-          return updated;
-        });
-        setMyBoard(prev => {
-          const updatedBoard = [...prev];
-          oldPositions.forEach(pos => {
-            updatedBoard[pos] = 'water';
-          });
-          shipCells.forEach(pos => {
-            updatedBoard[pos] = 'ship';
-          });
-          return updatedBoard;
-        });
-        if (!ship.placed) {
-          setShipCount(prev => prev + 1);
-        }
-      }
-      setIsDragging(null);
-    }
-  }, [ships, myBoard, setIsDragging, setShipCount, getShipCells, isValidPlacement]);
-
-  // Function to handle touch start for mobile dragging
-  const handleTouchStart = useCallback((e, shipId) => {
-    const ship = ships.find(s => s.id === shipId);
-    if (ship) {
-      setIsDragging(ship);
-      e.preventDefault();
-    }
-  }, [ships, setIsDragging]);
-
-  // Function to handle touch move for mobile dragging
-  const handleTouchMove = useCallback((e) => {
-    if (isDragging) {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const cell = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (cell && cell.dataset && cell.dataset.cellIndex) {
-        setHoverCell(parseInt(cell.dataset.cellIndex, 10));
-      }
-    }
-  }, [isDragging, setHoverCell]);
-
-  // Function to handle touch end for mobile dragging
-  const handleTouchEnd = useCallback((e) => {
-    if (isDragging && hoverCell !== null) {
-      const shipCells = getShipCells(isDragging, hoverCell);
-      const isValid = isValidPlacement(shipCells, isDragging);
-      if (isValid) {
-        let oldPositions = [];
-        if (isDragging.placed) {
-          oldPositions = isDragging.positions;
-        }
-        setShips(prev => {
-          const updated = [...prev];
-          const index = updated.findIndex(s => s.id === isDragging.id);
-          updated[index] = { ...updated[index], positions: shipCells, placed: true };
-          return updated;
-        });
-        setMyBoard(prev => {
-          const updatedBoard = [...prev];
-          oldPositions.forEach(pos => {
-            updatedBoard[pos] = 'water';
-          });
-          shipCells.forEach(pos => {
-            updatedBoard[pos] = 'ship';
-          });
-          return updatedBoard;
-        });
-        if (!isDragging.placed) {
-          setShipCount(prev => prev + 1);
-        }
-      }
-      setIsDragging(null);
-      setHoverCell(null);
-    }
-  }, [isDragging, hoverCell, setIsDragging, setHoverCell, setShipCount, getShipCells, isValidPlacement, myBoard]);
-
   // Function to toggle ship orientation
-  const toggleShipOrientation = useCallback((shipId) => {
+  const toggleOrientation = useCallback((shipIndex) => {
+    if (isPlacementConfirmed) return;
+
     setShips(prev => {
       const updated = [...prev];
-      const index = updated.findIndex(s => s.id === shipId);
-      if (updated[index].placed) return updated; // Don't rotate if already placed, but now we allow dragging after placement until saved
-      updated[index] = { ...updated[index], horizontal: !updated[index].horizontal };
+      const ship = updated[shipIndex];
+      const newHorizontal = !ship.horizontal;
+      const startPos = ship.positions[0];
+
+      if (startPos === undefined) {
+        setMessage('Cannot rotate: Ship not placed yet.');
+        return prev;
+      }
+
+      const newPositions = calculateShipPositions(
+        { ...ship, horizontal: newHorizontal },
+        startPos.toString()
+      );
+
+      if (!newPositions || newPositions.some(pos => pos < 0 || pos >= GRID_SIZE)) {
+        setMessage('Cannot rotate: Overlaps or out of bounds.');
+        return prev;
+      }
+
+      const otherShipsPositions = updated
+        .filter((_, idx) => idx !== shipIndex)
+        .flatMap(s => s.positions);
+
+      const overlap = newPositions.some(pos => otherShipsPositions.includes(pos));
+      if (overlap) {
+        setMessage('Cannot rotate: Overlaps with another ship.');
+        return prev;
+      }
+
+      setMyBoard(prevBoard => {
+        const newBoard = [...prevBoard];
+        ship.positions.forEach(pos => {
+          newBoard[pos] = 'water';
+        });
+        newPositions.forEach(pos => {
+          newBoard[pos] = 'ship';
+        });
+        return newBoard;
+      });
+
+      updated[shipIndex] = {
+        ...ship,
+        horizontal: newHorizontal,
+        positions: newPositions,
+        placed: true
+      };
+      playPlaceSound();
+      updateServerBoard(updated);
       return updated;
     });
-  }, [setShips]);
+  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
+
+  // Function to clear the board
+  const clearBoard = useCallback(() => {
+    if (isPlacementConfirmed) {
+      console.log('Cannot clear board: Placement already confirmed');
+      return;
+    }
+    console.log('Clearing the board');
+    setMyBoard(Array(GRID_SIZE).fill('water'));
+    setShips(prev => prev.map(ship => ({ ...ship, positions: [], placed: false })));
+    setShipCount(0);
+    setMessage('Board cleared. Place your ships!');
+    updateServerBoard();
+  }, [isPlacementConfirmed, updateServerBoard]);
 
   // Function to handle firing a shot
   const handleFire = useCallback((position) => {
@@ -1053,6 +1003,152 @@ const App = () => {
       console.log(`Drag over at x:${x}, y:${y}`);
     }
   }, [isDragging, isPlacementConfirmed, setDragPosition]);
+
+  // Function to handle touch move
+  const handleTouchMove = useCallback((e) => {
+    if (isDragging === null || isPlacementConfirmed) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    setDragPosition({ x, y });
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (data) {
+      data.startX = touch.clientX;
+      data.startY = touch.clientY;
+      sessionStorage.setItem('dragData', JSON.stringify(data));
+    }
+    console.log(`Touch moving for ship ${isDragging}`);
+  }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
+
+  // Function to handle dropping a ship on the grid
+  const handleGridDrop = useCallback((e) => {
+    let shipIndex, x, y;
+    if (e.dataTransfer) {
+      e.preventDefault();
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
+        return;
+      }
+      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    } else {
+      shipIndex = e.shipIndex;
+      x = e.x;
+      y = e.y;
+      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    }
+
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
+      return;
+    }
+
+    const ship = ships[shipIndex];
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+    const position = row * GRID_COLS + col;
+
+    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
+      setMessage('Invalid drop position!');
+      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
+      return;
+    }
+
+    const newPositions = calculateShipPositions(ship, position.toString());
+    if (!newPositions) {
+      setMessage('Invalid placement!');
+      console.log('Invalid placement: Ship cannot be placed here');
+      return;
+    }
+
+    let updatedShips;
+    setMyBoard((prev) => {
+      const newBoard = [...prev];
+      if (ship.positions.length > 0) {
+        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      }
+      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
+      return newBoard;
+    });
+
+    setShips((prev) => {
+      const updated = [...prev];
+      updated[shipIndex] = {
+        ...updated[shipIndex],
+        positions: newPositions,
+        placed: true,
+      };
+      updatedShips = updated;
+
+      // Calculate the new ship count based on placed ships
+      const placedCount = updated.filter(s => s.positions.length > 0).length;
+      setShipCount(placedCount);
+      setMessage(
+        placedCount === 5
+          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+          : `${placedCount} of 5 ships placed. You can still reposition ships.`
+      );
+      console.log(`Ship count updated to ${placedCount}`);
+
+      return updated;
+    });
+
+    playPlaceSound();
+    setIsDragging(null);
+    if (updatedShips) updateServerBoard(updatedShips);
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
+
+  // Function to handle touch end
+  const handleTouchEnd = useCallback((e) => {
+    if (isDragging === null || isPlacementConfirmed) return;
+    e.preventDefault();
+    setIsDragging(null);
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (!data) return;
+    const { shipIndex, startX, startY } = data;
+    const touch = e.changedTouches[0];
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
+    const y = touch.clientY - gridRect.top + (startY - touch.clientY);
+    console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
+    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
+    sessionStorage.removeItem('dragData');
+  }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
+
+  // Function to handle drag start
+  const handleDragStart = useCallback((e, shipIndex) => {
+    if (isPlacementConfirmed) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData('text/plain', shipIndex.toString());
+    setIsDragging(shipIndex);
+    console.log(`Started dragging ship ${shipIndex}`);
+  }, [isPlacementConfirmed, setIsDragging]);
+
+  // Function to handle touch start
+  const handleTouchStart = useCallback((e, shipIndex) => {
+    if (isPlacementConfirmed) {
+      e.preventDefault();
+      return;
+    }
+    e.preventDefault();
+    setIsDragging(shipIndex);
+    const touch = e.touches[0];
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    setDragPosition({ x, y });
+    const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
+    sessionStorage.setItem('dragData', JSON.stringify(data));
+    console.log(`Touch drag started for ship ${shipIndex}`);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1137,7 +1233,7 @@ const App = () => {
                     pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
                     touchAction: 'none',
                   }}
-                  onClick={() => !isPlacementConfirmed && toggleShipOrientation(ship.id)}
+                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
               )
             );
@@ -1163,7 +1259,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleShipOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1344,7 +1440,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1478,26 +1574,6 @@ const App = () => {
       return () => socket.off('error', handleError);
     }
   }, [socket, handleError]);
-
-  // Function to calculate ship positions based on starting position and orientation
-  const getShipCells = (ship, startPosition) => {
-    const positions = [];
-    for (let i = 0; i < ship.size; i++) {
-      const pos = ship.horizontal ? startPosition + i : startPosition + i * GRID_COLS;
-      positions.push(pos);
-    }
-    return positions;
-  };
-
-  // Function to validate if the ship placement is valid
-  const isValidPlacement = (positions, ship) => {
-    return positions.every(pos => pos >= 0 && pos < GRID_SIZE && myBoard[pos] === 'water');
-  };
-
-  // Remove unused variable warning
-  const clearBoard = () => {
-    console.log('Clearing board');
-  };
 
   // Render the main app UI
   return (
@@ -1651,8 +1727,8 @@ const App = () => {
               <div className="fleet-container">
                 {renderShipList()}
                 <div
-                  onDrop={(e) => handleDrop(e, parseInt(e.dataTransfer.getData('cellIndex')))}
-                  onDragOver={handleDragOver}
+                  onDrop={handleGridDrop}
+                  onDragOver={handleGridDragOver}
                   onTouchEnd={handleTouchEnd}
                 >
                   {renderGrid(myBoard, false)}
