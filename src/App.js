@@ -1027,18 +1027,26 @@ const App = () => {
     let shipIndex, x, y;
     if (e.dataTransfer) {
       e.preventDefault();
-      if (isPlacementConfirmed) return;
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
+        return;
+      }
       shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
       const rect = e.currentTarget.getBoundingClientRect();
       x = e.clientX - rect.left;
       y = e.clientY - rect.top;
+      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
     } else {
       shipIndex = e.shipIndex;
       x = e.x;
       y = e.y;
+      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
     }
 
-    if (isPlacementConfirmed) return;
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
+      return;
+    }
 
     const ship = ships[shipIndex];
     const col = Math.floor(x / cellSize);
@@ -1047,21 +1055,25 @@ const App = () => {
 
     if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
       setMessage('Invalid drop position!');
+      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
       return;
     }
 
     const newPositions = calculateShipPositions(ship, position.toString());
     if (!newPositions) {
       setMessage('Invalid placement!');
+      console.log('Invalid placement: Ship cannot be placed here');
       return;
     }
 
+    let updatedShips;
     setMyBoard((prev) => {
       const newBoard = [...prev];
       if (ship.positions.length > 0) {
         ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
       }
       newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
       return newBoard;
     });
 
@@ -1072,7 +1084,9 @@ const App = () => {
         positions: newPositions,
         placed: true,
       };
-      // Update ship count and message
+      updatedShips = updated;
+
+      // Calculate the new ship count based on placed ships
       const placedCount = updated.filter(s => s.positions.length > 0).length;
       setShipCount(placedCount);
       setMessage(
@@ -1080,12 +1094,14 @@ const App = () => {
           ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
           : `${placedCount} of 5 ships placed. You can still reposition ships.`
       );
+      console.log(`Ship count updated to ${placedCount}`);
+
       return updated;
     });
 
     playPlaceSound();
-    setIsDragging(null); // <-- Always reset dragging here
-    updateServerBoard();
+    setIsDragging(null);
+    if (updatedShips) updateServerBoard(updatedShips);
   }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
