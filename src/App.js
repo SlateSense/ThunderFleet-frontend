@@ -933,25 +933,6 @@ const App = () => {
 
       const otherShipsPositions = updated
         .filter((_, idx) => idx !== shipIndex)
-        .flatMap(s => s.positions);
-
-      const overlap = newPositions.some(pos => otherShipsPositions.includes(pos));
-      if (overlap) {
-        setMessage('Cannot rotate: Overlaps with another ship.');
-        return prev;
-      }
-
-      setMyBoard(prevBoard => {
-        const newBoard = [...prevBoard];
-        ship.positions.forEach(pos => {
-          newBoard[pos] = 'water';
-        });
-        newPositions.forEach(pos => {
-          newBoard[pos] = 'ship';
-        });
-        return newBoard;
-      });
-
       updated[shipIndex] = {
         ...ship,
         horizontal: newHorizontal,
