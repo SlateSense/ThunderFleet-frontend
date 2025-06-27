@@ -851,7 +851,7 @@
 .grid-square.drag-over {
   background-color: #a5d6a7;
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
-  transform: translateY(-5px);
+  transform: scale(1.1); /* Make it appear as if it's emerging */
 }
 
 .grid-square.drag-over::after {
@@ -863,6 +863,8 @@
   bottom: 0;
   border-radius: 10px;
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+  background-color: rgba(56, 142, 60, 0.5); /* Green cushion effect */
+  transform: scale(1.05);
 }
 
 .ship {
