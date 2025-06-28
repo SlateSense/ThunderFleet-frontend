@@ -16,7 +16,7 @@ import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
 // New imports for stuck animation and image
-import stuckAnimation from './assets/grid/stuckAnimation.mp4'; // MP4 for transition animation
+import stuckAnimation from './assets/grid/animation.gif'; // MP4 for transition animation
 import stuckImage from './assets/grid/stuck.png'; // PNG for final stuck state
 
 // Game constants defining the grid size and timing constraints
