@@ -486,81 +486,54 @@
 
 /* Grid Styles */
 .grid-container {
-  border: 2px solid #d3d3d3;
-  background: linear-gradient(to bottom, #87ceeb, #e0f6ff);
+  border: 2px solid #333;
+  background: #1e90ff;
   position: relative;
   box-sizing: content-box;
-  display: flex;
-  justify-content: center;
-  max-width: 400px;
-  margin: 0 auto;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .grid {
   display: grid;
   position: relative;
-  /* Remove hardcoded sizes, let App.js control via inline styles */
-  /* grid-template-columns: repeat(9, 40px); */
-  /* grid-template-rows: repeat(7, 40px); */
 }
 
-/* Ensure cells use dynamic size from App.js */
 .cell {
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-sizing: border-box;
   position: relative;
-  transition: background-color 0.3s, box-shadow 0.2s;
+  transition: background-color 0.3s;
 }
 
 .cell.water {
-  background: #87ceeb;
+  background: #1e90ff;
 }
 
 .cell.ship {
-  background: #555;
-  transition: background 0.3s;
+  background: #888;
 }
 
 .cell.hit {
   background: #ff4500;
-  animation: pulseHit 0.5s ease-out;
 }
 
 .cell.miss {
   background: #333;
-  animation: fadeMiss 0.5s ease-out;
 }
 
-.cell.drag-over {
-  background: rgba(255, 255, 0, 0.2);
-  box-shadow: 0 0 5px rgba(255, 255, 0, 0.5);
+.cell.place-hover {
+  background: rgba(0, 255, 0, 0.3) !important;
+  transition: background 0.2s;
 }
 
-.cell:hover {
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-}
-
-@keyframes pulseHit {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
-
-@keyframes fadeMiss {
-  0% { opacity: 0.5; }
-  100% { opacity: 1; }
+.cell.drag-active:hover {
+  background: rgba(255, 255, 0, 0.3) !important;
 }
 
 .ship-on-grid {
   position: absolute;
   z-index: 2;
-  background: linear-gradient(45deg, #444, #777);
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.3s ease;
+  background: linear-gradient(45deg, #666, #999);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .cannonball-effect {
@@ -805,14 +778,12 @@
   }
 
   .grid-container {
-    max-width: 360px;
     transform: scale(0.9);
   }
-  /* Remove hardcoded grid sizes, rely on App.js */
-  /* .grid {
-    grid-template-columns: repeat(9, 36px);
-    grid-template-rows: repeat(7, 36px);
-  } */
+
+  .ship {
+    max-width: 200px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -857,12 +828,10 @@
   }
 
   .grid-container {
-    max-width: 320px;
     transform: scale(0.8);
   }
-  /* Remove hardcoded grid sizes, rely on App.js */
-  /* .grid {
-    grid-template-columns: repeat(9, 32px);
-    grid-template-rows: repeat(7, 32px);
-  } */
+
+  .ship {
+    max-width: 150px;
+  }
 }
