@@ -15,10 +15,6 @@ import submarineVertical from './assets/ships/vertical/submarine.png';
 import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
-// New imports for stuck animation and image
-import stuckAnimation from './assets/grid/stuckAnimation.mp4'; // MP4 for transition animation
-import stuckImage from './assets/grid/stuck.png'; // PNG for final stuck state
-
 // Game constants defining the grid size and timing constraints
 const GRID_COLS = 9;
 const GRID_ROWS = 7;
@@ -121,7 +117,6 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
-  const [hoverPositions, setHoverPositions] = useState([]); // New state for animated cells
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -938,17 +933,11 @@ const App = () => {
 
       const otherShipsPositions = updated
         .filter((_, idx) => idx !== shipIndex)
-        .flatMap(s => s.positions);
-      if (newPositions.some(pos => otherShipsPositions.includes(pos))) {
-        setMessage('Cannot rotate: Overlaps with another ship.');
-        return prev;
-      }
-
       updated[shipIndex] = {
-        ...updated[shipIndex],
+        ...ship,
         horizontal: newHorizontal,
         positions: newPositions,
-        placed: true,
+        placed: true
       };
       playPlaceSound();
       updateServerBoard(updated);
@@ -992,21 +981,9 @@ const App = () => {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       setDragPosition({ x, y });
-      const col = Math.floor(x / cellSize);
-      const row = Math.floor(y / cellSize);
-      const startPos = row * GRID_COLS + col;
-      const ship = ships[isDragging];
-
-      const positions = [];
-      for (let i = 0; i < ship.size; i++) {
-        const pos = ship.horizontal ? startPos + i : startPos + i * GRID_COLS;
-        if (pos >= 0 && pos < GRID_SIZE && calculateShipPositions(ship, pos.toString())) {
-          positions.push(pos);
-        }
-      }
-      setHoverPositions(positions); // Update hover positions for animation
+      console.log(`Drag over at x:${x}, y:${y}`);
     }
-  }, [isDragging, isPlacementConfirmed, cellSize, ships, calculateShipPositions]);
+  }, [isDragging, isPlacementConfirmed, setDragPosition]);
 
   // Function to handle touch move
   const handleTouchMove = useCallback((e) => {
@@ -1017,20 +994,14 @@ const App = () => {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     setDragPosition({ x, y });
-    const col = Math.floor(x / cellSize);
-    const row = Math.floor(y / cellSize);
-    const startPos = row * GRID_COLS + col;
-    const ship = ships[isDragging];
-
-    const positions = [];
-    for (let i = 0; i < ship.size; i++) {
-      const pos = ship.horizontal ? startPos + i : startPos + i * GRID_COLS;
-      if (pos >= 0 && pos < GRID_SIZE && calculateShipPositions(ship, pos.toString())) {
-        positions.push(pos);
-      }
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (data) {
+      data.startX = touch.clientX;
+      data.startY = touch.clientY;
+      sessionStorage.setItem('dragData', JSON.stringify(data));
     }
-    setHoverPositions(positions); // Update hover positions for touch
-  }, [isDragging, isPlacementConfirmed, gridRef, cellSize, ships, calculateShipPositions]);
+    console.log(`Touch moving for ship ${isDragging}`);
+  }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
@@ -1111,7 +1082,6 @@ const App = () => {
 
     playPlaceSound();
     setIsDragging(null);
-    setHoverPositions([]); // Reset hover positions after placement
     if (updatedShips) updateServerBoard(updatedShips);
   }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
@@ -1130,7 +1100,6 @@ const App = () => {
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
     handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
     sessionStorage.removeItem('dragData');
-    setHoverPositions([]); // Reset hover positions after touch end
   }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
@@ -1188,14 +1157,14 @@ const App = () => {
             const row = Math.floor(index / GRID_COLS);
             const col = index % GRID_COLS;
             const isHit = cell === 'hit';
-            const isHovered = hoverPositions.includes(index); // Check if cell is in hover positions
-            const isUnderShip = isDragging !== null && !isPlacementConfirmed && isHovered;
+            const isHovered = isDragging !== null && !isPlacementConfirmed;
+            const hoverPos = Math.floor(dragPosition.y / cellSize) * GRID_COLS + Math.floor(dragPosition.x / cellSize);
+            const isUnderShip = isHovered && calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
 
             return (
               <div
                 key={index}
-                id={`cell-${index}`} // Add ID for targeting the video
-                className={`cell ${cell} ${isUnderShip ? 'hovered' : ''} ${isDragging !== null ? 'drag-active' : ''} ${isHovered && !isDragging ? 'stuck' : ''}`}
+                className={`cell ${cell} ${isUnderShip ? 'hovered' : ''} ${isDragging !== null ? 'drag-active' : ''}`}
                 onClick={() => isEnemy && handleFire(index)}
                 onTouchStart={(e) => {
                   e.preventDefault();
@@ -1209,58 +1178,12 @@ const App = () => {
                   width: cellSize,
                   height: cellSize,
                   touchAction: 'none',
-                  position: 'relative',
                   backgroundColor: isHit ? '#ff4500' : cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : '#333',
-                  ...(isHovered && {
-                    animation: 'hoverPulse 0.5s infinite', // Pulse during hover
-                  }),
                 }}
                 data-grid-index={index}
               >
                 {isEnemy && cannonFire && cannonFire.row === row && cannonFire.col === col && (
                   <div className={`cannonball-effect ${cannonFire.hit ? 'hit' : 'miss'}`}></div>
-                )}
-                {/* Play MP4 animation when hover starts and dragging ends */}
-                {isHovered && !isDragging && (
-                  <video
-                    className="stuck-animation"
-                    src={stuckAnimation}
-                    autoPlay
-                    muted
-                    loop={false} // Play once
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      pointerEvents: 'none',
-                    }}
-                    onEnded={() => {
-                      const videoElement = document.querySelector(`#cell-${index} .stuck-animation`);
-                      if (videoElement) videoElement.style.display = 'none'; // Hide video after animation
-                    }}
-                  />
-                )}
-                {/* Show PNG after animation ends */}
-                {isHovered && !isDragging && (
-                  <img
-                    className="stuck-image"
-                    src={stuckImage}
-                    alt="Stuck"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      pointerEvents: 'none',
-                      opacity: 0, // Start hidden
-                      animation: 'fadeIn 0.5s ease-in forwards', // Fade in after video
-                    }}
-                  />
                 )}
               </div>
             );
@@ -1285,7 +1208,7 @@ const App = () => {
                     height: ship.horizontal ? cellSize - 4 : ship.size * cellSize - 4,
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center',
+                    backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
                     pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
@@ -1296,7 +1219,7 @@ const App = () => {
               )
             );
           })}
-        {/* Dragging ship preview with blue background */}
+        {/* Dragging ship preview */}
         {isDragging !== null && !isPlacementConfirmed && (
           <div
             className="dragging-ship"
@@ -1312,13 +1235,12 @@ const App = () => {
               opacity: 0.7,
               pointerEvents: 'none',
               zIndex: 10,
-              backgroundColor: '#1e90ff', // Blue color beneath the ship
             }}
           />
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove, hoverPositions, stuckAnimation, stuckImage]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1499,7 +1421,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1633,27 +1555,6 @@ const App = () => {
       return () => socket.off('error', handleError);
     }
   }, [socket, handleError]);
-
-  // Function to handle play again button click
-  const handlePlayAgain = () => {
-    console.log('Play Again button activated');
-    setGameState('join');
-    setMessage('');
-    setTransactionMessage('');
-    setMyBoard(Array(GRID_SIZE).fill('water'));
-    setEnemyBoard(Array(GRID_SIZE).fill('water'));
-    setShips(prev =>
-      prev.map(ship => ({
-        ...ship,
-        positions: [],
-        horizontal: true,
-        placed: false,
-      }))
-    );
-    setShipCount(0);
-    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-    setShowConfetti(false);
-  };
 
   // Render the main app UI
   return (
@@ -1899,14 +1800,56 @@ const App = () => {
                 <p>Misses: {gameStats.misses}</p>
               </div>
               <button
-                onClick={handlePlayAgain}
-                onTouchStart={handlePlayAgain}
+                onClick={() => {
+                  console.log('Play Again button clicked');
+                  setGameState('join');
+                  setMessage('');
+                  setTransactionMessage('');
+                  setMyBoard(Array(GRID_SIZE).fill('water'));
+                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                  setShips(prev =>
+                    prev.map(ship => ({
+                      ...ship,
+                      positions: [],
+                      horizontal: true,
+                      placed: false,
+                    }))
+                  );
+                  setShipCount(0);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setShowConfetti(false);
+                }}
+                onTouchStart={() => {
+                  console.log('Play Again button touched');
+                  setGameState('join');
+                  setMessage('');
+                  setTransactionMessage('');
+                  setMyBoard(Array(GRID_SIZE).fill('water'));
+                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                  setShips(prev =>
+                    prev.map(ship => ({
+                      ...ship,
+                      positions: [],
+                      horizontal: true,
+                      placed: false,
+                    }))
+                  );
+                  setShipCount(0);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setShowConfetti(false);
+                }}
                 className="join-button"
               >
                 Play Again
               </button>
+              {Confetti}
             </div>
           )}
+
+          {/* Modals */}
+          {showTermsModal && TermsModal}
+          {showPrivacyModal && PrivacyModal}
+          {showHowToPlayModal && HowToPlayModal}
         </>
       )}
     </div>
