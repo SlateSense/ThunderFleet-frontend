@@ -268,23 +268,25 @@ const App = () => {
         );
         setShipCount(0);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-        setTimerActive(true); // Start timer after state is set
-        setTimeLeft(PLACEMENT_TIME);
-        setMessage('Place your ships! Tap to rotate, drag to position.');
+        // Timer and message will be handled by useEffect above
       },
       placementSaved: () => {
-        console.log('Placement saved on server');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setTimerActive(false); // Stop timer after save
-        setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+        if (!isPlacementConfirmed && !placementSaved) {
+          console.log('Placement saved on server');
+          setIsPlacementConfirmed(true);
+          setPlacementSaved(true);
+          setTimerActive(false); // Stop timer after save
+          setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+        }
       },
       placementAutoSaved: () => {
-        console.log('Placement auto-saved due to timeout');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setTimerActive(false); // Stop timer after auto-save
-        setMessage('Time up! Ships auto-placed. Waiting for opponent...');
+        if (!isPlacementConfirmed && !placementSaved) {
+          console.log('Placement auto-saved due to timeout');
+          setIsPlacementConfirmed(true);
+          setPlacementSaved(true);
+          setTimerActive(false); // Stop timer after auto-save
+          setMessage('Time up! Ships auto-placed. Waiting for opponent...');
+        }
       },
       games: ({ count, grid, ships: serverShips }) => {
         console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
@@ -741,16 +743,16 @@ const App = () => {
 
   // Effect to manage the placement timer
   useEffect(() => {
-    if (timerActive && timeLeft > 0 && gameState === 'placing') {
+    // Only run timer countdown if not already confirmed/saved
+    if (timerActive && timeLeft > 0 && gameState === 'placing' && !isPlacementConfirmed && !placementSaved) {
       console.log(`Placement timer active, time left: ${timeLeft} seconds, gameState: ${gameState}`);
       timerRef.current = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
         if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) {
-          console.log(`Playing timer sound at ${timeLeft} seconds remaining`);
           playTimerSound();
         }
       }, 1000);
-    } else if (timerActive && timeLeft === 0 && gameState === 'placing') {
+    } else if (timerActive && timeLeft === 0 && gameState === 'placing' && !isPlacementConfirmed && !placementSaved) {
       console.log('Placement time up, auto-saving placement');
       setTimerActive(false);
       setMessage('Time up! Saving placement...');
@@ -762,7 +764,7 @@ const App = () => {
         clearTimeout(timerRef.current);
       }
     };
-  }, [timerActive, timeLeft, gameState, autoSavePlacement, playTimerSound]);
+  }, [timerActive, timeLeft, gameState, isPlacementConfirmed, placementSaved, autoSavePlacement, playTimerSound]);
 
   // Effect to manage the payment verification timer
   useEffect(() => {
@@ -792,16 +794,21 @@ const App = () => {
 
   // Effect to start the placement timer when entering the placing state
   useEffect(() => {
+    // Only start timer if entering placing phase and placement isn't already confirmed or saved
     if (gameState === 'placing' && !isPlacementConfirmed && !placementSaved) {
-      console.log('Entering placing state, starting timer');
-      setTimerActive(true);
-      setTimeLeft(PLACEMENT_TIME);
-      setMessage('Place your ships! Tap to rotate, drag to position.');
+      if (!timerActive) {
+        console.log('Entering placing state, starting timer');
+        setTimerActive(true);
+        setTimeLeft(PLACEMENT_TIME);
+        setMessage('Place your ships! Tap to rotate, drag to position.');
+      }
     } else if (gameState !== 'placing') {
-      console.log('Exiting placing state, stopping timer');
-      setTimerActive(false);
+      if (timerActive) {
+        console.log('Exiting placing state, stopping timer');
+        setTimerActive(false);
+      }
     }
-  }, [gameState, isPlacementConfirmed, placementSaved]);
+  }, [gameState, isPlacementConfirmed, placementSaved, timerActive]);
 
   // Effect to update myBoard when ships change during placing phase
   useEffect(() => {
