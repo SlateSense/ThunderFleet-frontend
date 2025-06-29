@@ -96,7 +96,7 @@ const App = () => {
   const [cannonFire, setCannonFire] = useState(null);
   const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
-  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
   const [cellSize, setCellSize] = useState(40);
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
   const [timerActive, setTimerActive] = useState(false);
@@ -255,6 +255,7 @@ const App = () => {
       startPlacing: () => {
         console.log('Starting ship placement phase');
         setGameState('placing');
+        setMessage('Place your ships! Tap to rotate, drag to position.');
         setIsPlacementConfirmed(false);
         setPlacementSaved(false);
         setMyBoard(Array(GRID_SIZE).fill('water'));
@@ -268,25 +269,18 @@ const App = () => {
         );
         setShipCount(0);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-        // Timer and message will be handled by useEffect above
       },
       placementSaved: () => {
-        if (!isPlacementConfirmed && !placementSaved) {
-          console.log('Placement saved on server');
-          setIsPlacementConfirmed(true);
-          setPlacementSaved(true);
-          setTimerActive(false); // Stop timer after save
-          setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
-        }
+        console.log('Placement saved on server');
+        setIsPlacementConfirmed(true);
+        setPlacementSaved(true);
+        setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
       },
       placementAutoSaved: () => {
-        if (!isPlacementConfirmed && !placementSaved) {
-          console.log('Placement auto-saved due to timeout');
-          setIsPlacementConfirmed(true);
-          setPlacementSaved(true);
-          setTimerActive(false); // Stop timer after auto-save
-          setMessage('Time up! Ships auto-placed. Waiting for opponent...');
-        }
+        console.log('Placement auto-saved due to timeout');
+        setIsPlacementConfirmed(true);
+        setPlacementSaved(true);
+        setMessage('Time up! Ships auto-placed. Waiting for opponent...');
       },
       games: ({ count, grid, ships: serverShips }) => {
         console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
@@ -313,19 +307,12 @@ const App = () => {
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
-        if (isPlacementConfirmed) {
-          setGameState('playing');
-          setTurn(turn);
-          setMessage(message);
-          setIsOpponentThinking(turn !== socket.id);
-          setTimerActive(false); // Ensure timer stops
-          setPlacementSaved(false);
-          setEnemyBoard(Array(GRID_SIZE).fill('water'));
-        } else {
-          console.log('startGame received before placement confirmed, delaying...');
-          setMessage('Please confirm your placement first. Delaying game start.');
-          // Optionally emit a delay signal to server if needed
-        }
+        setGameState('playing');
+        setTurn(turn);
+        setMessage(message);
+        setIsOpponentThinking(turn !== newSocket.id);
+        setPlacementSaved(false);
+        setEnemyBoard(Array(GRID_SIZE).fill('water'));
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -334,11 +321,11 @@ const App = () => {
         hit ? playHitSound() : playMissSound();
         setGameStats(prev => ({
           ...prev,
-          shotsFired: player === socket.id ? prev.shotsFired + 1 : prev.shotsFired,
-          hits: player === socket.id && hit ? prev.hits + 1 : prev.hits,
-          misses: player === socket.id && !hit ? prev.misses + 1 : prev.misses,
+          shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
+          hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
+          misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
         }));
-        if (player === socket.id) {
+        if (player === newSocket.id) {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
@@ -354,20 +341,29 @@ const App = () => {
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+          // Ensure opponent thinking state resets if bot is stuck
+          if (this.players && this.players[player] && this.players[player].isBot && !hit) {
+            setIsOpponentThinking(false);
+          }
+        }
+        // Force a turn update if the bot is stuck
+        if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
+          setTurn(newSocket.id); // Assume turn switches back if bot fails to fire
+          setMessage('Your turn to fire!');
         }
       },
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
         setTurn(turn);
-        setMessage(turn === socket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
-        setIsOpponentThinking(turn !== socket.id);
+        setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
+        setIsOpponentThinking(turn !== newSocket.id);
       },
       gameEnd: ({ message }) => {
         console.log('Game ended:', message);
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playLoseSound();
+        playLoseSound(); // Bot always wins, so player always loses
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -379,8 +375,8 @@ const App = () => {
         } else {
           setMessage('Failed to save board changes. Reverting to previous state.');
           console.log('Server failed to update board, reverting state');
-          setMyBoard(prev => [...prev]);
-          setShips(prev => [...prev]);
+          setMyBoard(prev => [...prev]); // Revert board
+          setShips(prev => [...prev]);   // Revert ships
         }
       },
     };
@@ -462,8 +458,8 @@ const App = () => {
       if (!response || !response.success) {
         setMessage('Failed to save board changes. Reverting to previous state.');
         console.log('Server failed to update board, reverting state');
-        setMyBoard(prev => [...prev]);
-        setShips(prev => [...prev]);
+        setMyBoard(prev => [...prev]); // Revert board
+        setShips(prev => [...prev]);   // Revert ships
       } else {
         console.log('Board update confirmed by server');
       }
@@ -690,7 +686,6 @@ const App = () => {
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setTimerActive(false); // Stop timer after save
     setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
 
     const placements = ships.map(ship => ({
@@ -743,16 +738,16 @@ const App = () => {
 
   // Effect to manage the placement timer
   useEffect(() => {
-    // Only run timer countdown if not already confirmed/saved
-    if (timerActive && timeLeft > 0 && gameState === 'placing' && !isPlacementConfirmed && !placementSaved) {
-      console.log(`Placement timer active, time left: ${timeLeft} seconds, gameState: ${gameState}`);
+    if (timerActive && timeLeft > 0) {
+      console.log(`Placement timer active, time left: ${timeLeft} seconds`);
       timerRef.current = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
         if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) {
+          console.log(`Playing timer sound at ${timeLeft} seconds remaining`);
           playTimerSound();
         }
       }, 1000);
-    } else if (timerActive && timeLeft === 0 && gameState === 'placing' && !isPlacementConfirmed && !placementSaved) {
+    } else if (timerActive && timeLeft === 0) {
       console.log('Placement time up, auto-saving placement');
       setTimerActive(false);
       setMessage('Time up! Saving placement...');
@@ -764,7 +759,7 @@ const App = () => {
         clearTimeout(timerRef.current);
       }
     };
-  }, [timerActive, timeLeft, gameState, isPlacementConfirmed, placementSaved, autoSavePlacement, playTimerSound]);
+  }, [timerActive, timeLeft, autoSavePlacement, playTimerSound]);
 
   // Effect to manage the payment verification timer
   useEffect(() => {
@@ -794,21 +789,17 @@ const App = () => {
 
   // Effect to start the placement timer when entering the placing state
   useEffect(() => {
-    // Only start timer if entering placing phase and placement isn't already confirmed or saved
-    if (gameState === 'placing' && !isPlacementConfirmed && !placementSaved) {
-      if (!timerActive) {
-        console.log('Entering placing state, starting timer');
-        setTimerActive(true);
-        setTimeLeft(PLACEMENT_TIME);
-        setMessage('Place your ships! Tap to rotate, drag to position.');
-      }
-    } else if (gameState !== 'placing') {
-      if (timerActive) {
-        console.log('Exiting placing state, stopping timer');
-        setTimerActive(false);
-      }
+    if (gameState === 'placing') {
+      console.log('Entering placing state, starting timer');
+      setTimerActive(true);
+      setTimeLeft(PLACEMENT_TIME);
+      setPlacementSaved(false);
+      setIsPlacementConfirmed(false);
+    } else {
+      console.log('Exiting placing state, stopping timer');
+      setTimerActive(false);
     }
-  }, [gameState, isPlacementConfirmed, placementSaved, timerActive]);
+  }, [gameState]);
 
   // Effect to update myBoard when ships change during placing phase
   useEffect(() => {
@@ -942,18 +933,11 @@ const App = () => {
 
       const otherShipsPositions = updated
         .filter((_, idx) => idx !== shipIndex)
-        .flatMap(ship => ship.positions);
-
-      if (newPositions.some(pos => otherShipsPositions.includes(pos))) {
-        setMessage('Cannot rotate: Ship overlaps with another.');
-        return prev;
-      }
-
       updated[shipIndex] = {
         ...ship,
         horizontal: newHorizontal,
         positions: newPositions,
-        placed: true,
+        placed: true
       };
       playPlaceSound();
       updateServerBoard(updated);
