@@ -68,15 +68,6 @@ const useSound = (src, isSoundEnabled) => {
   }, [isSoundEnabled, audio, src]);
 };
 
-// Utility function to debounce events
-const debounce = (func, delay) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), delay);
-  };
-};
-
 const App = () => {
   console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
 
@@ -1122,13 +1113,14 @@ const App = () => {
     console.log(`Started dragging ship ${shipIndex}`);
   }, [isPlacementConfirmed, setIsDragging]);
 
-  // Updated function to handle touch start with tap detection
+  // Function to handle touch start
   const handleTouchStart = useCallback((e, shipIndex) => {
     if (isPlacementConfirmed) {
       e.preventDefault();
       return;
     }
     e.preventDefault();
+    setIsDragging(shipIndex);
     const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
     const x = touch.clientX - rect.left;
@@ -1136,30 +1128,8 @@ const App = () => {
     setDragPosition({ x, y });
     const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
     sessionStorage.setItem('dragData', JSON.stringify(data));
-
-    // Set a timeout to differentiate between tap and drag
-    const touchTimeout = setTimeout(() => {
-      setIsDragging(shipIndex);
-      console.log(`Touch drag started for ship ${shipIndex}`);
-    }, 200); // 200ms threshold for tap detection
-
-    // Store the timeout ID to clear it if needed
-    sessionStorage.setItem('touchTimeout', touchTimeout);
-
-    // Add touchend listener to handle tap detection
-    const handleTouchEnd = (endEvent) => {
-      clearTimeout(touchTimeout);
-      const endTouch = endEvent.changedTouches[0];
-      const movementX = Math.abs(endTouch.clientX - touch.clientX);
-      const movementY = Math.abs(endTouch.clientY - touch.clientY);
-      if (movementX < 10 && movementY < 10) { // Minimal movement threshold
-        toggleOrientation(shipIndex);
-        console.log(`Ship ${shipIndex} rotated`);
-      }
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-    document.addEventListener('touchend', handleTouchEnd);
-  }, [isPlacementConfirmed, toggleOrientation]);
+    console.log(`Touch drag started for ship ${shipIndex}`);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1241,10 +1211,8 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    border: '2px solid #333',
-                    borderRadius: '4px',
-                    marginBottom: '10px',
-                    touchAction: 'none'
+                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
+                    touchAction: 'none',
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
@@ -1453,7 +1421,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1490,13 +1458,13 @@ const App = () => {
         )}
         <div className="invoice-controls">
           <button
-            onClick={debounce(handlePay, 300)}
+            onClick={handlePay}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading}
           >
             {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
-          <button onClick={debounce(handleCancelGame, 300)} className="cancel-button">
+          <button onClick={handleCancelGame} className="cancel-button">
             Cancel
           </button>
         </div>
@@ -1562,8 +1530,8 @@ const App = () => {
         </p>
         {!isSocketConnected && (
           <button
-            onClick={debounce(handleReconnect, 300)}
-            onTouchStart={debounce(handleReconnect, 300)}
+            onClick={handleReconnect}
+            onTouchStart={handleReconnect}
             className="join-button"
           >
             Retry Connection
@@ -1648,8 +1616,8 @@ const App = () => {
                 </select>
               </div>
               <button
-                onClick={debounce(handleJoinGame, 300)}
-                onTouchStart={debounce(handleJoinGame, 300)}
+                onClick={handleJoinGame}
+                onTouchStart={handleJoinGame}
                 className="join-button"
                 disabled={isLoading}
               >
@@ -1693,8 +1661,8 @@ const App = () => {
               {PaymentModal}
               {!isLoading && (
                 <button
-                  onClick={debounce(handleJoinGame, 300)}
-                  onTouchStart={debounce(handleJoinGame, 300)}
+                  onClick={handleJoinGame}
+                  onTouchStart={handleJoinGame}
                   className="join-button"
                 >
                   Retry
@@ -1710,7 +1678,7 @@ const App = () => {
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
-              <button onClick={debounce(handleCancelGame, 300)} className="cancel-button">
+              <button onClick={handleCancelGame} className="cancel-button">
                 Cancel
               </button>
             </div>
@@ -1749,32 +1717,32 @@ const App = () => {
               </div>
               <div className="action-buttons">
                 <button
-                  onClick={debounce(randomizeShips, 300)}
-                  onTouchStart={debounce(randomizeShips, 300)}
+                  onClick={randomizeShips}
+                  onTouchStart={randomizeShips}
                   className="action-button"
                   disabled={isPlacementConfirmed}
                 >
                   Randomize
                 </button>
                 <button
-                  onClick={debounce(randomizeUnplacedShips, 300)}
-                  onTouchStart={debounce(randomizeUnplacedShips, 300)}
+                  onClick={randomizeUnplacedShips}
+                  onTouchStart={randomizeUnplacedShips}
                   className="action-button place-remaining"
                   disabled={isPlacementConfirmed}
                 >
                   Place Remaining
                 </button>
                 <button
-                  onClick={debounce(clearBoard, 300)}
-                  onTouchStart={debounce(clearBoard, 300)}
+                  onClick={clearBoard}
+                  onTouchStart={clearBoard}
                   className="action-button clear-board"
                   disabled={isPlacementConfirmed}
                 >
                   Clear Board
                 </button>
                 <button
-                  onClick={debounce(saveShipPlacement, 300)}
-                  onTouchStart={debounce(saveShipPlacement, 300)}
+                  onClick={saveShipPlacement}
+                  onTouchStart={saveShipPlacement}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
                 >
