@@ -135,16 +135,6 @@ const App = () => {
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
   const playErrorSound = useSound('/sounds/error.mp3', isSoundEnabled);
 
-  // Debounce function to limit the rate of function calls
-  const debounce = (func, delay) => {
-    let timeout;
-    return function(...args) {
-      const context = this;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(context, args), delay);
-    };
-  };
-
   // Log gameState changes for debugging
   useEffect(() => {
     console.log('Current gameState:', gameState);
@@ -827,7 +817,7 @@ const App = () => {
     }
   }, [gameState, ships]);
 
-  // Effect to handle reconnection attempts
+  // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
       setMessage('Max reconnection attempts reached. Please refresh the page.');
@@ -1431,7 +1421,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1468,7 +1458,7 @@ const App = () => {
         )}
         <div className="invoice-controls">
           <button
-            onClick={debounce(handlePay, 300)}
+            onClick={handlePay}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading}
           >
