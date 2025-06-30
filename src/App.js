@@ -1133,11 +1133,6 @@ const App = () => {
   const handleTouchEnd = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
-    const time = e.timeStamp - e.target.dataset.startTime;
-    if (time < 200) { // Tap detected
-      handleShipTap(e.target.dataset.shipIndex);
-    }
-    e.target.dataset.startTime = null;
     setIsDragging(null);
     const data = JSON.parse(sessionStorage.getItem('dragData'));
     if (!data) return;
@@ -1149,7 +1144,7 @@ const App = () => {
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
     handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
     sessionStorage.removeItem('dragData');
-  }, [isDragging, isPlacementConfirmed, handleShipTap, gridRef]);
+  }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
   const handleDragStart = useCallback((e, shipIndex) => {
@@ -1169,8 +1164,6 @@ const App = () => {
       return;
     }
     e.preventDefault();
-    e.target.dataset.startTime = e.timeStamp;
-    e.target.dataset.shipIndex = shipIndex;
     setIsDragging(shipIndex);
     const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
