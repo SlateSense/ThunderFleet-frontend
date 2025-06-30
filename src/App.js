@@ -135,7 +135,7 @@ const App = () => {
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
   const playErrorSound = useSound('/sounds/error.mp3', isSoundEnabled);
 
-  // Debounce function to limit the frequency of function calls
+  // Debounce function to limit the rate of function calls
   const debounce = (func, delay) => {
     let timeout;
     return function(...args) {
@@ -708,9 +708,6 @@ const App = () => {
     playPlaceSound();
   }, [placementSaved, ships, gameId, socket, playPlaceSound, randomizeUnplacedShips]);
 
-  // Apply debounce to saveShipPlacement
-  const debouncedSaveShipPlacement = debounce(saveShipPlacement, 300);
-
   // Function to auto-save placement when time runs out
   const autoSavePlacement = useCallback(() => {
     console.log('Auto-saving placement due to time running out');
@@ -830,7 +827,7 @@ const App = () => {
     }
   }, [gameState, ships]);
 
-  // Function to handle reconnection attempts
+  // Effect to handle reconnection attempts
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
       setMessage('Max reconnection attempts reached. Please refresh the page.');
@@ -1471,7 +1468,7 @@ const App = () => {
         )}
         <div className="invoice-controls">
           <button
-            onClick={handlePay}
+            onClick={debounce(handlePay, 300)}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading}
           >
@@ -1568,27 +1565,6 @@ const App = () => {
       return () => socket.off('error', handleError);
     }
   }, [socket, handleError]);
-
-  // Apply debounce to play again button
-  const debouncedPlayAgain = debounce(() => {
-    console.log('Play Again button clicked');
-    setGameState('join');
-    setMessage('');
-    setTransactionMessage('');
-    setMyBoard(Array(GRID_SIZE).fill('water'));
-    setEnemyBoard(Array(GRID_SIZE).fill('water'));
-    setShips(prev =>
-      prev.map(ship => ({
-        ...ship,
-        positions: [],
-        horizontal: true,
-        placed: false,
-      }))
-    );
-    setShipCount(0);
-    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-    setShowConfetti(false);
-  }, 300);
 
   // Render the main app UI
   return (
@@ -1775,8 +1751,8 @@ const App = () => {
                   Clear Board
                 </button>
                 <button
-                  onClick={debouncedSaveShipPlacement}
-                  onTouchStart={debouncedSaveShipPlacement}
+                  onClick={saveShipPlacement}
+                  onTouchStart={saveShipPlacement}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
                 >
@@ -1834,8 +1810,44 @@ const App = () => {
                 <p>Misses: {gameStats.misses}</p>
               </div>
               <button
-                onClick={debouncedPlayAgain}
-                onTouchStart={debouncedPlayAgain}
+                onClick={() => {
+                  console.log('Play Again button clicked');
+                  setGameState('join');
+                  setMessage('');
+                  setTransactionMessage('');
+                  setMyBoard(Array(GRID_SIZE).fill('water'));
+                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                  setShips(prev =>
+                    prev.map(ship => ({
+                      ...ship,
+                      positions: [],
+                      horizontal: true,
+                      placed: false,
+                    }))
+                  );
+                  setShipCount(0);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setShowConfetti(false);
+                }}
+                onTouchStart={() => {
+                  console.log('Play Again button touched');
+                  setGameState('join');
+                  setMessage('');
+                  setTransactionMessage('');
+                  setMyBoard(Array(GRID_SIZE).fill('water'));
+                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                  setShips(prev =>
+                    prev.map(ship => ({
+                      ...ship,
+                      positions: [],
+                      horizontal: true,
+                      placed: false,
+                    }))
+                  );
+                  setShipCount(0);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setShowConfetti(false);
+                }}
                 className="join-button"
               >
                 Play Again
