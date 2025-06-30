@@ -135,6 +135,16 @@ const App = () => {
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
   const playErrorSound = useSound('/sounds/error.mp3', isSoundEnabled);
 
+  // Debounce function to limit the frequency of function calls
+  const debounce = (func, delay) => {
+    let timeout;
+    return function(...args) {
+      const context = this;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(context, args), delay);
+    };
+  };
+
   // Log gameState changes for debugging
   useEffect(() => {
     console.log('Current gameState:', gameState);
@@ -698,6 +708,9 @@ const App = () => {
     playPlaceSound();
   }, [placementSaved, ships, gameId, socket, playPlaceSound, randomizeUnplacedShips]);
 
+  // Apply debounce to saveShipPlacement
+  const debouncedSaveShipPlacement = debounce(saveShipPlacement, 300);
+
   // Function to auto-save placement when time runs out
   const autoSavePlacement = useCallback(() => {
     console.log('Auto-saving placement due to time running out');
@@ -944,6 +957,37 @@ const App = () => {
       return updated;
     });
   }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
+
+  // Function to handle ship tap for rotation
+  const handleShipTap = useCallback((shipIndex) => {
+    setShips(prevShips =>
+      prevShips.map(ship =>
+        ship.id === shipIndex
+          ? { ...ship, horizontal: !ship.horizontal }
+          : ship
+      )
+    );
+    console.log(`Ship ${shipIndex} rotated`);
+  }, []);
+
+  // Function to handle ship drag
+  const handleShipDrag = useCallback((shipIndex, newPosition) => {
+    setShips(prevShips =>
+      prevShips.map(ship =>
+        ship.id === shipIndex
+          ? { ...ship, positions: newPosition }
+          : ship
+      )
+    );
+    console.log(`Ship ${shipIndex} dragged to new position`);
+  }, []);
+
+  // Function to ensure ship stays on grid
+  const snapToGrid = (position) => {
+    const row = Math.floor(position / GRID_COLS);
+    const col = position % GRID_COLS;
+    return row * GRID_COLS + col;
+  };
 
   // Function to clear the board
   const clearBoard = useCallback(() => {
@@ -1200,6 +1244,8 @@ const App = () => {
                   onDragStart={(e) => handleDragStart(e, ship.id)}
                   onDragEnd={() => setIsDragging(null)}
                   onTouchStart={(e) => handleTouchStart(e, ship.id)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   style={{
                     position: 'absolute',
                     top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize + 2,
@@ -1211,10 +1257,12 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
-                    touchAction: 'none',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    marginBottom: '10px',
+                    touchAction: 'none'
                   }}
-                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
+                  onClick={() => !isPlacementConfirmed && handleShipTap(ship.id)}
                 />
               )
             );
@@ -1240,7 +1288,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, handleShipTap, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1279,6 +1327,7 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
+                onClick={() => !isPlacementConfirmed && handleShipTap(i)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
@@ -1287,7 +1336,7 @@ const App = () => {
         ))}
       </div>
     );
-  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd, handleShipTap]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
@@ -1421,7 +1470,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1555,6 +1604,27 @@ const App = () => {
       return () => socket.off('error', handleError);
     }
   }, [socket, handleError]);
+
+  // Apply debounce to play again button
+  const debouncedPlayAgain = debounce(() => {
+    console.log('Play Again button clicked');
+    setGameState('join');
+    setMessage('');
+    setTransactionMessage('');
+    setMyBoard(Array(GRID_SIZE).fill('water'));
+    setEnemyBoard(Array(GRID_SIZE).fill('water'));
+    setShips(prev =>
+      prev.map(ship => ({
+        ...ship,
+        positions: [],
+        horizontal: true,
+        placed: false,
+      }))
+    );
+    setShipCount(0);
+    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+    setShowConfetti(false);
+  }, 300);
 
   // Render the main app UI
   return (
@@ -1741,8 +1811,8 @@ const App = () => {
                   Clear Board
                 </button>
                 <button
-                  onClick={saveShipPlacement}
-                  onTouchStart={saveShipPlacement}
+                  onClick={debouncedSaveShipPlacement}
+                  onTouchStart={debouncedSaveShipPlacement}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
                 >
@@ -1800,44 +1870,8 @@ const App = () => {
                 <p>Misses: {gameStats.misses}</p>
               </div>
               <button
-                onClick={() => {
-                  console.log('Play Again button clicked');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShowConfetti(false);
-                }}
-                onTouchStart={() => {
-                  console.log('Play Again button touched');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShowConfetti(false);
-                }}
+                onClick={debouncedPlayAgain}
+                onTouchStart={debouncedPlayAgain}
                 className="join-button"
               >
                 Play Again
