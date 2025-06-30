@@ -405,6 +405,18 @@ const App = () => {
     };
   }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
+  // Update ship placement logic for better initial layout
+  const initialShipPositions = useMemo(() => {
+    return ships.map((ship, index) => ({
+      ...ship,
+      positions: [],
+      horizontal: true,
+      placed: false,
+      initialX: (index % 2) * (cellSize + 10), // Two columns
+      initialY: Math.floor(index / 2) * (cellSize + 10),
+    }));
+  }, [ships, cellSize]);
+
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
     console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
@@ -825,6 +837,13 @@ const App = () => {
       setMyBoard(newBoard);
     }
   }, [gameState, ships]);
+
+  // Effect to use the initial ship positions during the placement phase
+  useEffect(() => {
+    if (gameState === 'placing') {
+      setShips(initialShipPositions);
+    }
+  }, [gameState, initialShipPositions]);
 
   // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
