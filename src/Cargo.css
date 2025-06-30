@@ -7,8 +7,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
+  justify-content: flex-start;
+  padding: 10px;
   box-sizing: border-box;
   position: relative;
   overflow-x: hidden;
@@ -30,11 +30,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  height: 100vh;
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
   animation: fadeIn 1s ease-in;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {
@@ -48,28 +50,32 @@
   }
 }
 
-/* Logo Styling - Increased Size */
+/* Logo Styling - Mobile Optimized */
 .game-logo {
-  width: 200px; /* Increased from assumed 150px to 200px */
-  height: 200px; /* Increased from assumed 150px to 200px */
+  width: 120px;
+  height: 120px;
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
-  margin-bottom: 10px; /* Reduced from assumed 20px to 10px */
+  margin-bottom: 15px;
+  flex-shrink: 0;
 }
 
 .game-title {
-  font-size: 2rem;
-  margin-bottom: 10px; /* Reduced from assumed 20px to 10px */
+  font-size: 1.8rem;
+  margin-bottom: 15px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
 }
 
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Reduced from assumed 15px to 10px */
-  margin-top: 10px; /* Reduced from assumed 20px to 10px */
+  gap: 12px;
+  margin-top: 15px;
+  width: 100%;
+  max-width: 280px;
 }
 
 /* Join Screen */
@@ -84,6 +90,7 @@
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
   animation: slideIn 0.5s ease-out;
+  margin: auto;
 }
 
 @keyframes slideIn {
@@ -99,7 +106,7 @@
 
 .join-screen input,
 .join-screen select {
-  padding: 10px;
+  padding: 12px;
   font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -130,9 +137,10 @@
 }
 
 .legal-notice {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #ccc;
   margin-top: 10px;
+  text-align: center;
 }
 
 .legal-notice a {
@@ -157,13 +165,14 @@
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
   animation: slideIn 0.5s ease-out;
+  margin: auto;
 }
 
 .bot-indicator {
   font-size: 1rem;
   color: #00ff00;
   background: rgba(0, 255, 0, 0.1);
-  padding: 5px 10px;
+  padding: 8px 12px;
   border-radius: 5px;
   text-shadow: 0 0 5px #00ff00;
   animation: glow 1.5s infinite alternate;
@@ -188,7 +197,9 @@
   padding: 20px;
   border-radius: 10px;
   max-width: 400px;
-  width: 100%;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .winnings-info {
@@ -206,6 +217,8 @@
 .invoice-controls {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .pay-button,
@@ -216,6 +229,7 @@
   border-radius: 5px;
   cursor: pointer;
   transition: transform 0.1s, background 0.3s;
+  min-width: 80px;
 }
 
 .pay-button:hover,
@@ -300,19 +314,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  max-width: 600px;
+  gap: 10px;
+  max-width: 100%;
   width: 100%;
   animation: slideIn 0.5s ease-out;
+  padding: 10px;
+  box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .ships-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   max-width: 400px;
-  margin: 10px 0;
+  margin: 5px 0;
 }
 
 .ship-container {
@@ -327,11 +344,11 @@
   justify-content: space-between;
   width: 100%;
   max-width: 300px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .ship-status {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .ship {
@@ -354,7 +371,7 @@
 
 .ship-label {
   position: absolute;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #fff;
   text-shadow: 1px 1px 2px #000;
   text-align: center;
@@ -362,8 +379,8 @@
 }
 
 .orientation-button {
-  padding: 5px 10px;
-  font-size: 0.9rem;
+  padding: 8px 12px;
+  font-size: 0.85rem;
   background: #555;
   color: #fff;
   border: none;
@@ -385,20 +402,24 @@
 .action-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
   margin-top: 10px;
+  width: 100%;
 }
 
 .action-button {
-  padding: 10px 20px;
-  font-size: 1rem;
+  padding: 10px 16px;
+  font-size: 0.9rem;
   background: #555;
   color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.3s, transform 0.1s;
+  flex: 1;
+  min-width: 120px;
+  max-width: 150px;
 }
 
 .action-button:hover {
@@ -427,53 +448,64 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  max-width: 700px;
+  gap: 8px;
+  max-width: 100%;
   width: 100%;
   animation: slideIn 0.5s ease-out;
+  padding: 5px;
+  box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .your-turn {
   color: #00ff00;
+  font-size: 1rem;
+  margin: 5px 0;
 }
 
 .opponent-turn {
   color: #ff4500;
+  font-size: 1rem;
+  margin: 5px 0;
 }
 
 .game-boards {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   align-items: center;
+  width: 100%;
 }
 
 .game-boards h4 {
-  margin: 5px 0;
-  font-size: 1.2rem;
+  margin: 3px 0;
+  font-size: 1.1rem;
 }
 
 .opponent-thinking {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 10px 0;
+  margin: 5px 0;
 }
 
 .game-stats {
-  margin-top: 20px;
+  margin-top: 10px;
   background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
+  padding: 8px;
   border-radius: 5px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .game-stats h4 {
-  margin: 5px 0;
+  margin: 3px 0;
+  font-size: 1rem;
 }
 
 .game-stats p {
-  margin: 5px 0;
-  font-size: 0.9rem;
+  margin: 3px 0;
+  font-size: 0.85rem;
 }
 
 /* Finished Screen */
@@ -488,21 +520,23 @@
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
   animation: slideIn 0.5s ease-out;
+  margin: auto;
 }
 
-/* Enhanced Grid Styles */
+/* Enhanced Grid Styles - Mobile Optimized */
 .grid-container {
-  border: 3px solid #2c5f8b;
+  border: 2px solid #2c5f8b;
   background: linear-gradient(to bottom, #87ceeb, #e0f6ff);
   position: relative;
   box-sizing: content-box;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 
               inset 0 1px 3px rgba(255, 255, 255, 0.2);
   display: flex;
   justify-content: center;
-  max-width: 90vw;
-  margin: 0 auto;
+  width: calc(100vw - 20px);
+  max-width: calc(100vw - 20px);
+  margin: 5px auto;
   overflow: hidden;
   animation: gridAppear 0.6s ease-out;
 }
@@ -522,11 +556,13 @@
   display: grid;
   position: relative;
   background: linear-gradient(to bottom, #87ceeb 0%, #b8e6ff 50%, #e0f6ff 100%);
-  border-radius: 8px;
+  border-radius: 6px;
+  width: 100%;
+  aspect-ratio: 1;
 }
 
 .cell {
-  border: 1px solid #d3d3d3;
+  border: 0.5px solid #d3d3d3;
   box-sizing: border-box;
   position: relative;
   transition: all 0.3s ease;
@@ -535,6 +571,8 @@
     rgba(255, 255, 255, 0.05) 50%, 
     rgba(0, 0, 0, 0.05) 100%);
   cursor: pointer;
+  min-height: 0;
+  min-width: 0;
 }
 
 .cell:hover {
@@ -552,37 +590,37 @@
 
 .cell.ship {
   background: linear-gradient(45deg, #666 0%, #999 50%, #aaa 100%);
-  border: 2px solid #444;
+  border: 1px solid #444;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .cell.hit {
   background: radial-gradient(circle, #ff4500 0%, #cc3300 70%, #990000 100%);
-  border: 2px solid #cc3300;
-  box-shadow: 0 0 15px rgba(255, 69, 0, 0.6), 
-              inset 0 0 10px rgba(0, 0, 0, 0.5);
+  border: 1px solid #cc3300;
+  box-shadow: 0 0 10px rgba(255, 69, 0, 0.6), 
+              inset 0 0 8px rgba(0, 0, 0, 0.5);
   animation: hitPulse 0.8s ease-out;
 }
 
 @keyframes hitPulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+    box-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
   }
   50% {
-    transform: scale(1.1);
-    box-shadow: 0 0 25px rgba(255, 69, 0, 0.9);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 69, 0, 0.9);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 15px rgba(255, 69, 0, 0.6);
+    box-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
   }
 }
 
 .cell.miss {
   background: radial-gradient(circle, #fff 0%, #ddd 30%, #333 100%);
-  border: 2px solid #555;
-  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid #555;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
   animation: missRipple 0.6s ease-out;
 }
 
@@ -592,12 +630,12 @@
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
   }
   50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    transform: scale(1.03);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
   }
   100% {
     transform: scale(1);
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -605,18 +643,18 @@
   background: linear-gradient(135deg, 
     rgba(0, 255, 0, 0.4) 0%, 
     rgba(0, 200, 0, 0.3) 100%) !important;
-  border: 2px solid #00ff00;
-  box-shadow: 0 0 12px rgba(0, 255, 0, 0.5);
+  border: 1px solid #00ff00;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
   transition: all 0.2s ease;
   animation: placeGlow 1s infinite alternate;
 }
 
 @keyframes placeGlow {
   from {
-    box-shadow: 0 0 12px rgba(0, 255, 0, 0.5);
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
   }
   to {
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.8);
   }
 }
 
@@ -630,8 +668,8 @@
   background: linear-gradient(135deg, 
     rgba(255, 255, 0, 0.5) 0%, 
     rgba(255, 200, 0, 0.4) 100%) !important;
-  border: 2px solid #ffff00;
-  box-shadow: 0 0 15px rgba(255, 255, 0, 0.6);
+  border: 1px solid #ffff00;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.6);
 }
 
 /* Ship Placement Preview */
@@ -640,9 +678,9 @@
   background: linear-gradient(45deg, 
     rgba(0, 255, 0, 0.6) 0%, 
     rgba(0, 200, 0, 0.4) 100%);
-  border: 2px solid #00ff00;
-  border-radius: 4px;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+  border: 1px solid #00ff00;
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
   transition: all 0.3s ease;
   z-index: 10;
   pointer-events: none;
@@ -657,14 +695,14 @@
   position: absolute;
   z-index: 2;
   background: linear-gradient(45deg, #666, #999);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
-  border-radius: 4px;
-  border: 2px solid #444;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  border: 1px solid #444;
   transition: all 0.3s ease;
 }
 
 .ship-on-grid:hover {
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
   transform: scale(1.02);
 }
 
@@ -675,33 +713,33 @@
   border-radius: 2px;
 }
 
-/* Grid Coordinate Labels */
+/* Grid Coordinate Labels - Simplified for mobile */
 .grid-container::before {
   content: '';
   position: absolute;
-  top: -25px;
+  top: -15px;
   left: 0;
   right: 0;
-  height: 20px;
+  height: 10px;
   background: linear-gradient(90deg, 
     transparent 0%, 
     rgba(255, 255, 255, 0.1) 50%, 
     transparent 100%);
-  border-radius: 10px 10px 0 0;
+  border-radius: 5px 5px 0 0;
 }
 
 .grid-container::after {
   content: '';
   position: absolute;
-  left: -25px;
+  left: -15px;
   top: 0;
   bottom: 0;
-  width: 20px;
+  width: 10px;
   background: linear-gradient(180deg, 
     transparent 0%, 
     rgba(255, 255, 255, 0.1) 50%, 
     transparent 100%);
-  border-radius: 10px 0 0 10px;
+  border-radius: 5px 0 0 5px;
 }
 
 .cannonball-effect {
@@ -758,50 +796,19 @@
 
 @keyframes gridPulse {
   0%, 100% {
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   }
   50% {
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   }
-}
-
-/* Timer */
-.timer-container {
-  width: 100%;
-  max-width: 300px;
-  margin: 10px auto;
-}
-
-.timer-bar {
-  width: 100%;
-  height: 10px;
-  background: #333;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.timer-progress {
-  height: 100%;
-  background: #28a745;
-  transition: width 1s linear;
-}
-
-.timer-text {
-  margin-top: 5px;
-  font-size: 0.9rem;
-}
-
-.time-warning {
-  color: #ff4500;
-  font-weight: bold;
 }
 
 /* Loading Spinner */
 .loading-spinner {
-  width: 30px;
-  height: 30px;
-  border: 4px solid #fff;
-  border-top: 4px solid #28a745;
+  width: 25px;
+  height: 25px;
+  border: 3px solid #fff;
+  border-top: 3px solid #28a745;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -828,8 +835,8 @@
 
 .confetti-piece {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   opacity: 0.8;
   animation: fall 3s linear infinite;
 }
@@ -848,14 +855,16 @@
 /* Buttons */
 .join-button,
 .action-button {
-  padding: 12px 24px;
-  font-size: 1.1rem;
+  padding: 12px 20px;
+  font-size: 1rem;
   background: #007bff;
   color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.3s, transform 0.1s;
+  touch-action: manipulation;
+  min-height: 44px;
 }
 
 .join-button:hover,
@@ -882,20 +891,23 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .modal-content {
   background: #222;
-  padding: 20px;
+  padding: 15px;
   border-radius: 10px;
   max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
+  width: 100%;
+  max-height: 90vh;
   overflow-y: auto;
 }
 
 .modal-content h2 {
   margin-top: 0;
+  font-size: 1.3rem;
 }
 
 .modal-content ul {
@@ -903,7 +915,8 @@
 }
 
 .modal-content li {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
 }
 
 /* Fallback UI */
@@ -915,6 +928,7 @@
   padding: 20px;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
+  margin: auto;
 }
 
 /* Loading Screen */
@@ -933,103 +947,499 @@
 
 .loading-screen h2 {
   color: #fff;
+  font-size: 1.2rem;
 }
 
-/* Responsive Adjustments */
+/* Mobile-First Responsive Design */
 @media (max-width: 768px) {
+  .App {
+    padding: 5px;
+    justify-content: flex-start;
+  }
+
   .game-logo {
-    width: 150px; /* Slightly smaller for mobile, but still increased */
-    height: 150px;
-    margin-bottom: 8px; /* Further reduced spacing */
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
   }
 
   .game-title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+  }
+
+  .button-group {
+    gap: 10px;
+    margin-top: 10px;
+    max-width: 250px;
+  }
+
+  .join-button,
+  .action-button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    min-height: 44px;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .payment-modal {
+    padding: 15px;
+    width: 95%;
+  }
+
+  .qr-container svg {
+    width: 120px;
+    height: 120px;
+  }
+
+  .grid-container {
+    width: calc(100vw - 10px);
+    max-width: calc(100vw - 10px);
+    border-width: 1px;
+    margin: 3px auto;
+  }
+
+  .ship {
+    max-width: 200px;
+  }
+
+  .ships-list {
+    gap: 6px;
+    margin: 3px 0;
+  }
+
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .action-button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    min-width: 100px;
+    max-width: 130px;
+  }
+
+  .game-boards {
+    gap: 10px;
+  }
+
+  .game-stats {
+    margin-top: 8px;
+    padding: 6px;
+  }
+
+  .placing-screen,
+  .playing-screen {
+    gap: 8px;
+    padding: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .App {
+    padding: 3px;
+  }
+
+  .game-logo {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 8px;
+  }
+
+  .game-title {
+    font-size: 1.2rem;
     margin-bottom: 8px;
   }
 
   .button-group {
     gap: 8px;
     margin-top: 8px;
+    max-width: 220px;
   }
 
   .join-button,
   .action-button {
-    padding: 10px 20px;
-    font-size: 1rem;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    min-height: 42px;
   }
 
   .modal-content {
-    width: 95%;
-    padding: 15px;
+    width: 98%;
+    padding: 12px;
+    margin: 5px;
   }
 
-  .payment-modal {
-    padding: 15px;
+  .modal-content h2 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
   }
-
-  .qr-container svg {
-    width: 150px;
-    height: 150px;
-  }
-
-  .grid-container {
-    transform: scale(0.9);
-    max-width: 95vw;
-  }
-
-  .ship {
-    max-width: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .App {
-    padding: 10px;
-  }
-
-  .game-logo {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 5px;
-  }
-
-  .game-title {
-    font-size: 1.2rem;
-    margin-bottom: 5px;
-  }
-
-  .button-group {
-    gap: 5px;
-    margin-top: 5px;
-  }
-
-  .join-button,
-  .action-button {
-    padding: 8px 16px;
+  
+  .modal-content p {
     font-size: 0.9rem;
+    line-height: 1.4;
   }
-
-  .modal-content {
-    width: 95%;
-    padding: 15px;
+  
+  /* Enhanced Mobile Grid Optimization */
+  @media (max-width: 768px) {
+    .App {
+      padding: 8px;
+      min-height: 100vh;
+      justify-content: flex-start;
+      padding-top: 10px;
+    }
+  
+    /* Grid Mobile Optimization */
+    .grid-container {
+      border: 2px solid #2c5f8b;
+      margin: 5px auto;
+      max-width: calc(100vw - 16px);
+      width: calc(100vw - 16px);
+      transform: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+  
+    .grid {
+      width: 100%;
+      gap: 1px;
+    }
+  
+    .cell {
+      min-height: calc((100vw - 32px) / 10 - 2px);
+      min-width: calc((100vw - 32px) / 10 - 2px);
+      border: 0.5px solid #d3d3d3;
+    }
+  
+    /* Compact spacing for mobile */
+    .playing-screen,
+    .placing-screen {
+      gap: 8px;
+      padding: 0 5px;
+      max-width: 100%;
+    }
+  
+    .game-boards {
+      gap: 12px;
+      width: 100%;
+    }
+  
+    .game-boards h4 {
+      font-size: 1rem;
+      margin: 3px 0;
+    }
+  
+    /* Ship placement mobile optimization */
+    .ships-list {
+      gap: 6px;
+      margin: 8px 0;
+      max-width: 100%;
+    }
+  
+    .ship-container {
+      gap: 3px;
+    }
+  
+    .ship {
+      max-width: calc(100vw - 40px);
+      height: 30px;
+    }
+  
+    .ship-label {
+      font-size: 0.6rem;
+    }
+  
+    /* Action buttons mobile */
+    .action-buttons {
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+  
+    .action-button {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      flex: 1;
+      min-width: 80px;
+      max-width: 120px;
+    }
+  
+    /* Game stats mobile */
+    .game-stats {
+      margin-top: 10px;
+      padding: 8px;
+      font-size: 0.8rem;
+    }
+  
+    .game-stats h4 {
+      font-size: 0.9rem;
+      margin: 3px 0;
+    }
+  
+    .game-stats p {
+      margin: 2px 0;
+      font-size: 0.8rem;
+    }
+  
+    /* Timer mobile */
+    .timer-container {
+      max-width: calc(100vw - 20px);
+      margin: 5px auto;
+    }
+  
+    .timer-bar {
+      height: 8px;
+    }
+  
+    .timer-text {
+      font-size: 0.8rem;
+      margin-top: 3px;
+    }
   }
-
-  .payment-modal {
-    padding: 15px;
+  
+  @media (max-width: 480px) {
+    .App {
+      padding: 5px;
+      padding-top: 5px;
+    }
+  
+    /* Ultra-compact grid for small phones */
+    .grid-container {
+      border: 1px solid #2c5f8b;
+      margin: 3px auto;
+      max-width: calc(100vw - 10px);
+      width: calc(100vw - 10px);
+    }
+  
+    .cell {
+      min-height: calc((100vw - 20px) / 10 - 1px);
+      min-width: calc((100vw - 20px) / 10 - 1px);
+      border: 0.3px solid #d3d3d3;
+    }
+  
+    /* Compact content spacing */
+    .playing-screen,
+    .placing-screen {
+      gap: 5px;
+      padding: 0 3px;
+    }
+  
+    .game-boards {
+      gap: 8px;
+    }
+  
+    .game-boards h4 {
+      font-size: 0.9rem;
+      margin: 2px 0;
+    }
+  
+    /* Ultra-compact ships */
+    .ships-list {
+      gap: 4px;
+      margin: 5px 0;
+    }
+  
+    .ship {
+      height: 25px;
+      max-width: calc(100vw - 30px);
+    }
+  
+    .ship-label {
+      font-size: 0.55rem;
+    }
+  
+    /* Compact buttons */
+    .action-buttons {
+      gap: 4px;
+      margin-top: 5px;
+    }
+  
+    .action-button {
+      padding: 6px 8px;
+      font-size: 0.75rem;
+      min-width: 70px;
+      max-width: 100px;
+    }
+  
+    /* Status indicators */
+    .bot-indicator {
+      font-size: 0.8rem;
+      padding: 3px 8px;
+    }
+  
+    .opponent-thinking {
+      gap: 6px;
+      margin: 5px 0;
+      font-size: 0.8rem;
+    }
+  
+    /* Compact modals */
+    .modal-content {
+      width: 98%;
+      padding: 12px;
+      max-height: 85vh;
+    }
+  
+    .modal-content h2 {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+  
+    .modal-content p,
+    .modal-content li {
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+  
+    /* Payment modal mobile */
+    .payment-modal {
+      padding: 12px;
+      max-width: 95%;
+    }
+  
+    .winnings-info {
+      font-size: 1rem;
+    }
+  
+    .qr-container svg {
+      width: 120px;
+      height: 120px;
+    }
+  
+    .invoice-controls {
+      gap: 6px;
+      flex-direction: column;
+      width: 100%;
+    }
+  
+    .pay-button,
+    .cancel-button {
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+  
+    /* Join/waiting screens mobile */
+    .join-screen,
+    .waiting-screen,
+    .finished-screen {
+      gap: 10px;
+      padding: 12px;
+      max-width: 95%;
+    }
+  
+    .join-screen input,
+    .join-screen select {
+      padding: 8px;
+      font-size: 0.9rem;
+      max-width: 100%;
+    }
+  
+    .bet-selection label {
+      font-size: 0.9rem;
+    }
+  
+    .legal-notice {
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
   }
-
-  .qr-container svg {
-    width: 150px;
-    height: 150px;
+  
+  /* Landscape orientation optimization for mobile */
+  @media (max-width: 768px) and (orientation: landscape) {
+    .App {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 5px;
+    }
+  
+    .playing-screen {
+      flex-direction: row;
+      gap: 10px;
+      max-width: 100%;
+      align-items: flex-start;
+    }
+  
+    .game-boards {
+      flex-direction: row;
+      gap: 15px;
+      align-items: flex-start;
+    }
+  
+    .grid-container {
+      max-width: 45vw;
+      width: 45vw;
+    }
+  
+    .cell {
+      min-height: calc(45vw / 10 - 2px);
+      min-width: calc(45vw / 10 - 2px);
+    }
+  
+    .game-stats {
+      position: fixed;
+      bottom: 5px;
+      left: 5px;
+      right: 5px;
+      margin: 0;
+      background: rgba(0, 0, 0, 0.8);
+      font-size: 0.7rem;
+      padding: 5px;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+  
+    .timer-container {
+      position: fixed;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: 200px;
+      z-index: 100;
+    }
   }
-
-  .grid-container {
-    transform: scale(0.8);
-    max-width: 98vw;
+  
+  /* Ultra-small screens (< 360px width) */
+  @media (max-width: 360px) {
+    .grid-container {
+      max-width: calc(100vw - 8px);
+      width: calc(100vw - 8px);
+    }
+  
+    .cell {
+      min-height: calc((100vw - 16px) / 10 - 1px);
+      min-width: calc((100vw - 16px) / 10 - 1px);
+    }
+  
+    .action-button {
+      font-size: 0.7rem;
+      padding: 5px 6px;
+      min-width: 60px;
+      max-width: 90px;
+    }
+  
+    .ship {
+      height: 22px;
+    }
+  
+    .ship-label {
+      font-size: 0.5rem;
+    }
   }
-
-  .ship {
-    max-width: 150px;
+  
+  /* Ensure no horizontal scrolling */
+  * {
+    box-sizing: border-box;
+  }
+  
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
   }
 }
