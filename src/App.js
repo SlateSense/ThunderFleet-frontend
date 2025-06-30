@@ -958,37 +958,6 @@ const App = () => {
     });
   }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
-  // Function to handle ship tap for rotation
-  const handleShipTap = useCallback((shipIndex) => {
-    setShips(prevShips =>
-      prevShips.map(ship =>
-        ship.id === shipIndex
-          ? { ...ship, horizontal: !ship.horizontal }
-          : ship
-      )
-    );
-    console.log(`Ship ${shipIndex} rotated`);
-  }, []);
-
-  // Function to handle ship drag
-  const handleShipDrag = useCallback((shipIndex, newPosition) => {
-    setShips(prevShips =>
-      prevShips.map(ship =>
-        ship.id === shipIndex
-          ? { ...ship, positions: newPosition }
-          : ship
-      )
-    );
-    console.log(`Ship ${shipIndex} dragged to new position`);
-  }, []);
-
-  // Function to ensure ship stays on grid
-  const snapToGrid = (position) => {
-    const row = Math.floor(position / GRID_COLS);
-    const col = position % GRID_COLS;
-    return row * GRID_COLS + col;
-  };
-
   // Function to clear the board
   const clearBoard = useCallback(() => {
     if (isPlacementConfirmed) {
@@ -1244,8 +1213,6 @@ const App = () => {
                   onDragStart={(e) => handleDragStart(e, ship.id)}
                   onDragEnd={() => setIsDragging(null)}
                   onTouchStart={(e) => handleTouchStart(e, ship.id)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
                   style={{
                     position: 'absolute',
                     top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize + 2,
@@ -1257,12 +1224,10 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    border: '2px solid #333',
-                    borderRadius: '4px',
-                    marginBottom: '10px',
-                    touchAction: 'none'
+                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
+                    touchAction: 'none',
                   }}
-                  onClick={() => !isPlacementConfirmed && handleShipTap(ship.id)}
+                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
               )
             );
@@ -1288,7 +1253,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, handleShipTap, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1327,7 +1292,6 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
-                onClick={() => !isPlacementConfirmed && handleShipTap(i)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
@@ -1336,7 +1300,7 @@ const App = () => {
         ))}
       </div>
     );
-  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd, handleShipTap]);
+  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
