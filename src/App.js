@@ -68,6 +68,15 @@ const useSound = (src, isSoundEnabled) => {
   }, [isSoundEnabled, audio, src]);
 };
 
+// Utility function to debounce events
+const debounce = (func, delay) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), delay);
+  };
+};
+
 const App = () => {
   console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
 
@@ -1421,7 +1430,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1458,13 +1467,13 @@ const App = () => {
         )}
         <div className="invoice-controls">
           <button
-            onClick={handlePay}
+            onClick={debounce(handlePay, 300)}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading}
           >
             {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
-          <button onClick={handleCancelGame} className="cancel-button">
+          <button onClick={debounce(handleCancelGame, 300)} className="cancel-button">
             Cancel
           </button>
         </div>
@@ -1530,8 +1539,8 @@ const App = () => {
         </p>
         {!isSocketConnected && (
           <button
-            onClick={handleReconnect}
-            onTouchStart={handleReconnect}
+            onClick={debounce(handleReconnect, 300)}
+            onTouchStart={debounce(handleReconnect, 300)}
             className="join-button"
           >
             Retry Connection
@@ -1616,8 +1625,8 @@ const App = () => {
                 </select>
               </div>
               <button
-                onClick={handleJoinGame}
-                onTouchStart={handleJoinGame}
+                onClick={debounce(handleJoinGame, 300)}
+                onTouchStart={debounce(handleJoinGame, 300)}
                 className="join-button"
                 disabled={isLoading}
               >
@@ -1661,8 +1670,8 @@ const App = () => {
               {PaymentModal}
               {!isLoading && (
                 <button
-                  onClick={handleJoinGame}
-                  onTouchStart={handleJoinGame}
+                  onClick={debounce(handleJoinGame, 300)}
+                  onTouchStart={debounce(handleJoinGame, 300)}
                   className="join-button"
                 >
                   Retry
@@ -1678,7 +1687,7 @@ const App = () => {
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button">
+              <button onClick={debounce(handleCancelGame, 300)} className="cancel-button">
                 Cancel
               </button>
             </div>
@@ -1717,32 +1726,32 @@ const App = () => {
               </div>
               <div className="action-buttons">
                 <button
-                  onClick={randomizeShips}
-                  onTouchStart={randomizeShips}
+                  onClick={debounce(randomizeShips, 300)}
+                  onTouchStart={debounce(randomizeShips, 300)}
                   className="action-button"
                   disabled={isPlacementConfirmed}
                 >
                   Randomize
                 </button>
                 <button
-                  onClick={randomizeUnplacedShips}
-                  onTouchStart={randomizeUnplacedShips}
+                  onClick={debounce(randomizeUnplacedShips, 300)}
+                  onTouchStart={debounce(randomizeUnplacedShips, 300)}
                   className="action-button place-remaining"
                   disabled={isPlacementConfirmed}
                 >
                   Place Remaining
                 </button>
                 <button
-                  onClick={clearBoard}
-                  onTouchStart={clearBoard}
+                  onClick={debounce(clearBoard, 300)}
+                  onTouchStart={debounce(clearBoard, 300)}
                   className="action-button clear-board"
                   disabled={isPlacementConfirmed}
                 >
                   Clear Board
                 </button>
                 <button
-                  onClick={saveShipPlacement}
-                  onTouchStart={saveShipPlacement}
+                  onClick={debounce(saveShipPlacement, 300)}
+                  onTouchStart={debounce(saveShipPlacement, 300)}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
                 >
