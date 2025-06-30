@@ -1122,14 +1122,13 @@ const App = () => {
     console.log(`Started dragging ship ${shipIndex}`);
   }, [isPlacementConfirmed, setIsDragging]);
 
-  // Function to handle touch start
+  // Updated function to handle touch start with tap detection
   const handleTouchStart = useCallback((e, shipIndex) => {
     if (isPlacementConfirmed) {
       e.preventDefault();
       return;
     }
     e.preventDefault();
-    setIsDragging(shipIndex);
     const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
     const x = touch.clientX - rect.left;
@@ -1137,8 +1136,30 @@ const App = () => {
     setDragPosition({ x, y });
     const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
     sessionStorage.setItem('dragData', JSON.stringify(data));
-    console.log(`Touch drag started for ship ${shipIndex}`);
-  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
+
+    // Set a timeout to differentiate between tap and drag
+    const touchTimeout = setTimeout(() => {
+      setIsDragging(shipIndex);
+      console.log(`Touch drag started for ship ${shipIndex}`);
+    }, 200); // 200ms threshold for tap detection
+
+    // Store the timeout ID to clear it if needed
+    sessionStorage.setItem('touchTimeout', touchTimeout);
+
+    // Add touchend listener to handle tap detection
+    const handleTouchEnd = (endEvent) => {
+      clearTimeout(touchTimeout);
+      const endTouch = endEvent.changedTouches[0];
+      const movementX = Math.abs(endTouch.clientX - touch.clientX);
+      const movementY = Math.abs(endTouch.clientY - touch.clientY);
+      if (movementX < 10 && movementY < 10) { // Minimal movement threshold
+        toggleOrientation(shipIndex);
+        console.log(`Ship ${shipIndex} rotated`);
+      }
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+    document.addEventListener('touchend', handleTouchEnd);
+  }, [isPlacementConfirmed, toggleOrientation]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1220,8 +1241,10 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
-                    touchAction: 'none',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    marginBottom: '10px',
+                    touchAction: 'none'
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
