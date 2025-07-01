@@ -1476,3 +1476,16 @@
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
+
+.unplaced-ships-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ship-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+}
