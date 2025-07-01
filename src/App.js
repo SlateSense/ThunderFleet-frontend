@@ -69,7 +69,7 @@ const useSound = (src, isSoundEnabled) => {
 };
 
 const App = () => {
-  console.log(`App component rendered at 11:22 AM IST, Tuesday, July 01, 2025`);
+  console.log(`App component rendered at 11:40 AM IST, Tuesday, July 01, 2025`);
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
@@ -242,11 +242,8 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setMessage('Payment verified! Connecting to game...');
-        setTimeout(() => {
-          setGameState('waitingForOpponent');
-          setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
-        }, 2000);
+        setMessage('Payment verified! Preparing game...');
+        // Do not transition to waitingForOpponent here; wait for startPlacing
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
@@ -265,6 +262,10 @@ const App = () => {
       },
       waitingForOpponent: ({ message }) => {
         console.log('Received waitingForOpponent event:', message);
+        if (gameState !== 'finished' && !placementSaved) {
+          setMessage('Waiting for opponent should not occur before placement is saved. Check server logic.');
+          return; // Prevent transition if placement is not saved
+        }
         setGameState('waitingForOpponent');
         setMessage(message);
       },
@@ -289,18 +290,26 @@ const App = () => {
         );
         setShipCount(0);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+        setTimerActive(true);
+        setTimeLeft(PLACEMENT_TIME);
       },
       placementSaved: () => {
         console.log('Placement saved on server');
         setIsPlacementConfirmed(true);
         setPlacementSaved(true);
-        setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+        setMessage('Placement saved! Waiting for opponent...');
+        if (socket) {
+          socket.emit('placementSavedAck', { gameId, playerId: socket.id });
+        }
       },
       placementAutoSaved: () => {
         console.log('Placement auto-saved due to timeout');
         setIsPlacementConfirmed(true);
         setPlacementSaved(true);
         setMessage('Time up! Ships auto-placed. Waiting for opponent...');
+        if (socket) {
+          socket.emit('placementSavedAck', { gameId, playerId: socket.id });
+        }
       },
       games: ({ count, grid, ships: serverShips }) => {
         console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
@@ -327,12 +336,17 @@ const App = () => {
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
-        setGameState('playing');
-        setTurn(turn);
-        setMessage(message);
-        setIsOpponentThinking(turn !== newSocket.id);
-        setPlacementSaved(false);
-        setEnemyBoard(Array(GRID_SIZE).fill('water'));
+        if (placementSaved) {
+          setGameState('playing');
+          setTurn(turn);
+          setMessage(message);
+          setIsOpponentThinking(turn !== socket?.id);
+          setPlacementSaved(false);
+          setEnemyBoard(Array(GRID_SIZE).fill('water'));
+        } else {
+          console.log('StartGame ignored: Placement not saved yet');
+          setMessage('Placement not saved yet. Please save or wait for auto-save.');
+        }
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -341,11 +355,11 @@ const App = () => {
         hit ? playHitSound() : playMissSound();
         setGameStats(prev => ({
           ...prev,
-          shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
-          hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
-          misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
+          shotsFired: player === socket?.id ? prev.shotsFired + 1 : prev.shotsFired,
+          hits: player === socket?.id && hit ? prev.hits + 1 : prev.hits,
+          misses: player === socket?.id && !hit ? prev.misses + 1 : prev.misses,
         }));
-        if (player === newSocket.id) {
+        if (player === socket?.id) {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
           setEnemyBoard(prev => {
@@ -365,16 +379,16 @@ const App = () => {
             setIsOpponentThinking(false);
           }
         }
-        if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
-          setTurn(newSocket.id);
+        if (player !== socket?.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
+          setTurn(socket?.id);
           setMessage('Your turn to fire!');
         }
       },
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
         setTurn(turn);
-        setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
-        setIsOpponentThinking(turn !== newSocket.id);
+        setMessage(turn === socket?.id ? 'Your turn to fire!' : 'Opponent\'s turn');
+        setIsOpponentThinking(turn !== socket?.id);
       },
       gameEnd: ({ message }) => {
         console.log('Game ended:', message);
@@ -629,7 +643,8 @@ const App = () => {
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+    setMessage('Placement saved! Waiting for opponent...');
+    setTimerActive(false); // Stop timer when placement is saved
 
     const placements = ships.map(ship => ({
       name: ship.name,
