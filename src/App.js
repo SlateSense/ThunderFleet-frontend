@@ -222,35 +222,7 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setMessage('Payment verified! Connecting to game...');
-        setTimeout(() => {
-          setGameState('waitingForOpponent');
-          setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
-        }, 2000); // 2-second delay
-      },
-      error: ({ message }) => {
-        console.log('Received error from server:', message);
-        if (message.includes('Invalid webhook signature')) {
-          setMessage('Payment verification failed: Invalid webhook signature. Please try again or contact support.');
-        } else {
-          setMessage(`Error: ${message}. Click Retry to try again.`);
-        }
-        clearTimeout(joinGameTimeoutRef.current);
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setIsLoading(false);
-        setPaymentTimer(PAYMENT_TIMEOUT);
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
-      },
-      waitingForOpponent: ({ message }) => {
-        console.log('Received waitingForOpponent event:', message);
-        setGameState('waitingForOpponent');
-        setMessage(message);
-      },
-      matchmakingTimer: ({ message }) => {
-        console.log('Received matchmaking timer update:', message);
-        setMessage(message);
+        setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
         console.log('Starting ship placement phase');
@@ -269,41 +241,17 @@ const App = () => {
         );
         setShipCount(0);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+        setTimerActive(true);
+        setTimeLeft(PLACEMENT_TIME);
       },
-      placementSaved: () => {
-        console.log('Placement saved on server');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+      waitingForOpponent: ({ message }) => {
+        console.log('Received waitingForOpponent event:', message);
+        setGameState('waitingForOpponent');
+        setMessage(message);
       },
-      placementAutoSaved: () => {
-        console.log('Placement auto-saved due to timeout');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setMessage('Time up! Ships auto-placed. Waiting for opponent...');
-      },
-      games: ({ count, grid, ships: serverShips }) => {
-        console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
-        setShipCount(count);
-        if (grid && serverShips) {
-          setMyBoard(grid);
-          setShips(prev => {
-            const updated = [...prev];
-            serverShips.forEach(serverShip => {
-              const shipIndex = updated.findIndex(s => s.name === serverShip.name);
-              if (shipIndex !== -1) {
-                updated[shipIndex] = {
-                  ...updated[shipIndex],
-                  positions: serverShip.positions,
-                  horizontal: serverShip.horizontal,
-                  placed: serverShip.positions.length > 0,
-                };
-              }
-            });
-            return updated;
-          });
-          playPlaceSound();
-        }
+      matchmakingTimer: ({ message }) => {
+        console.log('Received matchmaking timer update:', message);
+        setMessage(message);
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
@@ -1421,7 +1369,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
