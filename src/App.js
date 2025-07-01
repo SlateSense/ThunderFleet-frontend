@@ -141,6 +141,19 @@ const App = () => {
     event.stopPropagation();
   };
 
+  // Debounce function to prevent rapid successive clicks
+  const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
+
   // Log gameState changes for debugging
   useEffect(() => {
     console.log('Current gameState:', gameState);
@@ -1749,8 +1762,8 @@ const App = () => {
                   Clear Board
                 </button>
                 <button
-                  onClick={(e) => { preventTouchPropagation(e); saveShipPlacement(); }}
-                  onTouchStart={(e) => { preventTouchPropagation(e); saveShipPlacement(); }}
+                  onClick={(e) => { preventTouchPropagation(e); debounce(saveShipPlacement, 250)(); }}
+                  onTouchStart={(e) => { preventTouchPropagation(e); debounce(saveShipPlacement, 250)(); }}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
                 >
@@ -1810,43 +1823,47 @@ const App = () => {
               <button
                 onClick={(e) => {
                   preventTouchPropagation(e);
-                  console.log('Play Again button clicked');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShowConfetti(false);
+                  debounce(() => {
+                    console.log('Play Again button clicked');
+                    setGameState('join');
+                    setMessage('');
+                    setTransactionMessage('');
+                    setMyBoard(Array(GRID_SIZE).fill('water'));
+                    setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                    setShips(prev =>
+                      prev.map(ship => ({
+                        ...ship,
+                        positions: [],
+                        horizontal: true,
+                        placed: false,
+                      }))
+                    );
+                    setShipCount(0);
+                    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                    setShowConfetti(false);
+                  }, 250)();
                 }}
                 onTouchStart={(e) => {
                   preventTouchPropagation(e);
-                  console.log('Play Again button touched');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
-                  setMyBoard(Array(GRID_SIZE).fill('water'));
-                  setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                  setShips(prev =>
-                    prev.map(ship => ({
-                      ...ship,
-                      positions: [],
-                      horizontal: true,
-                      placed: false,
-                    }))
-                  );
-                  setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                  setShowConfetti(false);
+                  debounce(() => {
+                    console.log('Play Again button touched');
+                    setGameState('join');
+                    setMessage('');
+                    setTransactionMessage('');
+                    setMyBoard(Array(GRID_SIZE).fill('water'));
+                    setEnemyBoard(Array(GRID_SIZE).fill('water'));
+                    setShips(prev =>
+                      prev.map(ship => ({
+                        ...ship,
+                        positions: [],
+                        horizontal: true,
+                        placed: false,
+                      }))
+                    );
+                    setShipCount(0);
+                    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                    setShowConfetti(false);
+                  }, 250)();
                 }}
                 className="join-button"
               >
