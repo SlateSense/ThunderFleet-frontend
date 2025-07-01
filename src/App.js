@@ -69,7 +69,7 @@ const useSound = (src, isSoundEnabled) => {
 };
 
 const App = () => {
-  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
+  console.log(`App component rendered at 11:22 AM IST, Tuesday, July 01, 2025`);
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
@@ -96,7 +96,7 @@ const App = () => {
   const [cannonFire, setCannonFire] = useState(null);
   const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
-  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const [cellSize, setCellSize] = useState(40);
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
   const [timerActive, setTimerActive] = useState(false);
@@ -117,6 +117,7 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
+  const [isButtonLocked, setIsButtonLocked] = useState(false);
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -245,7 +246,7 @@ const App = () => {
         setTimeout(() => {
           setGameState('waitingForOpponent');
           setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
-        }, 2000); // 2-second delay
+        }, 2000);
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
@@ -360,14 +361,12 @@ const App = () => {
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-          // Ensure opponent thinking state resets if bot is stuck
           if (this.players && this.players[player] && this.players[player].isBot && !hit) {
             setIsOpponentThinking(false);
           }
         }
-        // Force a turn update if the bot is stuck
         if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
-          setTurn(newSocket.id); // Assume turn switches back if bot fails to fire
+          setTurn(newSocket.id);
           setMessage('Your turn to fire!');
         }
       },
@@ -382,7 +381,7 @@ const App = () => {
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playLoseSound(); // Bot always wins, so player always loses
+        playLoseSound();
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -394,8 +393,8 @@ const App = () => {
         } else {
           setMessage('Failed to save board changes. Reverting to previous state.');
           console.log('Server failed to update board, reverting state');
-          setMyBoard(prev => [...prev]); // Revert board
-          setShips(prev => [...prev]);   // Revert ships
+          setMyBoard(prev => [...prev]);
+          setShips(prev => [...prev]);
         }
       },
     };
@@ -424,35 +423,16 @@ const App = () => {
 
     if (!ship.horizontal) {
       const maxRow = GRID_ROWS - ship.size;
-      if (row > maxRow) {
-        console.log(`Adjusting row from ${row} to ${maxRow} for vertical ship`);
-        row = maxRow;
-      }
+      if (row > maxRow) row = maxRow;
     } else {
       const maxCol = GRID_COLS - ship.size;
-      if (col > maxCol) {
-        console.log(`Adjusting col from ${col} to ${maxCol} for horizontal ship`);
-        col = maxCol;
-      }
+      if (col > maxCol) col = maxCol;
     }
 
     const positions = [];
     for (let i = 0; i < ship.size; i++) {
       const pos = ship.horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-      if (pos >= GRID_SIZE) {
-        console.log(`Position ${pos} exceeds grid size ${GRID_SIZE}`);
-        return null;
-      }
-      if (ship.horizontal && col + i >= GRID_COLS) {
-        console.log(`Horizontal ship exceeds column boundary at col ${col + i}`);
-        return null;
-      }
-      if (!ship.horizontal && row + i >= GRID_ROWS) {
-        console.log(`Vertical ship exceeds row boundary at row ${row + i}`);
-        return null;
-      }
-      if (myBoard[pos] === 'ship' && !ship.positions.includes(pos)) {
-        console.log(`Position ${pos} is already occupied by another ship`);
+      if (pos >= GRID_SIZE || (ship.horizontal && col + i >= GRID_COLS) || (!ship.horizontal && row + i >= GRID_ROWS) || myBoard[pos] === 'ship' && !ship.positions.includes(pos)) {
         return null;
       }
       positions.push(pos);
@@ -463,10 +443,7 @@ const App = () => {
 
   // Function to update the server with the current board state
   const updateServerBoard = useCallback((updatedShips) => {
-    if (gameState !== 'placing' || isPlacementConfirmed || !socket) {
-      console.log('Cannot update server board: Invalid game state, placement confirmed, or no socket');
-      return;
-    }
+    if (gameState !== 'placing' || isPlacementConfirmed || !socket) return;
     console.log('Updating server with current board state');
     const placements = (updatedShips || ships).map(ship => ({
       name: ship.name,
@@ -477,8 +454,8 @@ const App = () => {
       if (!response || !response.success) {
         setMessage('Failed to save board changes. Reverting to previous state.');
         console.log('Server failed to update board, reverting state');
-        setMyBoard(prev => [...prev]); // Revert board
-        setShips(prev => [...prev]);   // Revert ships
+        setMyBoard(prev => [...prev]);
+        setShips(prev => [...prev]);
       } else {
         console.log('Board update confirmed by server');
       }
@@ -487,17 +464,11 @@ const App = () => {
 
   // Function to randomize unplaced ships on the board
   const randomizeUnplacedShips = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
-      return;
-    }
+    if (isPlacementConfirmed) return;
 
     const unplacedShips = ships.filter(ship => !ship.placed);
     console.log(`Found ${unplacedShips.length} unplaced ships to randomize`);
-    if (unplacedShips.length === 0) {
-      console.log('No unplaced ships to randomize');
-      return;
-    }
+    if (unplacedShips.length === 0) return;
 
     const newBoard = [...myBoard];
     const newShips = [...ships];
@@ -509,7 +480,6 @@ const App = () => {
       const shipSize = ship.size;
       const shipId = ship.id;
 
-      console.log(`Attempting to place ship ${ship.name} (size: ${shipSize})`);
       while (!placed && attempts < 100) {
         attempts++;
         const horizontal = seededRandom.current() > 0.5;
@@ -520,14 +490,8 @@ const App = () => {
 
         for (let i = 0; i < shipSize; i++) {
           const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-          if (
-            pos >= GRID_SIZE ||
-            (horizontal && col + shipSize > GRID_COLS) ||
-            (!horizontal && row + shipSize > GRID_ROWS) ||
-            newBoard[pos] === 'ship'
-          ) {
+          if (pos >= GRID_SIZE || (horizontal && col + shipSize > GRID_COLS) || (!horizontal && row + shipSize > GRID_ROWS) || newBoard[pos] === 'ship') {
             valid = false;
-            console.log(`Attempt ${attempts}: Invalid position for ${ship.name} at pos ${pos}`);
             break;
           }
           positions.push(pos);
@@ -544,24 +508,17 @@ const App = () => {
               placed: true,
             };
             successfulPlacements++;
-            console.log(`Successfully placed ${ship.name} at positions:`, positions);
           }
           placed = true;
         }
       }
-
-      if (!placed) {
-        console.log(`Failed to place ship ${ship.name} after 100 attempts`);
-      }
     });
 
-    // Set temporary state and wait for server confirmation
     setMyBoard(newBoard);
     setShips(newShips);
     const placedCount = newShips.filter(s => s.placed).length;
     setShipCount(placedCount);
 
-    // Update server and wait for confirmation
     if (socket) {
       socket.emit('updateBoard', { gameId, playerId: socket?.id, placements: newShips.map(ship => ({
         name: ship.name,
@@ -570,11 +527,8 @@ const App = () => {
       })) }, (response) => {
         if (response && response.success) {
           setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
-          console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
-          console.log('Server failed to update board');
-          // Revert to previous state if server fails
           setMyBoard(prev => [...prev]);
           setShips(prev => [...prev]);
         }
@@ -586,12 +540,8 @@ const App = () => {
 
   // Function to randomize all ships on the board
   const randomizeShips = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot randomize ships: Placement already confirmed');
-      return;
-    }
+    if (isPlacementConfirmed) return;
 
-    console.log('Randomizing all ships');
     const newBoard = Array(GRID_SIZE).fill('water');
     const newShips = ships.map(ship => ({
       ...ship,
@@ -605,7 +555,6 @@ const App = () => {
       let placed = false;
       let attempts = 0;
 
-      console.log(`Attempting to place ${shipConfig.name} (size: ${shipConfig.size})`);
       while (!placed && attempts < 100) {
         attempts++;
         const horizontal = seededRandom.current() > 0.5;
@@ -616,14 +565,8 @@ const App = () => {
 
         for (let i = 0; i < shipConfig.size; i++) {
           const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-          if (
-            pos >= GRID_SIZE ||
-            (horizontal && col + shipConfig.size > GRID_COLS) ||
-            (!horizontal && row + shipConfig.size > GRID_ROWS) ||
-            newBoard[pos] === 'ship'
-          ) {
+          if (pos >= GRID_SIZE || (horizontal && col + shipConfig.size > GRID_COLS) || (!horizontal && row + shipConfig.size > GRID_ROWS) || newBoard[pos] === 'ship') {
             valid = false;
-            console.log(`Attempt ${attempts}: Invalid position for ${shipConfig.name} at pos ${pos}`);
             break;
           }
           positions.push(pos);
@@ -638,23 +581,16 @@ const App = () => {
             placed: true,
           };
           successfulPlacements++;
-          console.log(`Successfully placed ${shipConfig.name} at positions:`, positions);
           placed = true;
         }
       }
-
-      if (!placed) {
-        console.log(`Failed to place ship ${shipConfig.name} after 100 attempts`);
-      }
     });
 
-    // Set temporary state and wait for server confirmation
     setMyBoard(newBoard);
     setShips(newShips);
     const placedCount = newShips.filter(s => s.placed).length;
     setShipCount(placedCount);
 
-    // Update server and wait for confirmation
     if (socket) {
       socket.emit('updateBoard', { gameId, playerId: socket?.id, placements: newShips.map(ship => ({
         name: ship.name,
@@ -664,15 +600,11 @@ const App = () => {
         if (response && response.success) {
           if (successfulPlacements < SHIP_CONFIG.length) {
             setMessage('Some ships couldn’t be placed. Adjust manually or try again.');
-            console.log(`Randomized ${successfulPlacements} out of ${SHIP_CONFIG.length} ships`);
           } else {
             setMessage('Ships randomized! Drag to reposition or Save Placement.');
-            console.log('All ships successfully randomized');
           }
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
-          console.log('Server failed to update board');
-          // Revert to previous state if server fails
           setMyBoard(prev => [...prev]);
           setShips(prev => [...prev]);
         }
@@ -686,22 +618,14 @@ const App = () => {
   const saveShipPlacement = useCallback(() => {
     if (placementSaved || !socket) return;
 
-    // Validate all ship placements
-    const invalidShips = ships.filter(ship => {
-      return !ship.positions || 
-             ship.positions.length === 0 || 
-             ship.positions.some(pos => pos < 0 || pos >= GRID_SIZE);
-    });
-
+    const invalidShips = ships.filter(ship => !ship.positions || ship.positions.length === 0 || ship.positions.some(pos => pos < 0 || pos >= GRID_SIZE));
     if (invalidShips.length > 0) {
       setMessage('Invalid ship placement. Please check all ships are properly placed.');
       return;
     }
 
     const unplacedShips = ships.filter(ship => !ship.placed);
-    if (unplacedShips.length > 0) {
-      randomizeUnplacedShips();
-    }
+    if (unplacedShips.length > 0) randomizeUnplacedShips();
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
@@ -728,16 +652,9 @@ const App = () => {
   const handleResize = useCallback(() => {
     const width = window.innerWidth;
     console.log(`Window resized to width: ${width}px`);
-    if (width < 480) {
-      setCellSize(30);
-      console.log('Set cell size to 30px for small phones');
-    } else if (width < 768) {
-      setCellSize(35);
-      console.log('Set cell size to 35px for tablets');
-    } else {
-      setCellSize(40);
-      console.log('Set cell size to 40px for desktop');
-    }
+    if (width < 480) setCellSize(30);
+    else if (width < 768) setCellSize(35);
+    else setCellSize(40);
   }, []);
 
   useEffect(() => {
@@ -761,10 +678,7 @@ const App = () => {
       console.log(`Placement timer active, time left: ${timeLeft} seconds`);
       timerRef.current = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
-        if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) {
-          console.log(`Playing timer sound at ${timeLeft} seconds remaining`);
-          playTimerSound();
-        }
+        if ([10, 5, 4, 3, 2, 1].includes(timeLeft)) playTimerSound();
       }, 1000);
     } else if (timerActive && timeLeft === 0) {
       console.log('Placement time up, auto-saving placement');
@@ -772,12 +686,7 @@ const App = () => {
       setMessage('Time up! Saving placement...');
       autoSavePlacement();
     }
-    return () => {
-      if (timerRef.current) {
-        console.log('Clearing placement timer');
-        clearTimeout(timerRef.current);
-      }
-    };
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [timerActive, timeLeft, autoSavePlacement, playTimerSound]);
 
   // Effect to manage the payment verification timer
@@ -796,14 +705,8 @@ const App = () => {
       setLightningInvoice(null);
       setHostedInvoiceUrl(null);
       socket?.emit('cancelGame', { gameId, playerId });
-      console.log('Emitted cancelGame due to payment timeout');
     }
-    return () => {
-      if (paymentTimerRef.current) {
-        console.log('Clearing payment timer');
-        clearTimeout(paymentTimerRef.current);
-      }
-    };
+    return () => { if (paymentTimerRef.current) clearTimeout(paymentTimerRef.current); };
   }, [isWaitingForPayment, paymentTimer, gameId, playerId, socket]);
 
   // Effect to start the placement timer when entering the placing state
@@ -827,9 +730,7 @@ const App = () => {
       const newBoard = Array(GRID_SIZE).fill('water');
       ships.forEach(ship => {
         ship.positions.forEach(pos => {
-          if (pos >= 0 && pos < GRID_SIZE) {
-            newBoard[pos] = 'ship';
-          }
+          if (pos >= 0 && pos < GRID_SIZE) newBoard[pos] = 'ship';
         });
       });
       setMyBoard(newBoard);
@@ -866,37 +767,26 @@ const App = () => {
     console.log('Attempting to join game:', { lightningAddress, betAmount, socketId: socket.id });
     if (!lightningAddress) {
       setMessage('Please enter a Lightning address');
-      console.log('Validation failed: No Lightning address');
       return;
     }
-
     if (!betAmount) {
       setMessage('Please select a bet amount');
-      console.log('Validation failed: No bet amount selected');
       return;
     }
-
     const sanitizedAddress = lightningAddress.trim().toLowerCase() + '@speed.app';
     if (!sanitizedAddress.includes('@')) {
       setMessage('Invalid Lightning address format');
-      console.log('Validation failed: Invalid Lightning address format');
       return;
     }
-
     setIsLoading(true);
-    socket.emit('joinGame', { lightningAddress: sanitizedAddress, betAmount: parseInt(betAmount) }, () => {
-      console.log('Join game callback triggered');
-    });
-
+    socket.emit('joinGame', { lightningAddress: sanitizedAddress, betAmount: parseInt(betAmount) });
     joinGameTimeoutRef.current = setTimeout(() => {
       console.error('joinGame timed out');
       setMessage('Failed to join game: Server did not respond. Click Retry to try again.');
       setIsLoading(false);
     }, JOIN_GAME_TIMEOUT);
-
     setGameState('waiting');
     setMessage('Joining game...');
-    console.log('Emitted joinGame event to server');
   }, [socket, lightningAddress, betAmount]);
 
   // Function to handle payment button click
@@ -940,23 +830,17 @@ const App = () => {
         return prev;
       }
 
-      const newPositions = calculateShipPositions(
-        { ...ship, horizontal: newHorizontal },
-        startPos.toString()
-      );
-
+      const newPositions = calculateShipPositions({ ...ship, horizontal: newHorizontal }, startPos.toString());
       if (!newPositions || newPositions.some(pos => pos < 0 || pos >= GRID_SIZE)) {
         setMessage('Cannot rotate: Overlaps or out of bounds.');
         return prev;
       }
 
-      const otherShipsPositions = updated
-        .filter((_, idx) => idx !== shipIndex)
       updated[shipIndex] = {
         ...ship,
         horizontal: newHorizontal,
         positions: newPositions,
-        placed: true
+        placed: true,
       };
       playPlaceSound();
       updateServerBoard(updated);
@@ -966,10 +850,7 @@ const App = () => {
 
   // Function to clear the board
   const clearBoard = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Cannot clear board: Placement already confirmed');
-      return;
-    }
+    if (isPlacementConfirmed) return;
     console.log('Clearing the board');
     setMyBoard(Array(GRID_SIZE).fill('water'));
     setShips(prev => prev.map(ship => ({ ...ship, positions: [], placed: false })));
@@ -980,10 +861,7 @@ const App = () => {
 
   // Function to handle firing a shot
   const handleFire = useCallback((position) => {
-    if (gameState !== 'playing' || turn !== socket?.id || enemyBoard[position] !== 'water') {
-      console.log(`Cannot fire at position ${position}: Invalid state, turn, or cell`);
-      return;
-    }
+    if (gameState !== 'playing' || turn !== socket?.id || enemyBoard[position] !== 'water') return;
     console.log(`Firing at position ${position}`);
     socket?.emit('fire', { gameId, position });
     const row = Math.floor(position / GRID_COLS);
@@ -1027,10 +905,7 @@ const App = () => {
     let shipIndex, x, y;
     if (e.dataTransfer) {
       e.preventDefault();
-      if (isPlacementConfirmed) {
-        console.log('Cannot drop ship: Placement confirmed');
-        return;
-      }
+      if (isPlacementConfirmed) return;
       shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
       const rect = e.currentTarget.getBoundingClientRect();
       x = e.clientX - rect.left;
@@ -1043,10 +918,7 @@ const App = () => {
       console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
     }
 
-    if (isPlacementConfirmed) {
-      console.log('Cannot drop ship: Placement confirmed');
-      return;
-    }
+    if (isPlacementConfirmed) return;
 
     const ship = ships[shipIndex];
     const col = Math.floor(x / cellSize);
@@ -1055,25 +927,20 @@ const App = () => {
 
     if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
       setMessage('Invalid drop position!');
-      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
       return;
     }
 
     const newPositions = calculateShipPositions(ship, position.toString());
     if (!newPositions) {
       setMessage('Invalid placement!');
-      console.log('Invalid placement: Ship cannot be placed here');
       return;
     }
 
     let updatedShips;
     setMyBoard((prev) => {
       const newBoard = [...prev];
-      if (ship.positions.length > 0) {
-        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
-      }
+      if (ship.positions.length > 0) ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
       newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
-      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
       return newBoard;
     });
 
@@ -1086,7 +953,6 @@ const App = () => {
       };
       updatedShips = updated;
 
-      // Calculate the new ship count based on placed ships
       const placedCount = updated.filter(s => s.positions.length > 0).length;
       setShipCount(placedCount);
       setMessage(
@@ -1094,8 +960,6 @@ const App = () => {
           ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
           : `${placedCount} of 5 ships placed. You can still reposition ships.`
       );
-      console.log(`Ship count updated to ${placedCount}`);
-
       return updated;
     });
 
@@ -1114,7 +978,7 @@ const App = () => {
     const { shipIndex, startX, startY } = data;
     const touch = e.changedTouches[0];
     const gridRect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
+    const x = touch.clientX - gridRect.left + (startX - touch.clientX);
     const y = touch.clientY - gridRect.top + (startY - touch.clientY);
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
     handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
@@ -1227,20 +1091,19 @@ const App = () => {
                     height: ship.horizontal ? cellSize - 4 : ship.size * cellSize - 4,
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
-                    backgroundPosition: "center",
+                    backgroundPosition: 'center',
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
                     border: '2px solid #333',
                     borderRadius: '4px',
                     marginBottom: '10px',
-                    touchAction: 'none'
+                    touchAction: 'none',
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
               )
             );
           })}
-        {/* Dragging ship preview */}
         {isDragging !== null && !isPlacementConfirmed && (
           <div
             className="dragging-ship"
@@ -1265,10 +1128,7 @@ const App = () => {
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Not rendering ship list: Placement confirmed');
-      return null;
-    }
+    if (isPlacementConfirmed) return null;
     console.log('Rendering ship list for placement');
     return (
       <div className="unplaced-ships">
@@ -1277,7 +1137,7 @@ const App = () => {
             <div key={i} className="ship-container">
               <div className="ship-info">
                 <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+                <span className="ship-status" style={{ color: '#ffffff' }}>❌ Not placed</span>
               </div>
               <div
                 className="ship"
@@ -1298,7 +1158,7 @@ const App = () => {
                   border: '2px solid #333',
                   borderRadius: '4px',
                   marginBottom: '10px',
-                  touchAction: 'none'
+                  touchAction: 'none',
                 }}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
@@ -1328,13 +1188,25 @@ const App = () => {
           ⚡ Thunder Fleet ⚡
         </h1>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             console.log('Start Game button clicked');
-            setGameState('join');
+            if (!isButtonLocked) {
+              setIsButtonLocked(true);
+              setGameState('join');
+              setTimeout(() => setIsButtonLocked(false), 500);
+            }
           }}
-          onTouchStart={() => {
+          onTouchStart={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             console.log('Start Game button touched');
-            setGameState('join');
+            if (!isButtonLocked) {
+              setIsButtonLocked(true);
+              setGameState('join');
+              setTimeout(() => setIsButtonLocked(false), 500);
+            }
           }}
           className="join-button"
         >
@@ -1342,26 +1214,50 @@ const App = () => {
         </button>
         <div className="button-group">
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('How to Play button clicked');
-              setShowHowToPlayModal(true);
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowHowToPlayModal(true);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
             }}
-            onTouchStart={() => {
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('How to Play button touched');
-              setShowHowToPlayModal(true);
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowHowToPlayModal(true);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
             }}
             className="join-button"
           >
             How to Play
           </button>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('Sound toggle button clicked');
-              setIsSoundEnabled(!isSoundEnabled);
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setIsSoundEnabled(!isSoundEnabled);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
             }}
-            onTouchStart={() => {
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('Sound toggle button touched');
-              setIsSoundEnabled(!isSoundEnabled);
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setIsSoundEnabled(!isSoundEnabled);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
             }}
             className="join-button sound-toggle"
           >
@@ -1370,7 +1266,7 @@ const App = () => {
         </div>
       </div>
     );
-  }, [isSoundEnabled]);
+  }, [isSoundEnabled, isButtonLocked]);
 
   // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {
@@ -1391,8 +1287,26 @@ const App = () => {
           </ul>
           <p>Please contact support@thunderfleet.com for any inquiries.</p>
           <button
-            onClick={() => setShowTermsModal(false)}
-            onTouchStart={() => setShowTermsModal(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Close Terms modal button clicked');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowTermsModal(false);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Close Terms modal button touched');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowTermsModal(false);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
             className="join-button"
           >
             Close
@@ -1400,7 +1314,7 @@ const App = () => {
         </div>
       </div>
     );
-  }, []);
+  }, [isButtonLocked]);
 
   // Component to render the privacy policy modal
   const PrivacyModal = useMemo(() => {
@@ -1420,8 +1334,26 @@ const App = () => {
           </ul>
           <p>Contact support@thunderfleet.com for privacy-related concerns.</p>
           <button
-            onClick={() => setShowPrivacyModal(false)}
-            onTouchStart={() => setShowPrivacyModal(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Close Privacy modal button clicked');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowPrivacyModal(false);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Close Privacy modal button touched');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowPrivacyModal(false);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
             className="join-button"
           >
             Close
@@ -1429,7 +1361,7 @@ const App = () => {
         </div>
       </div>
     );
-  }, []);
+  }, [isButtonLocked]);
 
   // Component to render the how-to-play modal
   const HowToPlayModal = useMemo(() => {
@@ -1450,8 +1382,26 @@ const App = () => {
           </ul>
           <p>Good luck, Captain!</p>
           <button
-            onClick={() => setShowHowToPlayModal(false)}
-            onTouchStart={() => setShowHowToPlayModal(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Close How to Play modal button clicked');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowHowToPlayModal(false);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Close How to Play modal button touched');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                setShowHowToPlayModal(false);
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
             className="join-button"
           >
             Close
@@ -1459,7 +1409,7 @@ const App = () => {
         </div>
       </div>
     );
-  }, []);
+  }, [isButtonLocked]);
 
   // Component to render the payment modal
   const PaymentModal = useMemo(() => {
@@ -1479,13 +1429,54 @@ const App = () => {
         )}
         <div className="invoice-controls">
           <button
-            onClick={(e) => { preventTouchPropagation(e); handlePay(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Pay Now button clicked');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                handlePay();
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Pay Now button touched');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                handlePay();
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading}
           >
             {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
-          <button onClick={(e) => { preventTouchPropagation(e); handleCancelGame(); }} className="cancel-button">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Cancel button clicked');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                handleCancelGame();
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Cancel button touched');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                handleCancelGame();
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            className="cancel-button"
+          >
             Cancel
           </button>
         </div>
@@ -1510,7 +1501,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame]);
+  }, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame, isButtonLocked]);
 
   // Component to render confetti for winning
   const Confetti = useMemo(() => {
@@ -1551,8 +1542,26 @@ const App = () => {
         </p>
         {!isSocketConnected && (
           <button
-            onClick={(e) => { preventTouchPropagation(e); handleReconnect(); }}
-            onTouchStart={(e) => { preventTouchPropagation(e); handleReconnect(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Retry Connection button clicked');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                handleReconnect();
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Retry Connection button touched');
+              if (!isButtonLocked) {
+                setIsButtonLocked(true);
+                handleReconnect();
+                setTimeout(() => setIsButtonLocked(false), 500);
+              }
+            }}
             className="join-button"
           >
             Retry Connection
@@ -1560,7 +1569,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [isSocketConnected, handleReconnect]);
+  }, [isSocketConnected, handleReconnect, isButtonLocked]);
 
   // Error handling function
   const handleError = useCallback((error) => {
@@ -1637,8 +1646,26 @@ const App = () => {
                 </select>
               </div>
               <button
-                onClick={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
-                onTouchStart={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Join Game button clicked');
+                  if (!isButtonLocked) {
+                    setIsButtonLocked(true);
+                    handleJoinGame();
+                    setTimeout(() => setIsButtonLocked(false), 500);
+                  }
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Join Game button touched');
+                  if (!isButtonLocked) {
+                    setIsButtonLocked(true);
+                    handleJoinGame();
+                    setTimeout(() => setIsButtonLocked(false), 500);
+                  }
+                }}
                 className="join-button"
                 disabled={isLoading}
               >
@@ -1682,8 +1709,26 @@ const App = () => {
               {PaymentModal}
               {!isLoading && (
                 <button
-                  onClick={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
-                  onTouchStart={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Retry button clicked');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      handleJoinGame();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Retry button touched');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      handleJoinGame();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
                   className="join-button"
                 >
                   Retry
@@ -1696,174 +1741,156 @@ const App = () => {
           {/* Waiting for Opponent Screen */}
           {gameState === 'waitingForOpponent' && (
             <div className="waiting-screen">
-              <h2>Waiting for Opponent</h2>
+              <h2>Waiting for Opponent ⚡</h2>
               <p>{message}</p>
-              <div className="loading-spinner"></div>
-              <button onClick={(e) => { preventTouchPropagation(e); handleCancelGame(); }} className="cancel-button">
-                Cancel
-              </button>
             </div>
           )}
 
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
-            <div className="placing-screen">
-              <h3>
-                Place Your Ships ({shipCount}/5)
-              </h3>
-              <p>{message}</p>
-              <div className="timer-container">
-                <div className="timer-bar">
-                  <div
-                    className="timer-progress"
-                    style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="timer-text">
-                  Time left:{' '}
-                  <span className={timeLeft <= 10 ? 'time-warning' : ''}>
-                    {timeLeft} seconds
-                  </span>
-                </div>
+            <div className="game-screen">
+              <h2>Place Your Ships ⚡</h2>
+              <div className="timer-display">
+                Time Left: {timeLeft} seconds
               </div>
-              <div className="fleet-container">
-                {renderShipList()}
-                <div
-                  onDrop={handleGridDrop}
-                  onDragOver={handleGridDragOver}
-                  onTouchEnd={handleTouchEnd}
-                >
+              <div className="boards-container">
+                <div className="board-section">
+                  <h3>Your Board</h3>
                   {renderGrid(myBoard, false)}
                 </div>
+                <div className="board-section">
+                  <h3>Unplaced Ships</h3>
+                  {renderShipList()}
+                </div>
               </div>
-              <div className="action-buttons">
+              <div className="control-buttons">
                 <button
-                  onClick={(e) => { preventTouchPropagation(e); randomizeShips(); }}
-                  onTouchStart={(e) => { preventTouchPropagation(e); randomizeShips(); }}
-                  className="action-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Randomize button clicked');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      randomizeShips();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Randomize button touched');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      randomizeShips();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  className="game-button"
                   disabled={isPlacementConfirmed}
                 >
                   Randomize
                 </button>
                 <button
-                  onClick={(e) => { preventTouchPropagation(e); randomizeUnplacedShips(); }}
-                  onTouchStart={(e) => { preventTouchPropagation(e); randomizeUnplacedShips(); }}
-                  className="action-button place-remaining"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Clear button clicked');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      clearBoard();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Clear button touched');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      clearBoard();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  className="game-button"
                   disabled={isPlacementConfirmed}
                 >
-                  Place Remaining
+                  Clear
                 </button>
                 <button
-                  onClick={(e) => { preventTouchPropagation(e); clearBoard(); }}
-                  onTouchStart={(e) => { preventTouchPropagation(e); clearBoard(); }}
-                  className="action-button clear-board"
-                  disabled={isPlacementConfirmed}
-                >
-                  Clear Board
-                </button>
-                <button
-                  onClick={(e) => { preventTouchPropagation(e); debounce(saveShipPlacement, 250)(); }}
-                  onTouchStart={(e) => { preventTouchPropagation(e); debounce(saveShipPlacement, 250)(); }}
-                  className="action-button save-placement"
-                  disabled={shipCount < 5 || isPlacementConfirmed}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Save Placement button clicked');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      saveShipPlacement();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Save Placement button touched');
+                    if (!isButtonLocked) {
+                      setIsButtonLocked(true);
+                      saveShipPlacement();
+                      setTimeout(() => setIsButtonLocked(false), 500);
+                    }
+                  }}
+                  className="game-button"
+                  disabled={placementSaved}
                 >
                   Save Placement
                 </button>
               </div>
+              <p>{message}</p>
             </div>
           )}
 
-          {/* Playing Game Screen */}
-          {gameState === 'playing' && socket && (
-            <div className="playing-screen">
-              <h3
-                className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-              >
-                {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-              </h3>
-              <p>{message}</p>
-              {isOpponentThinking && (
-                <div className="opponent-thinking">
-                  <div className="loading-spinner"></div>
-                  <p>Opponent is thinking...</p>
-                </div>
-              )}
-              <div className="game-boards">
-                <div>
-                  <h4>Your Fleet</h4>
+          {/* Battle Screen */}
+          {gameState === 'playing' && (
+            <div className="game-screen">
+              <h2>Battle Time ⚡</h2>
+              <div className="boards-container">
+                <div className="board-section">
+                  <h3>Your Board</h3>
                   {renderGrid(myBoard, false)}
                 </div>
-                <div>
-                  <h4>Enemy Waters</h4>
+                <div className="board-section">
+                  <h3>Enemy Board</h3>
                   {renderGrid(enemyBoard, true)}
                 </div>
               </div>
-              <div className="game-stats">
-                <h4>Game Stats</h4>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
-              </div>
+              <p>{message}</p>
+              {isOpponentThinking && <p>Opponent is thinking...</p>}
             </div>
           )}
 
-          {/* Finished Game Screen */}
+          {/* Game Finished Screen */}
           {gameState === 'finished' && (
-            <div className="finished-screen">
-              <h2>{message}</h2>
-              {transactionMessage && (
-                <p>{transactionMessage}</p>
-              )}
-              <div className="game-stats">
-                <h4>Final Game Stats</h4>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
-              </div>
+            <div className="game-screen">
+              <h2>Game Over ⚡</h2>
+              <p>{message}</p>
               <button
                 onClick={(e) => {
-                  preventTouchPropagation(e);
-                  debounce(() => {
-                    console.log('Play Again button clicked');
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Play Again button clicked');
+                  if (!isButtonLocked) {
+                    setIsButtonLocked(true);
                     setGameState('join');
-                    setMessage('');
-                    setTransactionMessage('');
-                    setMyBoard(Array(GRID_SIZE).fill('water'));
-                    setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                    setShips(prev =>
-                      prev.map(ship => ({
-                        ...ship,
-                        positions: [],
-                        horizontal: true,
-                        placed: false,
-                      }))
-                    );
-                    setShipCount(0);
-                    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                    setShowConfetti(false);
-                  }, 250)();
+                    setTimeout(() => setIsButtonLocked(false), 500);
+                  }
                 }}
                 onTouchStart={(e) => {
-                  preventTouchPropagation(e);
-                  debounce(() => {
-                    console.log('Play Again button touched');
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Play Again button touched');
+                  if (!isButtonLocked) {
+                    setIsButtonLocked(true);
                     setGameState('join');
-                    setMessage('');
-                    setTransactionMessage('');
-                    setMyBoard(Array(GRID_SIZE).fill('water'));
-                    setEnemyBoard(Array(GRID_SIZE).fill('water'));
-                    setShips(prev =>
-                      prev.map(ship => ({
-                        ...ship,
-                        positions: [],
-                        horizontal: true,
-                        placed: false,
-                      }))
-                    );
-                    setShipCount(0);
-                    setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
-                    setShowConfetti(false);
-                  }, 250)();
+                    setTimeout(() => setIsButtonLocked(false), 500);
+                  }
                 }}
                 className="join-button"
               >
