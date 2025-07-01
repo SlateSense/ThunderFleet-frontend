@@ -554,12 +554,11 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  grid-template-rows: repeat(7, 1fr);
-  gap: 2px;
-  background: #222;
-  border-radius: 10px;
-  overflow: hidden;
+  position: relative;
+  background: linear-gradient(to bottom, #87ceeb 0%, #b8e6ff 50%, #e0f6ff 100%);
+  border-radius: 6px;
+  width: 100%;
+  aspect-ratio: 1;
 }
 
 .cell {
@@ -999,20 +998,14 @@
   }
 
   .grid-container {
-    width: 95vw;
-    max-width: 600px;
-    margin: 0 auto;
-    touch-action: none;
+    width: calc(100vw - 10px);
+    max-width: calc(100vw - 10px);
+    border-width: 1px;
+    margin: 3px auto;
   }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(9, 1fr);
-    grid-template-rows: repeat(7, 1fr);
-    gap: 2px;
-    background: #222;
-    border-radius: 10px;
-    overflow: hidden;
+  .ship {
+    max-width: 200px;
   }
 
   .ships-list {
@@ -1449,43 +1442,4 @@
     overflow-x: hidden;
     width: 100%;
   }
-}
-
-.game-over-modal {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 1000;
-  color: #fff;
-}
-
-/* When rendering ships for placement (not on the grid) */
-.ship-placement {
-  width: calc(100% - 8px);
-  height: calc(100% - 8px);
-  margin: 4px;
-  opacity: 0.7;
-  pointer-events: none;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.unplaced-ships-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.ship-row {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  justify-content: center;
 }
