@@ -243,10 +243,8 @@ const App = () => {
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
         setMessage('Payment verified! Connecting to game...');
-        setTimeout(() => {
-          setGameState('waitingForOpponent');
-          setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
-        }, 2000);
+        // REMOVE the timeout that prematurely changes state
+        // setGameState('waitingForOpponent') is now handled by server
       },
       error: ({ message }) => {
         console.log('Received error from server:', message);
@@ -278,15 +276,18 @@ const App = () => {
         setMessage('Place your ships! Tap to rotate, drag to position.');
         setIsPlacementConfirmed(false);
         setPlacementSaved(false);
+        setTimeLeft(PLACEMENT_TIME); // Reset timer
+        setTimerActive(true); // Restart timer
+        
+        // Reset boards only for current player
         setMyBoard(Array(GRID_SIZE).fill('water'));
-        setShips(prev =>
-          prev.map(ship => ({
-            ...ship,
-            positions: [],
-            horizontal: true,
-            placed: false,
-          }))
-        );
+        setShips(SHIP_CONFIG.map((ship, index) => ({
+          ...ship,
+          id: index,
+          positions: [],
+          horizontal: true,
+          placed: false
+        })));
         setShipCount(0);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
       },
@@ -323,6 +324,12 @@ const App = () => {
             return updated;
           });
           playPlaceSound();
+        }
+      },
+      opponentJoined: () => {
+        if (gameState === 'waitingForOpponent') {
+          setMessage('Opponent found! Starting placement phase...');
+          // Server will follow up with startPlacing event
         }
       },
       startGame: ({ turn, message }) => {
