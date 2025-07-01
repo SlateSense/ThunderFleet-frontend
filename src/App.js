@@ -135,6 +135,12 @@ const App = () => {
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
   const playErrorSound = useSound('/sounds/error.mp3', isSoundEnabled);
 
+  // Function to prevent touch propagation
+  const preventTouchPropagation = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   // Log gameState changes for debugging
   useEffect(() => {
     console.log('Current gameState:', gameState);
@@ -1211,8 +1217,10 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
-                    touchAction: 'none',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    marginBottom: '10px',
+                    touchAction: 'none'
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
@@ -1421,7 +1429,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
@@ -1458,13 +1466,13 @@ const App = () => {
         )}
         <div className="invoice-controls">
           <button
-            onClick={handlePay}
+            onClick={(e) => { preventTouchPropagation(e); handlePay(); }}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading}
           >
             {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
-          <button onClick={handleCancelGame} className="cancel-button">
+          <button onClick={(e) => { preventTouchPropagation(e); handleCancelGame(); }} className="cancel-button">
             Cancel
           </button>
         </div>
@@ -1530,8 +1538,8 @@ const App = () => {
         </p>
         {!isSocketConnected && (
           <button
-            onClick={handleReconnect}
-            onTouchStart={handleReconnect}
+            onClick={(e) => { preventTouchPropagation(e); handleReconnect(); }}
+            onTouchStart={(e) => { preventTouchPropagation(e); handleReconnect(); }}
             className="join-button"
           >
             Retry Connection
@@ -1616,8 +1624,8 @@ const App = () => {
                 </select>
               </div>
               <button
-                onClick={handleJoinGame}
-                onTouchStart={handleJoinGame}
+                onClick={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
+                onTouchStart={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
                 className="join-button"
                 disabled={isLoading}
               >
@@ -1661,8 +1669,8 @@ const App = () => {
               {PaymentModal}
               {!isLoading && (
                 <button
-                  onClick={handleJoinGame}
-                  onTouchStart={handleJoinGame}
+                  onClick={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
+                  onTouchStart={(e) => { preventTouchPropagation(e); handleJoinGame(); }}
                   className="join-button"
                 >
                   Retry
@@ -1678,7 +1686,7 @@ const App = () => {
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button">
+              <button onClick={(e) => { preventTouchPropagation(e); handleCancelGame(); }} className="cancel-button">
                 Cancel
               </button>
             </div>
@@ -1717,32 +1725,32 @@ const App = () => {
               </div>
               <div className="action-buttons">
                 <button
-                  onClick={randomizeShips}
-                  onTouchStart={randomizeShips}
+                  onClick={(e) => { preventTouchPropagation(e); randomizeShips(); }}
+                  onTouchStart={(e) => { preventTouchPropagation(e); randomizeShips(); }}
                   className="action-button"
                   disabled={isPlacementConfirmed}
                 >
                   Randomize
                 </button>
                 <button
-                  onClick={randomizeUnplacedShips}
-                  onTouchStart={randomizeUnplacedShips}
+                  onClick={(e) => { preventTouchPropagation(e); randomizeUnplacedShips(); }}
+                  onTouchStart={(e) => { preventTouchPropagation(e); randomizeUnplacedShips(); }}
                   className="action-button place-remaining"
                   disabled={isPlacementConfirmed}
                 >
                   Place Remaining
                 </button>
                 <button
-                  onClick={clearBoard}
-                  onTouchStart={clearBoard}
+                  onClick={(e) => { preventTouchPropagation(e); clearBoard(); }}
+                  onTouchStart={(e) => { preventTouchPropagation(e); clearBoard(); }}
                   className="action-button clear-board"
                   disabled={isPlacementConfirmed}
                 >
                   Clear Board
                 </button>
                 <button
-                  onClick={saveShipPlacement}
-                  onTouchStart={saveShipPlacement}
+                  onClick={(e) => { preventTouchPropagation(e); saveShipPlacement(); }}
+                  onTouchStart={(e) => { preventTouchPropagation(e); saveShipPlacement(); }}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
                 >
@@ -1800,7 +1808,8 @@ const App = () => {
                 <p>Misses: {gameStats.misses}</p>
               </div>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  preventTouchPropagation(e);
                   console.log('Play Again button clicked');
                   setGameState('join');
                   setMessage('');
@@ -1819,7 +1828,8 @@ const App = () => {
                   setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
                   setShowConfetti(false);
                 }}
-                onTouchStart={() => {
+                onTouchStart={(e) => {
+                  preventTouchPropagation(e);
                   console.log('Play Again button touched');
                   setGameState('join');
                   setMessage('');
