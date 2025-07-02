@@ -571,8 +571,8 @@
     rgba(255, 255, 255, 0.05) 50%, 
     rgba(0, 0, 0, 0.05) 100%);
   cursor: pointer;
-  min-height: 0;
-  min-width: 0;
+  min-height: 50px;
+  min-width: 50px;
 }
 
 .cell:hover {

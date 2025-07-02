@@ -765,6 +765,20 @@ const App = () => {
     }
   }, [gameState, ships]);
 
+  // Effect to arrange ships in two columns
+  useEffect(() => {
+    setShips(prevShips => {
+      const layout = [
+        { row: 0, col: 0 }, { row: 0, col: 1 },
+        { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }
+      ];
+      return prevShips.map((ship, index) => ({
+        ...ship,
+        positions: [layout[index]],
+      }));
+    });
+  }, []);
+
   // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
@@ -1159,8 +1173,10 @@ const App = () => {
                     backgroundPosition: "center",
                     opacity: isPlacementConfirmed ? 1 : 0.8,
                     cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
-                    touchAction: 'none',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    marginBottom: '10px',
+                    touchAction: 'none'
                   }}
                   onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
@@ -1227,6 +1243,7 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
+                onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
