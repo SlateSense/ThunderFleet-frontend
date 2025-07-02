@@ -1443,16 +1443,3 @@
     width: 100%;
   }
 }
-
-.unplaced-ships-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: auto;
-  gap: 16px;
-  justify-items: center;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.unplaced-ships-grid > .ship:nth-child(n+3) {
-  grid-column: span 1;
-}

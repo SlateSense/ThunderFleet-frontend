@@ -1193,39 +1193,45 @@ const App = () => {
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
     if (isPlacementConfirmed) {
+      console.log('Not rendering ship list: Placement confirmed');
       return null;
     }
-    // Arrange ships in two rows: first row 2 ships, second row 3 ships
-    const unplacedShips = ships
-      .map((ship, idx) => ({ ...ship, originalIndex: idx }))
-      .filter(ship => !ship.placed);
-
+    console.log('Rendering ship list for placement');
     return (
-      <div className="unplaced-ships-grid">
-        {unplacedShips.map((ship, i) => (
-          <div
-            key={ship.originalIndex}
-            className="ship"
-            draggable={!isPlacementConfirmed}
-            onDragStart={(e) => handleDragStart(e, ship.originalIndex)}
-            onDragEnd={() => setIsDragging(null)}
-            onTouchStart={(e) => handleTouchStart(e, ship.originalIndex)}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{
-              backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              width: isDragging === ship.originalIndex ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-              height: isDragging === ship.originalIndex ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-              opacity: 1,
-              cursor: isPlacementConfirmed ? 'default' : 'grab',
-              border: '2px solid #333',
-              borderRadius: '4px',
-              marginBottom: '10px',
-              touchAction: 'none'
-            }}
-          />
+      <div className="unplaced-ships">
+        {ships.map((ship, i) => (
+          !ship.placed && (
+            <div key={i} className="ship-container">
+              <div className="ship-info">
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+              </div>
+              <div
+                className="ship"
+                draggable={!isPlacementConfirmed}
+                onDragStart={(e) => handleDragStart(e, i)}
+                onDragEnd={() => setIsDragging(null)}
+                onTouchStart={(e) => handleTouchStart(e, i)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+                  height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
+                  opacity: 1,
+                  cursor: isPlacementConfirmed ? 'default' : 'grab',
+                  border: '2px solid #333',
+                  borderRadius: '4px',
+                  marginBottom: '10px',
+                  touchAction: 'none'
+                }}
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
+            </div>
+          )
         ))}
       </div>
     );
