@@ -1447,7 +1447,7 @@
 .unplaced-ships-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, auto);
+  grid-auto-rows: auto;
   gap: 16px;
   justify-items: center;
   align-items: center;
@@ -1455,16 +1455,4 @@
 }
 .unplaced-ships-grid > .ship:nth-child(n+3) {
   grid-column: span 1;
-}
-.unplaced-ships-grid > .ship:nth-child(3) {
-  grid-row: 2;
-  grid-column: 1;
-}
-.unplaced-ships-grid > .ship:nth-child(4) {
-  grid-row: 2;
-  grid-column: 2;
-}
-.unplaced-ships-grid > .ship:nth-child(5) {
-  grid-row: 2;
-  grid-column: 3;
 }
