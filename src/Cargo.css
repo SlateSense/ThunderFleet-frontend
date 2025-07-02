@@ -1443,3 +1443,16 @@
     width: 100%;
   }
 }
+
+.unplaced-ships-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ship-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+}
