@@ -656,12 +656,16 @@ const App = () => {
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
     const width = window.innerWidth;
+    console.log(`Window resized to width: ${width}px`);
     if (width < 480) {
-      setCellSize(38); // was 30
+      setCellSize(30);
+      console.log('Set cell size to 30px for small phones');
     } else if (width < 768) {
-      setCellSize(44); // was 35
+      setCellSize(35);
+      console.log('Set cell size to 35px for tablets');
     } else {
-      setCellSize(54); // was 40
+      setCellSize(40);
+      console.log('Set cell size to 40px for desktop');
     }
   }, []);
 
@@ -1188,14 +1192,20 @@ const App = () => {
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
-    if (isPlacementConfirmed) return null;
-    const unplacedShips = ships.filter(ship => !ship.placed);
-
+    if (isPlacementConfirmed) {
+      console.log('Not rendering ship list: Placement confirmed');
+      return null;
+    }
+    console.log('Rendering ship list for placement');
     return (
-      <div className="unplaced-ships-grid">
-        <div className="ship-row">
-          {unplacedShips.slice(0, 2).map((ship, i) => (
+      <div className="unplaced-ships">
+        {ships.map((ship, i) => (
+          !ship.placed && (
             <div key={i} className="ship-container">
+              <div className="ship-info">
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+              </div>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1217,38 +1227,12 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
-              />
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
             </div>
-          ))}
-        </div>
-        <div className="ship-row">
-          {unplacedShips.slice(2, 5).map((ship, i) => (
-            <div key={i + 2} className="ship-container">
-              <div
-                className="ship"
-                draggable={!isPlacementConfirmed}
-                onDragStart={(e) => handleDragStart(e, i + 2)}
-                onDragEnd={() => setIsDragging(null)}
-                onTouchStart={(e) => handleTouchStart(e, i + 2)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  width: isDragging === i + 2 ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                  height: isDragging === i + 2 ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                  opacity: 1,
-                  cursor: isPlacementConfirmed ? 'default' : 'grab',
-                  border: '2px solid #333',
-                  borderRadius: '4px',
-                  marginBottom: '10px',
-                  touchAction: 'none'
-                }}
-              />
-            </div>
-          ))}
-        </div>
+          )
+        ))}
       </div>
     );
   }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
