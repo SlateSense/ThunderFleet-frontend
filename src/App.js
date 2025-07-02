@@ -86,6 +86,7 @@ const App = () => {
       id: index,
       positions: [],
       horizontal: true,
+      placed: false,
     }))
   );
   const [shipCount, setShipCount] = useState(0);
@@ -93,6 +94,7 @@ const App = () => {
   const [message, setMessage] = useState('');
   const [transactionMessage, setTransactionMessage] = useState('');
   const [cannonFire, setCannonFire] = useState(null);
+  const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
   const [cellSize, setCellSize] = useState(40);
@@ -226,12 +228,15 @@ const App = () => {
         console.log('Starting ship placement phase');
         setGameState('placing');
         setMessage('Place your ships! Tap to rotate, drag to position.');
+        setIsPlacementConfirmed(false);
+        setPlacementSaved(false);
         setMyBoard(Array(GRID_SIZE).fill('water'));
         setShips(prev =>
           prev.map(ship => ({
             ...ship,
             positions: [],
             horizontal: true,
+            placed: false,
           }))
         );
         setShipCount(0);
@@ -387,7 +392,7 @@ const App = () => {
 
   // Function to update the server with the current board state
   const updateServerBoard = useCallback((updatedShips) => {
-    if (gameState !== 'placing' || placementSaved || !socket) {
+    if (gameState !== 'placing' || isPlacementConfirmed || !socket) {
       console.log('Cannot update server board: Invalid game state, placement confirmed, or no socket');
       return;
     }
@@ -407,16 +412,16 @@ const App = () => {
         console.log('Board update confirmed by server');
       }
     });
-  }, [gameState, placementSaved, ships, socket, gameId]);
+  }, [gameState, isPlacementConfirmed, ships, socket, gameId]);
 
   // Function to randomize unplaced ships on the board
   const randomizeUnplacedShips = useCallback(() => {
-    if (placementSaved) {
+    if (isPlacementConfirmed) {
       console.log('Cannot randomize ships: Placement already confirmed');
       return;
     }
 
-    const unplacedShips = ships.filter(ship => !ship.positions.length);
+    const unplacedShips = ships.filter(ship => !ship.placed);
     console.log(`Found ${unplacedShips.length} unplaced ships to randomize`);
     if (unplacedShips.length === 0) {
       console.log('No unplaced ships to randomize');
@@ -465,6 +470,7 @@ const App = () => {
               ...newShips[shipIndex],
               positions,
               horizontal,
+              placed: true,
             };
             successfulPlacements++;
             console.log(`Successfully placed ${ship.name} at positions:`, positions);
@@ -481,7 +487,7 @@ const App = () => {
     // Set temporary state and wait for server confirmation
     setMyBoard(newBoard);
     setShips(newShips);
-    const placedCount = newShips.filter(s => s.positions.length).length;
+    const placedCount = newShips.filter(s => s.placed).length;
     setShipCount(placedCount);
 
     // Update server and wait for confirmation
@@ -505,11 +511,11 @@ const App = () => {
     }
 
     playPlaceSound();
-  }, [placementSaved, ships, myBoard, playPlaceSound, socket, gameId]);
+  }, [isPlacementConfirmed, ships, myBoard, playPlaceSound, socket, gameId]);
 
   // Function to randomize all ships on the board
   const randomizeShips = useCallback(() => {
-    if (placementSaved) {
+    if (isPlacementConfirmed) {
       console.log('Cannot randomize ships: Placement already confirmed');
       return;
     }
@@ -520,6 +526,7 @@ const App = () => {
       ...ship,
       positions: [],
       horizontal: true,
+      placed: false,
     }));
     let successfulPlacements = 0;
 
@@ -557,6 +564,7 @@ const App = () => {
             ...newShips[index],
             positions,
             horizontal,
+            placed: true,
           };
           successfulPlacements++;
           console.log(`Successfully placed ${shipConfig.name} at positions:`, positions);
@@ -572,7 +580,7 @@ const App = () => {
     // Set temporary state and wait for server confirmation
     setMyBoard(newBoard);
     setShips(newShips);
-    const placedCount = newShips.filter(s => s.positions.length).length;
+    const placedCount = newShips.filter(s => s.placed).length;
     setShipCount(placedCount);
 
     // Update server and wait for confirmation
@@ -601,7 +609,7 @@ const App = () => {
     }
 
     playPlaceSound();
-  }, [placementSaved, ships, playPlaceSound, socket, gameId]);
+  }, [isPlacementConfirmed, ships, playPlaceSound, socket, gameId]);
 
   // Function to save ship placement to the server
   const saveShipPlacement = useCallback(() => {
@@ -619,12 +627,13 @@ const App = () => {
       return;
     }
 
-    const unplacedShips = ships.filter(ship => !ship.positions.length);
+    const unplacedShips = ships.filter(ship => !ship.placed);
     if (unplacedShips.length > 0) {
       randomizeUnplacedShips();
     }
 
     setPlacementSaved(true);
+    setIsPlacementConfirmed(true);
     setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
 
     const placements = ships.map(ship => ({
@@ -733,6 +742,7 @@ const App = () => {
       setTimerActive(true);
       setTimeLeft(PLACEMENT_TIME);
       setPlacementSaved(false);
+      setIsPlacementConfirmed(false);
     } else {
       console.log('Exiting placing state, stopping timer');
       setTimerActive(false);
@@ -754,20 +764,6 @@ const App = () => {
       setMyBoard(newBoard);
     }
   }, [gameState, ships]);
-
-  // Effect to arrange ships in two columns
-  useEffect(() => {
-    setShips(prevShips => {
-      const layout = [
-        { row: 0, col: 0 }, { row: 0, col: 1 },
-        { row: 1, col: 0 }, { row: 1, col: 1 }, { row: 1, col: 2 }
-      ];
-      return prevShips.map((ship, index) => ({
-        ...ship,
-        positions: [layout[index]],
-      }));
-    });
-  }, []);
 
   // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
@@ -860,6 +856,8 @@ const App = () => {
 
   // Function to toggle ship orientation
   const toggleOrientation = useCallback((shipIndex) => {
+    if (isPlacementConfirmed) return;
+
     setShips(prev => {
       const updated = [...prev];
       const ship = updated[shipIndex];
@@ -887,22 +885,27 @@ const App = () => {
         ...ship,
         horizontal: newHorizontal,
         positions: newPositions,
+        placed: true
       };
       playPlaceSound();
       updateServerBoard(updated);
       return updated;
     });
-  }, [calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to clear the board
   const clearBoard = useCallback(() => {
+    if (isPlacementConfirmed) {
+      console.log('Cannot clear board: Placement already confirmed');
+      return;
+    }
     console.log('Clearing the board');
     setMyBoard(Array(GRID_SIZE).fill('water'));
-    setShips(prev => prev.map(ship => ({ ...ship, positions: [] })));
+    setShips(prev => prev.map(ship => ({ ...ship, positions: [], placed: false })));
     setShipCount(0);
     setMessage('Board cleared. Place your ships!');
     updateServerBoard();
-  }, [updateServerBoard]);
+  }, [isPlacementConfirmed, updateServerBoard]);
 
   // Function to handle firing a shot
   const handleFire = useCallback((position) => {
@@ -921,18 +924,18 @@ const App = () => {
   // Function to handle drag over events on the grid
   const handleGridDragOver = useCallback((e) => {
     e.preventDefault();
-    if (isDragging !== null) {
+    if (isDragging !== null && !isPlacementConfirmed) {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       setDragPosition({ x, y });
       console.log(`Drag over at x:${x}, y:${y}`);
     }
-  }, [isDragging, setDragPosition]);
+  }, [isDragging, isPlacementConfirmed, setDragPosition]);
 
   // Function to handle touch move
   const handleTouchMove = useCallback((e) => {
-    if (isDragging === null) return;
+    if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
     const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
@@ -946,13 +949,17 @@ const App = () => {
       sessionStorage.setItem('dragData', JSON.stringify(data));
     }
     console.log(`Touch moving for ship ${isDragging}`);
-  }, [isDragging, gridRef, setDragPosition]);
+  }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
     let shipIndex, x, y;
     if (e.dataTransfer) {
       e.preventDefault();
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
+        return;
+      }
       shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
       const rect = e.currentTarget.getBoundingClientRect();
       x = e.clientX - rect.left;
@@ -963,6 +970,11 @@ const App = () => {
       x = e.x;
       y = e.y;
       console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    }
+
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
+      return;
     }
 
     const ship = ships[shipIndex];
@@ -999,11 +1011,12 @@ const App = () => {
       updated[shipIndex] = {
         ...updated[shipIndex],
         positions: newPositions,
+        placed: true,
       };
       updatedShips = updated;
 
       // Calculate the new ship count based on placed ships
-      const placedCount = updated.filter(s => s.positions.length).length;
+      const placedCount = updated.filter(s => s.positions.length > 0).length;
       setShipCount(placedCount);
       setMessage(
         placedCount === 5
@@ -1018,11 +1031,11 @@ const App = () => {
     playPlaceSound();
     setIsDragging(null);
     if (updatedShips) updateServerBoard(updatedShips);
-  }, [calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
-    if (isDragging === null) return;
+    if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
     setIsDragging(null);
     const data = JSON.parse(sessionStorage.getItem('dragData'));
@@ -1035,17 +1048,25 @@ const App = () => {
     console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
     handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
     sessionStorage.removeItem('dragData');
-  }, [isDragging, handleGridDrop, gridRef]);
+  }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
   const handleDragStart = useCallback((e, shipIndex) => {
+    if (isPlacementConfirmed) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData('text/plain', shipIndex.toString());
     setIsDragging(shipIndex);
     console.log(`Started dragging ship ${shipIndex}`);
-  }, [setIsDragging]);
+  }, [isPlacementConfirmed, setIsDragging]);
 
   // Function to handle touch start
   const handleTouchStart = useCallback((e, shipIndex) => {
+    if (isPlacementConfirmed) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
     setIsDragging(shipIndex);
     const touch = e.touches[0];
@@ -1056,7 +1077,7 @@ const App = () => {
     const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
     sessionStorage.setItem('dragData', JSON.stringify(data));
     console.log(`Touch drag started for ship ${shipIndex}`);
-  }, [setIsDragging, gridRef, setDragPosition]);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1084,7 +1105,7 @@ const App = () => {
             const row = Math.floor(index / GRID_COLS);
             const col = index % GRID_COLS;
             const isHit = cell === 'hit';
-            const isHovered = isDragging !== null;
+            const isHovered = isDragging !== null && !isPlacementConfirmed;
             const hoverPos = Math.floor(dragPosition.y / cellSize) * GRID_COLS + Math.floor(dragPosition.x / cellSize);
             const isUnderShip = isHovered && calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
 
@@ -1119,11 +1140,11 @@ const App = () => {
         {!isEnemy &&
           ships.map((ship) => {
             return (
-              ship.positions.length > 0 && (
+              ship.placed && (
                 <div
                   key={`ship-${ship.id}`}
                   className="ship-on-grid"
-                  draggable
+                  draggable={!isPlacementConfirmed}
                   onDragStart={(e) => handleDragStart(e, ship.id)}
                   onDragEnd={() => setIsDragging(null)}
                   onTouchStart={(e) => handleTouchStart(e, ship.id)}
@@ -1136,18 +1157,18 @@ const App = () => {
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
                     backgroundPosition: "center",
-                    opacity: 1,
-                    cursor: 'grab',
-                    pointerEvents: 'auto',
+                    opacity: isPlacementConfirmed ? 1 : 0.8,
+                    cursor: !isPlacementConfirmed ? 'grab' : 'default',
+                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
                     touchAction: 'none',
                   }}
-                  onClick={() => toggleOrientation(ship.id)}
+                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
                 />
               )
             );
           })}
         {/* Dragging ship preview */}
-        {isDragging !== null && (
+        {isDragging !== null && !isPlacementConfirmed && (
           <div
             className="dragging-ship"
             style={{
@@ -1167,48 +1188,45 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
-    console.log('Rendering ship list for placement');
+    if (isPlacementConfirmed) {
+      return null;
+    }
+    // Arrange ships in two rows: first row 2 ships, second row 3 ships
+    const unplacedShips = ships.filter(ship => !ship.placed);
     return (
-      <div className="unplaced-ships">
-        {ships.map((ship, i) => (
-          <div key={i} className="ship-container">
-            <div className="ship-info">
-              <span style={{ color: '#ffffff' }}>{ship.name}</span>
-            </div>
-            <div
-              className="ship"
-              draggable
-              onDragStart={(e) => handleDragStart(e, i)}
-              onDragEnd={() => setIsDragging(null)}
-              onTouchStart={(e) => handleTouchStart(e, i)}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              style={{
-                backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                opacity: 1,
-                cursor: 'grab',
-                border: '2px solid #333',
-                borderRadius: '4px',
-                marginBottom: '10px',
-                touchAction: 'none'
-              }}
-              onClick={() => toggleOrientation(i)}
-            >
-              <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-            </div>
-          </div>
+      <div className="unplaced-ships-grid">
+        {unplacedShips.map((ship, i) => (
+          <div
+            key={i}
+            className="ship"
+            draggable={!isPlacementConfirmed}
+            onDragStart={(e) => handleDragStart(e, i)}
+            onDragEnd={() => setIsDragging(null)}
+            onTouchStart={(e) => handleTouchStart(e, i)}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{
+              backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+              height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
+              opacity: 1,
+              cursor: isPlacementConfirmed ? 'default' : 'grab',
+              border: '2px solid #333',
+              borderRadius: '4px',
+              marginBottom: '10px',
+              touchAction: 'none'
+            }}
+          />
         ))}
       </div>
     );
-  }, [isDragging, ships, cellSize, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd, toggleOrientation]);
+  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
@@ -1641,7 +1659,7 @@ const App = () => {
                   onClick={randomizeShips}
                   onTouchStart={randomizeShips}
                   className="action-button"
-                  disabled={placementSaved}
+                  disabled={isPlacementConfirmed}
                 >
                   Randomize
                 </button>
@@ -1649,7 +1667,7 @@ const App = () => {
                   onClick={randomizeUnplacedShips}
                   onTouchStart={randomizeUnplacedShips}
                   className="action-button place-remaining"
-                  disabled={placementSaved}
+                  disabled={isPlacementConfirmed}
                 >
                   Place Remaining
                 </button>
@@ -1657,7 +1675,7 @@ const App = () => {
                   onClick={clearBoard}
                   onTouchStart={clearBoard}
                   className="action-button clear-board"
-                  disabled={placementSaved}
+                  disabled={isPlacementConfirmed}
                 >
                   Clear Board
                 </button>
@@ -1665,7 +1683,7 @@ const App = () => {
                   onClick={saveShipPlacement}
                   onTouchStart={saveShipPlacement}
                   className="action-button save-placement"
-                  disabled={shipCount < 5 || placementSaved}
+                  disabled={shipCount < 5 || isPlacementConfirmed}
                 >
                   Save Placement
                 </button>
@@ -1733,6 +1751,7 @@ const App = () => {
                       ...ship,
                       positions: [],
                       horizontal: true,
+                      placed: false,
                     }))
                   );
                   setShipCount(0);
@@ -1751,6 +1770,7 @@ const App = () => {
                       ...ship,
                       positions: [],
                       horizontal: true,
+                      placed: false,
                     }))
                   );
                   setShipCount(0);
