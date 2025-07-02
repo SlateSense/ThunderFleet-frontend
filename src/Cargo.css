@@ -347,6 +347,10 @@
   font-size: 0.85rem;
 }
 
+.ship-status {
+  font-size: 0.75rem;
+}
+
 .ship {
   position: relative;
   display: flex;
@@ -1131,8 +1135,6 @@
   
     /* Ship placement mobile optimization */
     .ships-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 6px;
       margin: 8px 0;
       max-width: 100%;
@@ -1238,8 +1240,6 @@
   
     /* Ultra-compact ships */
     .ships-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 4px;
       margin: 5px 0;
     }
@@ -1441,4 +1441,5 @@
   html, body {
     overflow-x: hidden;
     width: 100%;
-  }}
+  }
+}

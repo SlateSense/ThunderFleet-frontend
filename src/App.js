@@ -16,8 +16,8 @@ import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
 
 // Game constants defining the grid size and timing constraints
-const GRID_COLS = 12;
-const GRID_ROWS = 10;
+const GRID_COLS = 9;
+const GRID_ROWS = 7;
 const GRID_SIZE = GRID_COLS * GRID_ROWS;
 const PLACEMENT_TIME = 45;
 const PAYMENT_TIMEOUT = 300;
@@ -1068,27 +1068,16 @@ const App = () => {
       return;
     }
     e.preventDefault();
+    setIsDragging(shipIndex);
     const touch = e.touches[0];
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = gridRef.current.getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     setDragPosition({ x, y });
     const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
     sessionStorage.setItem('dragData', JSON.stringify(data));
-    // Check if touch is a tap (short duration) to rotate, else drag
-    const touchEndListener = () => {
-      setIsDragging(null);
-      sessionStorage.removeItem('dragData');
-      window.removeEventListener('touchend', touchEndListener);
-    };
-    setTimeout(() => {
-      if (isDragging === shipIndex) {
-        toggleOrientation(shipIndex); // Rotate on tap
-      }
-      window.addEventListener('touchend', touchEndListener, { once: true });
-    }, 200); // 200ms threshold for tap vs drag
-    console.log(`Touch drag started or tap for ship ${shipIndex}`);
-  }, [isPlacementConfirmed, setIsDragging, setDragPosition, toggleOrientation, isDragging]);
+    console.log(`Touch drag started for ship ${shipIndex}`);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1210,78 +1199,40 @@ const App = () => {
     console.log('Rendering ship list for placement');
     return (
       <div className="unplaced-ships">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
-          <div>
-            {ships.slice(0, 2).map((ship, i) => (
-              !ship.placed && (
-                <div key={i} className="ship-container">
-                  <div className="ship-info">
-                    <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                  </div>
-                  <div
-                    className="ship"
-                    draggable={!isPlacementConfirmed}
-                    onDragStart={(e) => handleDragStart(e, i)}
-                    onDragEnd={() => setIsDragging(null)}
-                    onTouchStart={(e) => handleTouchStart(e, i)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    style={{
-                      backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                      height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                      opacity: 1,
-                      cursor: isPlacementConfirmed ? 'default' : 'grab',
-                      border: '2px solid #333',
-                      borderRadius: '4px',
-                      marginBottom: '10px',
-                      touchAction: 'none'
-                    }}
-                  >
-                    <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-                  </div>
-                </div>
-              )
-            ))}
-          </div>
-          <div>
-            {ships.slice(2, 5).map((ship, i) => (
-              !ship.placed && (
-                <div key={i + 2} className="ship-container">
-                  <div className="ship-info">
-                    <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                  </div>
-                  <div
-                    className="ship"
-                    draggable={!isPlacementConfirmed}
-                    onDragStart={(e) => handleDragStart(e, i + 2)}
-                    onDragEnd={() => setIsDragging(null)}
-                    onTouchStart={(e) => handleTouchStart(e, i + 2)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    style={{
-                      backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      width: isDragging === i + 2 ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                      height: isDragging === i + 2 ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                      opacity: 1,
-                      cursor: isPlacementConfirmed ? 'default' : 'grab',
-                      border: '2px solid #333',
-                      borderRadius: '4px',
-                      marginBottom: '10px',
-                      touchAction: 'none'
-                    }}
-                  >
-                    <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-                  </div>
-                </div>
-              )
-            ))}
-          </div>
-        </div>
+        {ships.map((ship, i) => (
+          !ship.placed && (
+            <div key={i} className="ship-container">
+              <div className="ship-info">
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+              </div>
+              <div
+                className="ship"
+                draggable={!isPlacementConfirmed}
+                onDragStart={(e) => handleDragStart(e, i)}
+                onDragEnd={() => setIsDragging(null)}
+                onTouchStart={(e) => handleTouchStart(e, i)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+                  height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
+                  opacity: 1,
+                  cursor: isPlacementConfirmed ? 'default' : 'grab',
+                  border: '2px solid #333',
+                  borderRadius: '4px',
+                  marginBottom: '10px',
+                  touchAction: 'none'
+                }}
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
+            </div>
+          )
+        ))}
       </div>
     );
   }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
