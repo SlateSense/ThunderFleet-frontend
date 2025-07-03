@@ -249,17 +249,6 @@ const App = () => {
         console.log('Received waitingForOpponent event:', message);
         setGameState('waitingForOpponent');
         setMessage(message);
-        // Random delay of 13-25 seconds before bot joins if no player joins
-        const randomDelay = Math.floor(Math.random() * (25 - 13 + 1)) + 13;
-        setTimeout(() => {
-          if (gameState === 'waitingForOpponent') {
-            socket.emit('botJoin'); // Trigger bot join if no player
-            setMessage('Bot has joined the game!');
-            setTimeout(() => {
-              socket.emit('startPlacing');
-            }, 1000); // Brief delay before starting placement
-          }
-        }, randomDelay * 1000);
       },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
@@ -354,7 +343,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, socket]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
@@ -1209,7 +1198,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove, handleTouchEnd]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1219,10 +1208,14 @@ const App = () => {
     }
     console.log('Rendering ship list for placement');
     return (
-      <div className="unplaced-ships" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', justifyContent: 'center' }}>
+      <div className="unplaced-ships">
         {ships.map((ship, i) => (
           !ship.placed && (
-            <div key={i} className="ship-container" style={{ margin: '0', padding: '0' }}>
+            <div key={i} className="ship-container">
+              <div className="ship-info">
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+              </div>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1241,10 +1234,12 @@ const App = () => {
                   cursor: isPlacementConfirmed ? 'default' : 'grab',
                   border: '2px solid #333',
                   borderRadius: '4px',
-                  marginBottom: '0',
+                  marginBottom: '10px',
                   touchAction: 'none'
                 }}
-              />
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
             </div>
           )
         ))}
