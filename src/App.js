@@ -1198,7 +1198,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove, handleTouchEnd]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1208,14 +1208,10 @@ const App = () => {
     }
     console.log('Rendering ship list for placement');
     return (
-      <div className="unplaced-ships">
+      <div className="unplaced-ships" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', justifyContent: 'center' }}>
         {ships.map((ship, i) => (
           !ship.placed && (
-            <div key={i} className="ship-container">
-              <div className="ship-info">
-                <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
-              </div>
+            <div key={i} className="ship-container" style={{ margin: '0', padding: '0' }}>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1234,12 +1230,10 @@ const App = () => {
                   cursor: isPlacementConfirmed ? 'default' : 'grab',
                   border: '2px solid #333',
                   borderRadius: '4px',
-                  marginBottom: '10px',
+                  marginBottom: '0',
                   touchAction: 'none'
                 }}
-              >
-                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-              </div>
+              />
             </div>
           )
         ))}
