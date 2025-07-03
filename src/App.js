@@ -249,6 +249,17 @@ const App = () => {
         console.log('Received waitingForOpponent event:', message);
         setGameState('waitingForOpponent');
         setMessage(message);
+        // Random delay of 13-25 seconds before bot joins if no player joins
+        const randomDelay = Math.floor(Math.random() * (25 - 13 + 1)) + 13;
+        setTimeout(() => {
+          if (gameState === 'waitingForOpponent') {
+            socket.emit('botJoin'); // Trigger bot join if no player
+            setMessage('Bot has joined the game!');
+            setTimeout(() => {
+              socket.emit('startPlacing');
+            }, 1000); // Brief delay before starting placement
+          }
+        }, randomDelay * 1000);
       },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
@@ -343,7 +354,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, socket]);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
