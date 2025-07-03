@@ -35,11 +35,11 @@ const BET_OPTIONS = [
 
 // Ship configuration defining each ship's name, size, and images
 const SHIP_CONFIG = [
-  { name: 'Aircraft Carrier', size: 5, horizontalImg: carrierHorizontal, verticalImg: carrierVertical },
-  { name: 'Battleship', size: 4, horizontalImg: battleshipHorizontal, verticalImg: battleshipVertical },
-  { name: 'Submarine', size: 3, horizontalImg: submarineHorizontal, verticalImg: submarineVertical },
-  { name: 'Destroyer', size: 3, horizontalImg: cruiserHorizontal, verticalImg: cruiserVertical },
   { name: 'Patrol Boat', size: 2, horizontalImg: patrolHorizontal, verticalImg: patrolVertical },
+  { name: 'Destroyer', size: 3, horizontalImg: cruiserHorizontal, verticalImg: cruiserVertical },
+  { name: 'Submarine', size: 3, horizontalImg: submarineHorizontal, verticalImg: submarineVertical },
+  { name: 'Battleship', size: 4, horizontalImg: battleshipHorizontal, verticalImg: battleshipVertical },
+  { name: 'Aircraft Carrier', size: 5, horizontalImg: carrierHorizontal, verticalImg: carrierVertical },
 ];
 
 // Seeded random number generator for consistent randomization
@@ -87,6 +87,8 @@ const App = () => {
       positions: [],
       horizontal: true,
       placed: false,
+      row: index < 2 ? 0 : 1, // Arrange ships in two rows
+      col: index < 2 ? index : index - 2
     }))
   );
   const [shipCount, setShipCount] = useState(0);
@@ -232,11 +234,13 @@ const App = () => {
         setPlacementSaved(false);
         setMyBoard(Array(GRID_SIZE).fill('water'));
         setShips(prev =>
-          prev.map(ship => ({
+          prev.map((ship, index) => ({
             ...ship,
             positions: [],
             horizontal: true,
             placed: false,
+            row: index < 2 ? 0 : 1, // Arrange ships in two rows
+            col: index < 2 ? index : index - 2
           }))
         );
         setShipCount(0);
@@ -1204,7 +1208,6 @@ const App = () => {
             <div key={i} className="ship-container">
               <div className="ship-info">
                 <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
               </div>
               <div
                 className="ship"
