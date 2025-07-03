@@ -87,8 +87,8 @@ const App = () => {
       positions: [],
       horizontal: true,
       placed: false,
-      row: index < 2 ? 0 : 1, // Arrange ships in two rows
-      col: index < 2 ? index : index - 2
+      row: index % 2, // Arrange ships in two columns
+      col: Math.floor(index / 2)
     }))
   );
   const [shipCount, setShipCount] = useState(0);
@@ -1657,7 +1657,16 @@ const App = () => {
                 </div>
               </div>
               <div className="fleet-container">
-                {renderShipList()}
+                <div className="ships-list">
+                  {ships.map((ship, index) => (
+                    <div key={ship.id} className="ship-item-container">
+                      <div className="ship-label">
+                        {ship.name} ({ship.size})
+                      </div>
+                      {renderShip(ship, index)}
+                    </div>
+                  ))}
+                </div>
                 <div
                   onDrop={handleGridDrop}
                   onDragOver={handleGridDragOver}
