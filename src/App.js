@@ -1194,51 +1194,7 @@ const App = () => {
     );
   }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
 
-  // Function to render the list of ships for placement
-  const renderShipList = useCallback(() => {
-    if (isPlacementConfirmed) {
-      console.log('Not rendering ship list: Placement confirmed');
-      return null;
-    }
-    console.log('Rendering ship list for placement');
-    return (
-      <div className="unplaced-ships">
-        {ships.map((ship, i) => (
-          !ship.placed && (
-            <div key={i} className="ship-container">
-              <div className="ship-info">
-                <span style={{ color: '#ffffff' }}>{ship.name}</span>
-              </div>
-              <div
-                className="ship"
-                draggable={!isPlacementConfirmed}
-                onDragStart={(e) => handleDragStart(e, i)}
-                onDragEnd={() => setIsDragging(null)}
-                onTouchStart={(e) => handleTouchStart(e, i)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                  height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                  opacity: 1,
-                  cursor: isPlacementConfirmed ? 'default' : 'grab',
-                  border: '2px solid #333',
-                  borderRadius: '4px',
-                  marginBottom: '10px',
-                  touchAction: 'none'
-                }}
-              >
-                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-              </div>
-            </div>
-          )
-        ))}
-      </div>
-    );
-  }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  // (renderShipList function removed because it was unused)
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
@@ -1663,7 +1619,33 @@ const App = () => {
                       <div className="ship-label">
                         {ship.name} ({ship.size})
                       </div>
-                      {renderShip(ship, index)}
+                      {/* Inline rendering for each ship, similar to renderShipList */}
+                      {!ship.placed && (
+                        <div
+                          className="ship"
+                          draggable={!isPlacementConfirmed}
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragEnd={() => setIsDragging(null)}
+                          onTouchStart={(e) => handleTouchStart(e, index)}
+                          onTouchMove={handleTouchMove}
+                          onTouchEnd={handleTouchEnd}
+                          style={{
+                            backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            width: isDragging === index ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+                            height: isDragging === index ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
+                            opacity: 1,
+                            cursor: isPlacementConfirmed ? 'default' : 'grab',
+                            border: '2px solid #333',
+                            borderRadius: '4px',
+                            marginBottom: '10px',
+                            touchAction: 'none'
+                          }}
+                        >
+                          <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
