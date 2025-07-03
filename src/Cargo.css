@@ -1443,3 +1443,51 @@
     width: 100%;
   }
 }
+
+/* Add after your other ship placement styles */
+
+.unplaced-ships-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: min-content;
+  gap: 10px 14px;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto 12px auto;
+}
+.unplaced-ships-grid .ship-grid-item {
+  background: linear-gradient(45deg, #666, #999);
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(255,255,255,0.2);
+  border: 1px solid #333;
+  /* width/height set inline for each ship */
+}
+.unplaced-ships-grid .ship-info,
+.unplaced-ships-grid .ship-status,
+.unplaced-ships-grid .ship-label {
+  display: none !important;
+}
+
+/* Responsive: 2 in first row, 3 in second row for 5 ships */
+.unplaced-ships-grid > :nth-child(3) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.unplaced-ships-grid > :nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.unplaced-ships-grid > :nth-child(5) {
+  grid-column: 1 / span 2;
+  grid-row: 3;
+  justify-self: center;
+}
+
+@media (max-width: 480px) {
+  .unplaced-ships-grid {
+    max-width: 98vw;
+    gap: 6px 6px;
+  }
+}
