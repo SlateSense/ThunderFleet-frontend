@@ -1204,7 +1204,7 @@ const App = () => {
             <div key={i} className="ship-container">
               <div className="ship-info">
                 <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+                {/* Removed placed/not placed status */}
               </div>
               <div
                 className="ship"
