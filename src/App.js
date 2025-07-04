@@ -1202,6 +1202,10 @@ const App = () => {
         {ships.map((ship, i) => (
           !ship.placed && (
             <div key={i} className="ship-container">
+              <div className="ship-info">
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                {/* Removed placed/not placed status */}
+              </div>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1209,23 +1213,13 @@ const App = () => {
                 onDragEnd={() => setIsDragging(null)}
                 onTouchStart={(e) => handleTouchStart(e, i)}
                 onTouchMove={handleTouchMove}
-                onTouchEnd={(e) => {
-                  handleTouchEnd(e);
-                  if (!isPlacementConfirmed) toggleOrientation(i);
-                }}
-                onClick={() => {
-                  if (!isPlacementConfirmed) toggleOrientation(i);
-                }}
+                onTouchEnd={handleTouchEnd}
                 style={{
                   backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  width: isDragging === i
-                    ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`)
-                    : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                  height: isDragging === i
-                    ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`)
-                    : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
+                  width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+                  height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
                   opacity: 1,
                   cursor: isPlacementConfirmed ? 'default' : 'grab',
                   border: '2px solid #333',
@@ -1233,7 +1227,9 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
-              />
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
             </div>
           )
         ))}
@@ -1260,6 +1256,11 @@ const App = () => {
         </h1>
         <button
           onClick={() => {
+            console.log('Start Game button clicked');
+            setGameState('join');
+          }}
+          onTouchStart={() => {
+            console.log('Start Game button touched');
             setGameState('join');
           }}
           className="join-button"
