@@ -1203,7 +1203,8 @@ const App = () => {
           !ship.placed && (
             <div key={i} className="ship-container">
               <div className="ship-info">
-                {/* Removed ship name text */}
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                {/* Removed placed/not placed status */}
               </div>
               <div
                 className="ship"
@@ -1227,8 +1228,7 @@ const App = () => {
                   touchAction: 'none'
                 }}
               >
-                {/* Removed ship name text */}
-                <button onClick={() => toggleOrientation(i)}>Rotate</button>  // Added a rotate button for explicit rotation
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
             </div>
           )
