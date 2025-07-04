@@ -1256,11 +1256,6 @@ const App = () => {
         </h1>
         <button
           onClick={() => {
-            console.log('Start Game button clicked');
-            setGameState('join');
-          }}
-          onTouchStart={() => {
-            console.log('Start Game button touched');
             setGameState('join');
           }}
           className="join-button"
