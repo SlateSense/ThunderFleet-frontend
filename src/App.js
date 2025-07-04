@@ -35,11 +35,11 @@ const BET_OPTIONS = [
 
 // Ship configuration defining each ship's name, size, and images
 const SHIP_CONFIG = [
-  { name: 'Patrol Boat', size: 2, horizontalImg: patrolHorizontal, verticalImg: patrolVertical },
-  { name: 'Destroyer', size: 3, horizontalImg: cruiserHorizontal, verticalImg: cruiserVertical },
-  { name: 'Submarine', size: 3, horizontalImg: submarineHorizontal, verticalImg: submarineVertical },
-  { name: 'Battleship', size: 4, horizontalImg: battleshipHorizontal, verticalImg: battleshipVertical },
   { name: 'Aircraft Carrier', size: 5, horizontalImg: carrierHorizontal, verticalImg: carrierVertical },
+  { name: 'Battleship', size: 4, horizontalImg: battleshipHorizontal, verticalImg: battleshipVertical },
+  { name: 'Submarine', size: 3, horizontalImg: submarineHorizontal, verticalImg: submarineVertical },
+  { name: 'Destroyer', size: 3, horizontalImg: cruiserHorizontal, verticalImg: cruiserVertical },
+  { name: 'Patrol Boat', size: 2, horizontalImg: patrolHorizontal, verticalImg: patrolVertical },
 ];
 
 // Seeded random number generator for consistent randomization
@@ -87,8 +87,6 @@ const App = () => {
       positions: [],
       horizontal: true,
       placed: false,
-      row: index < 2 ? 0 : 1, // Arrange ships in two rows
-      col: index < 2 ? index : index - 2
     }))
   );
   const [shipCount, setShipCount] = useState(0);
@@ -234,13 +232,11 @@ const App = () => {
         setPlacementSaved(false);
         setMyBoard(Array(GRID_SIZE).fill('water'));
         setShips(prev =>
-          prev.map((ship, index) => ({
+          prev.map(ship => ({
             ...ship,
             positions: [],
             horizontal: true,
             placed: false,
-            row: index < 2 ? 0 : 1, // Arrange ships in two rows
-            col: index < 2 ? index : index - 2
           }))
         );
         setShipCount(0);
@@ -1201,40 +1197,34 @@ const App = () => {
       return null;
     }
     console.log('Rendering ship list for placement');
+    // Arrange unplaced ships in a compact grid: 2 in first row, 3 in second row
+    const unplacedShips = ships.filter(ship => !ship.placed);
     return (
-      <div className="unplaced-ships">
-        {ships.map((ship, i) => (
-          !ship.placed && (
-            <div key={i} className="ship-container">
-              <div className="ship-info">
-                <span style={{ color: '#ffffff' }}>{ship.name}</span>
-              </div>
-              <div
-                className="ship"
-                draggable={!isPlacementConfirmed}
-                onDragStart={(e) => handleDragStart(e, i)}
-                onDragEnd={() => setIsDragging(null)}
-                onTouchStart={(e) => handleTouchStart(e, i)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                  height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                  opacity: 1,
-                  cursor: isPlacementConfirmed ? 'default' : 'grab',
-                  border: '2px solid #333',
-                  borderRadius: '4px',
-                  marginBottom: '10px',
-                  touchAction: 'none'
-                }}
-              >
-                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-              </div>
-            </div>
-          )
+      <div className="unplaced-ships-grid">
+        {unplacedShips.map((ship, i) => (
+          <div
+            key={i}
+            className="ship-grid-item"
+            draggable={!isPlacementConfirmed}
+            onDragStart={(e) => handleDragStart(e, i)}
+            onDragEnd={() => setIsDragging(null)}
+            onTouchStart={(e) => handleTouchStart(e, i)}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{
+              backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
+              height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
+              opacity: 1,
+              cursor: isPlacementConfirmed ? 'default' : 'grab',
+              border: '2px solid #333',
+              borderRadius: '4px',
+              margin: 'auto',
+              touchAction: 'none'
+            }}
+          />
         ))}
       </div>
     );
