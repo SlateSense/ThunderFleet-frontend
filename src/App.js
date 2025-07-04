@@ -125,6 +125,7 @@ const App = () => {
   const seededRandom = useRef(null);
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const touchStartRef = useRef(null); // <-- Add this line to fix the error
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -955,6 +956,50 @@ const App = () => {
     console.log(`Touch moving for ship ${isDragging}`);
   }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
 
+  // Function to handle grid drop (for both drag and touch)
+  const handleGridDrop = useCallback(({ x, y, shipIndex }) => {
+    if (isPlacementConfirmed || shipIndex == null) return;
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+    const destinationId = row * GRID_COLS + col;
+
+    const ship = ships[shipIndex];
+    const newPositions = calculateShipPositions(ship, destinationId.toString());
+
+    if (!newPositions) {
+      setMessage('Invalid placement: Overlaps or out of bounds.');
+      setIsDragging(null);
+      return;
+    }
+
+    // Check for overlap with other ships
+    const otherShipsPositions = ships
+      .filter((_, idx) => idx !== shipIndex)
+      .flatMap(s => s.positions);
+
+    if (newPositions.some(pos => otherShipsPositions.includes(pos))) {
+      setMessage('Invalid placement: Overlaps with another ship.');
+      setIsDragging(null);
+      return;
+    }
+
+    // Update ship placement
+    setShips(prev => {
+      const updated = [...prev];
+      updated[shipIndex] = {
+        ...ship,
+        positions: newPositions,
+        placed: true,
+      };
+      setShipCount(updated.filter(s => s.placed).length);
+      playPlaceSound();
+      updateServerBoard(updated);
+      return updated;
+    });
+    setIsDragging(null);
+    setMessage('');
+  }, [isPlacementConfirmed, cellSize, ships, calculateShipPositions, setShipCount, playPlaceSound, updateServerBoard]);
+
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
@@ -1030,7 +1075,7 @@ const App = () => {
     setDragPosition({ x, y });
     
     console.log(`Touch started for ship ${shipIndex}`);
-  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition, toggleOrientation]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
