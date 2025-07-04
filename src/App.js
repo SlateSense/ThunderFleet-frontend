@@ -125,7 +125,6 @@ const App = () => {
   const seededRandom = useRef(null);
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
-  const touchStartRef = useRef(null); // <-- Add this line to fix the error
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -938,93 +937,117 @@ const App = () => {
   const handleTouchMove = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
-    
-    // If we start moving, it's a drag, not a tap
-    if (touchStartRef.current && !touchStartRef.current.isDragging) {
-      touchStartRef.current.isDragging = true;
-      // Clear the tap timer since this is a drag
-      if (touchStartRef.tapTimer) {
-        clearTimeout(touchStartRef.tapTimer);
-      }
-    }
-    
     const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     setDragPosition({ x, y });
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (data) {
+      data.startX = touch.clientX;
+      data.startY = touch.clientY;
+      sessionStorage.setItem('dragData', JSON.stringify(data));
+    }
     console.log(`Touch moving for ship ${isDragging}`);
   }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
 
-  // Function to handle grid drop (for both drag and touch)
-  const handleGridDrop = useCallback(({ x, y, shipIndex }) => {
-    if (isPlacementConfirmed || shipIndex == null) return;
-    const col = Math.floor(x / cellSize);
-    const row = Math.floor(y / cellSize);
-    const destinationId = row * GRID_COLS + col;
+  // Function to handle dropping a ship on the grid
+  const handleGridDrop = useCallback((e) => {
+    let shipIndex, x, y;
+    if (e.dataTransfer) {
+      e.preventDefault();
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
+        return;
+      }
+      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    } else {
+      shipIndex = e.shipIndex;
+      x = e.x;
+      y = e.y;
+      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    }
+
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
+      return;
+    }
 
     const ship = ships[shipIndex];
-    const newPositions = calculateShipPositions(ship, destinationId.toString());
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+    const position = row * GRID_COLS + col;
 
+    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
+      setMessage('Invalid drop position!');
+      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
+      return;
+    }
+
+    const newPositions = calculateShipPositions(ship, position.toString());
     if (!newPositions) {
-      setMessage('Invalid placement: Overlaps or out of bounds.');
-      setIsDragging(null);
+      setMessage('Invalid placement!');
+      console.log('Invalid placement: Ship cannot be placed here');
       return;
     }
 
-    // Check for overlap with other ships
-    const otherShipsPositions = ships
-      .filter((_, idx) => idx !== shipIndex)
-      .flatMap(s => s.positions);
+    let updatedShips;
+    setMyBoard((prev) => {
+      const newBoard = [...prev];
+      if (ship.positions.length > 0) {
+        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      }
+      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
+      return newBoard;
+    });
 
-    if (newPositions.some(pos => otherShipsPositions.includes(pos))) {
-      setMessage('Invalid placement: Overlaps with another ship.');
-      setIsDragging(null);
-      return;
-    }
-
-    // Update ship placement
-    setShips(prev => {
+    setShips((prev) => {
       const updated = [...prev];
       updated[shipIndex] = {
-        ...ship,
+        ...updated[shipIndex],
         positions: newPositions,
         placed: true,
       };
-      setShipCount(updated.filter(s => s.placed).length);
-      playPlaceSound();
-      updateServerBoard(updated);
+      updatedShips = updated;
+
+      // Calculate the new ship count based on placed ships
+      const placedCount = updated.filter(s => s.positions.length > 0).length;
+      setShipCount(placedCount);
+      setMessage(
+        placedCount === 5
+          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+          : `${placedCount} of 5 ships placed. You can still reposition ships.`
+      );
+      console.log(`Ship count updated to ${placedCount}`);
+
       return updated;
     });
+
+    playPlaceSound();
     setIsDragging(null);
-    setMessage('');
-  }, [isPlacementConfirmed, cellSize, ships, calculateShipPositions, setShipCount, playPlaceSound, updateServerBoard]);
+    if (updatedShips) updateServerBoard(updatedShips);
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
     if (isDragging === null || isPlacementConfirmed) return;
     e.preventDefault();
-    
-    // Clear the tap timer
-    if (touchStartRef.tapTimer) {
-      clearTimeout(touchStartRef.tapTimer);
-    }
-    
-    // Only handle drop if this was a drag operation
-    if (touchStartRef.current?.isDragging) {
-      const touch = e.changedTouches[0];
-      const gridRect = gridRef.current.getBoundingClientRect();
-      const shipIndex = isDragging;
-      const startX = touchStartRef.current?.x || 0;
-      const startY = touchStartRef.current?.y || 0;
-      const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
-      const y = touch.clientY - gridRect.top + (startY - touch.clientY);
-      console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
-      handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
-    }
-    
-    // Reset touch state
-    touchStartRef.current = null;
+    setIsDragging(null);
+    const data = JSON.parse(sessionStorage.getItem('dragData'));
+    if (!data) return;
+    const { shipIndex, startX, startY } = data;
+    const touch = e.changedTouches[0];
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
+    const y = touch.clientY - gridRect.top + (startY - touch.clientY);
+    console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
+    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
+    sessionStorage.removeItem('dragData');
   }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
 
   // Function to handle drag start
@@ -1045,37 +1068,16 @@ const App = () => {
       return;
     }
     e.preventDefault();
-    
-    // Store initial touch position and time
-    const touch = e.touches[0];
-    const touchStart = {
-      x: touch.clientX,
-      y: touch.clientY,
-      time: Date.now(),
-      shipId: shipIndex
-    };
-    
-    // Store in ref for touch move/end handlers
-    touchStartRef.current = touchStart;
-    
-    // Set a small timeout to determine if this is a tap or drag
-    touchStartRef.tapTimer = setTimeout(() => {
-      // If we get here and not dragging yet, it's a tap
-      if (!touchStartRef.current.isDragging && touchStartRef.current.shipId === shipIndex) {
-        // Handle rotation on tap
-        toggleOrientation(shipIndex);
-      }
-    }, 150); // Short delay to distinguish tap from drag
-    
-    // Initialize drag state
     setIsDragging(shipIndex);
+    const touch = e.touches[0];
     const rect = gridRef.current.getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     setDragPosition({ x, y });
-    
-    console.log(`Touch started for ship ${shipIndex}`);
-  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition, toggleOrientation]);
+    const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
+    sessionStorage.setItem('dragData', JSON.stringify(data));
+    console.log(`Touch drag started for ship ${shipIndex}`);
+  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1200,6 +1202,9 @@ const App = () => {
         {ships.map((ship, i) => (
           !ship.placed && (
             <div key={i} className="ship-container">
+              <div className="ship-info">
+                {/* Removed ship name text */}
+              </div>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1222,6 +1227,8 @@ const App = () => {
                   touchAction: 'none'
                 }}
               >
+                {/* Removed ship name text */}
+                <button onClick={() => toggleOrientation(i)}>Rotate</button>  // Added a rotate button for explicit rotation
               </div>
             </div>
           )
