@@ -215,6 +215,7 @@ const App = () => {
         setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
         setMessage(`Scan to pay ${betAmount} SATS`);
+        setIsLoading(false); // Reset loading after transition
       },
       paymentVerified: () => {
         console.log('Payment verified successfully');
@@ -813,7 +814,7 @@ const App = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(true); // Start loading to disable button
     socket.emit('joinGame', { lightningAddress: sanitizedAddress, betAmount: parseInt(betAmount) }, () => {
       console.log('Join game callback triggered');
     });
@@ -821,7 +822,7 @@ const App = () => {
     joinGameTimeoutRef.current = setTimeout(() => {
       console.error('joinGame timed out');
       setMessage('Failed to join game: Server did not respond. Click Retry to try again.');
-      setIsLoading(false);
+      setIsLoading(false); // Reset loading on timeout
     }, JOIN_GAME_TIMEOUT);
 
     setGameState('waiting');
@@ -842,7 +843,7 @@ const App = () => {
 
   // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
-    if (!socket) return;
+    if (!socket || !gameId || !playerId) return;
     console.log('Cancelling game:', { gameId, playerId });
     socket.emit('cancelGame', { gameId, playerId });
     setGameState('join');
@@ -1414,11 +1415,11 @@ const App = () => {
           <button
             onClick={handlePay}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
-            disabled={!hostedInvoiceUrl || payButtonLoading}
+            disabled={!hostedInvoiceUrl || payButtonLoading || isLoading}
           >
             {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
-          <button onClick={handleCancelGame} className="cancel-button">
+          <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading}>
             Cancel
           </button>
         </div>
@@ -1443,7 +1444,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame]);
+  }, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame, isLoading]);
 
   // Component to render confetti for winning
   const Confetti = useMemo(() => {
@@ -1632,7 +1633,7 @@ const App = () => {
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button">
+              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading}>
                 Cancel
               </button>
             </div>
