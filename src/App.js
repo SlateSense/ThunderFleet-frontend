@@ -862,7 +862,7 @@ const App = () => {
       const startPos = ship.positions[0];
 
       if (!startPos) {
-        setMessage('Cannot rotate: KILLED not placed yet.');
+        setMessage('Cannot rotate: Ship not placed yet.');
         return prev;
       }
 
@@ -1694,7 +1694,7 @@ const App = () => {
 
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
-            <div className="placing-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="placing-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'auto' }}>
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
@@ -1798,6 +1798,7 @@ const App = () => {
               </div>
             </div>
           )}
+
 
           {/* Finished Game Screen */}
           {gameState === 'finished' && (
