@@ -224,7 +224,8 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setMessage('Payment verified! Preparing game...');
+        setMessage('Payment verified! Waiting for opponent...');
+        setGameState('waitingForOpponent');
       },
       startPlacing: () => {
         console.log('Starting ship placement phase');
