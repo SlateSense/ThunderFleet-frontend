@@ -97,7 +97,7 @@ const App = () => {
   const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
-  const [cellSize, setCellSize] = useState(60); // Increased base cell size for larger grid
+  const [cellSize, setCellSize] = useState(40); // Reduced base cell size for better fit
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
   const [timerActive, setTimerActive] = useState(false);
   const [lightningInvoice, setLightningInvoice] = useState(null);
@@ -524,12 +524,7 @@ const App = () => {
 
     console.log('Randomizing all ships');
     const newBoard = Array(GRID_SIZE).fill('water');
-    const newShips = ships.map(ship => ({
-      ...ship,
-      positions: [],
-      horizontal: true,
-      placed: false,
-    }));
+    const newShips = [...ships];
     let successfulPlacements = 0;
 
     SHIP_CONFIG.forEach((shipConfig, index) => {
@@ -661,7 +656,7 @@ const App = () => {
     const height = window.innerHeight;
     const maxDimension = Math.min(width, height);
     console.log(`Window resized to width: ${width}px, height: ${height}px`);
-    const newCellSize = Math.max(60, Math.floor((maxDimension - 20) / Math.max(GRID_COLS, GRID_ROWS))); // Ensure grid touches edges
+    const newCellSize = Math.min(40, Math.floor((maxDimension - 20) / Math.max(GRID_COLS, GRID_ROWS))); // Cap at 40px
     setCellSize(newCellSize);
     console.log(`Set cell size to ${newCellSize}px to fit screen`);
   }, []);
@@ -1090,10 +1085,11 @@ const App = () => {
         ref={isEnemy ? null : gridRef}
         className="grid-container"
         style={{
-          width: GRID_COLS * cellSize,
-          height: GRID_ROWS * cellSize,
+          width: `${GRID_COLS * cellSize}px`,
+          height: `${GRID_ROWS * cellSize}px`,
+          maxWidth: '360px', // Cap grid width for mobile
           position: 'relative',
-          margin: 0,
+          margin: '0 auto',
           padding: 0,
         }}
         onDragOver={handleGridDragOver}
@@ -1664,7 +1660,7 @@ const App = () => {
 
           {/* Waiting for Payment Screen */}
           {gameState === 'waiting' && (
-            <div className="waiting-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="waiting-screen" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000 }}>
               {PaymentModal}
               {!isLoading && (
                 <button
@@ -1676,13 +1672,13 @@ const App = () => {
                   Retry
                 </button>
               )}
-              <p style={{ marginTop: '10px' }}>{message}</p>
+              <p style={{ marginTop: '10px', color: '#fff' }}>{message}</p>
             </div>
           )}
 
           {/* Waiting for Opponent Screen */}
           {gameState === 'waitingForOpponent' && (
-            <div className="waiting-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="waiting-screen" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, padding: '20px', borderRadius: '10px' }}>
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
@@ -1694,7 +1690,7 @@ const App = () => {
 
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
-            <div className="placing-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="placing-screen" style={{ height: '100vh', overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: '20px' }}>
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
@@ -1719,12 +1715,12 @@ const App = () => {
                   onDrop={handleGridDrop}
                   onDragOver={handleGridDragOver}
                   onTouchEnd={handleTouchEnd}
-                  style={{ margin: 0, padding: 0 }}
+                  style={{ margin: '0 auto', padding: 0 }}
                 >
                   {renderGrid(myBoard, false)}
                 </div>
               </div>
-              <div className="action-buttons" style={{ marginTop: '10px' }}>
+              <div className="action-buttons" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button
                   onClick={randomizeShips}
                   onTouchStart={randomizeShips}
@@ -1790,8 +1786,7 @@ const App = () => {
                   {renderGrid(enemyBoard, true)}
                 </div>
               </div>
-              <div className="game-stats">
-                <h4>Game Stats</h4>
+              <div className="stats-container" style={{ marginTop: '10px', color: '#fff' }}>
                 <p>Shots Fired: {gameStats.shotsFired}</p>
                 <p>Hits: {gameStats.hits}</p>
                 <p>Misses: {gameStats.misses}</p>
@@ -1799,25 +1794,21 @@ const App = () => {
             </div>
           )}
 
-          {/* Finished Game Screen */}
+          {/* Game Finished Screen */}
           {gameState === 'finished' && (
-            <div className="finished-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <h2>{message}</h2>
-              {transactionMessage && (
-                <p>{transactionMessage}</p>
-              )}
-              <div className="game-stats">
-                <h4>Final Game Stats</h4>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
-              </div>
+            <div className="finished-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', color: '#fff', padding: '20px', borderRadius: '10px' }}>
+              <h2>Game Over</h2>
+              <p>{message}</p>
+              {showConfetti && Confetti}
               <button
                 onClick={() => {
-                  console.log('Play Again button clicked');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
+                  console.log('Returning to splash screen');
+                  setGameState('splash');
+                  setGameId(null);
+                  setPlayerId(null);
+                  setLightningAddress('');
+                  setBetAmount('300');
+                  setPayoutAmount('500');
                   setMyBoard(Array(GRID_SIZE).fill('water'));
                   setEnemyBoard(Array(GRID_SIZE).fill('water'));
                   setShips(prev =>
@@ -1829,14 +1820,32 @@ const App = () => {
                     }))
                   );
                   setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setTurn(null);
+                  setMessage('');
+                  setTransactionMessage('');
+                  setCannonFire(null);
+                  setIsPlacementConfirmed(false);
+                  setIsDragging(null);
+                  setDragPosition({ x: 0, y: 0 });
+                  setTimeLeft(PLACEMENT_TIME);
+                  setTimerActive(false);
+                  setLightningInvoice(null);
+                  setHostedInvoiceUrl(null);
+                  setPlacementSaved(false);
+                  setIsWaitingForPayment(false);
+                  setIsOpponentThinking(false);
+                  setPaymentTimer(PAYMENT_TIMEOUT);
                   setShowConfetti(false);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
                 }}
                 onTouchStart={() => {
-                  console.log('Play Again button touched');
-                  setGameState('join');
-                  setMessage('');
-                  setTransactionMessage('');
+                  console.log('Returning to splash screen via touch');
+                  setGameState('splash');
+                  setGameId(null);
+                  setPlayerId(null);
+                  setLightningAddress('');
+                  setBetAmount('300');
+                  setPayoutAmount('500');
                   setMyBoard(Array(GRID_SIZE).fill('water'));
                   setEnemyBoard(Array(GRID_SIZE).fill('water'));
                   setShips(prev =>
@@ -1848,15 +1857,36 @@ const App = () => {
                     }))
                   );
                   setShipCount(0);
-                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+                  setTurn(null);
+                  setMessage('');
+                  setTransactionMessage('');
+                  setCannonFire(null);
+                  setIsPlacementConfirmed(false);
+                  setIsDragging(null);
+                  setDragPosition({ x: 0, y: 0 });
+                  setTimeLeft(PLACEMENT_TIME);
+                  setTimerActive(false);
+                  setLightningInvoice(null);
+                  setHostedInvoiceUrl(null);
+                  setPlacementSaved(false);
+                  setIsWaitingForPayment(false);
+                  setIsOpponentThinking(false);
+                  setPaymentTimer(PAYMENT_TIMEOUT);
                   setShowConfetti(false);
+                  setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
                 }}
                 className="join-button"
-                style={{ padding: '15px 30px', fontSize: '1.2em' }}
+                style={{ padding: '15px 30px', fontSize: '1.2em', marginTop: '20px' }}
               >
-                Play Again
+                Return to Menu
               </button>
-              {Confetti}
+            </div>
+          )}
+
+          {/* Transaction Message */}
+          {transactionMessage && (
+            <div className="transaction-message" style={{ position: 'fixed', bottom: '10px', left: '50%', transform: 'translateX(-50%)', background: '#333', color: '#fff', padding: '10px 20px', borderRadius: '5px', zIndex: 1000 }}>
+              {transactionMessage}
             </div>
           )}
 
