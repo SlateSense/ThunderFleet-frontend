@@ -1208,41 +1208,65 @@ const App = () => {
     }
     console.log('Rendering ship list for placement');
     return (
-      <div className="unplaced-ships">
-        {ships.map((ship, i) => (
-          !ship.placed && (
-            <div key={i} className="ship-container">
-              <div className="ship-info">
-                <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+      <div className="unplaced-ships" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+        <div style={{ flex: 1, marginRight: '10px' }}>
+          {ships.slice(0, 2).map((ship, i) => (
+            !ship.placed && (
+              <div key={i} className="ship-container" style={{ marginBottom: '10px' }}>
+                <div
+                  className="ship"
+                  draggable={!isPlacementConfirmed}
+                  onDragStart={(e) => handleDragStart(e, i)}
+                  onDragEnd={() => setIsDragging(null)}
+                  onTouchStart={(e) => handleTouchStart(e, i)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  style={{
+                    backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    width: isDragging === i ? (ship.horizontal ? `${ship.size * (cellSize * 0.5)}px` : `${cellSize * 0.5}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.4)}px` : `${cellSize * 0.4}px`),
+                    height: isDragging === i ? (ship.horizontal ? `${cellSize * 0.5}px` : `${ship.size * (cellSize * 0.5)}px`) : (ship.horizontal ? `${cellSize * 0.4}px` : `${ship.size * (cellSize * 0.4)}px`),
+                    opacity: 1,
+                    cursor: isPlacementConfirmed ? 'default' : 'grab',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    touchAction: 'none'
+                  }}
+                />
               </div>
-              <div
-                className="ship"
-                draggable={!isPlacementConfirmed}
-                onDragStart={(e) => handleDragStart(e, i)}
-                onDragEnd={() => setIsDragging(null)}
-                onTouchStart={(e) => handleTouchStart(e, i)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  width: isDragging === i ? (ship.horizontal ? `${ship.size * cellSize}px` : `${cellSize}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`),
-                  height: isDragging === i ? (ship.horizontal ? `${cellSize}px` : `${ship.size * cellSize}px`) : (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`),
-                  opacity: 1,
-                  cursor: isPlacementConfirmed ? 'default' : 'grab',
-                  border: '2px solid #333',
-                  borderRadius: '4px',
-                  marginBottom: '10px',
-                  touchAction: 'none'
-                }}
-              >
-                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+            )
+          ))}
+        </div>
+        <div style={{ flex: 1 }}>
+          {ships.slice(2, 5).map((ship, i) => (
+            !ship.placed && (
+              <div key={i + 2} className="ship-container" style={{ marginBottom: '10px' }}>
+                <div
+                  className="ship"
+                  draggable={!isPlacementConfirmed}
+                  onDragStart={(e) => handleDragStart(e, i + 2)}
+                  onDragEnd={() => setIsDragging(null)}
+                  onTouchStart={(e) => handleTouchStart(e, i + 2)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  style={{
+                    backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    width: isDragging === i + 2 ? (ship.horizontal ? `${ship.size * (cellSize * 0.5)}px` : `${cellSize * 0.5}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.4)}px` : `${cellSize * 0.4}px`),
+                    height: isDragging === i + 2 ? (ship.horizontal ? `${cellSize * 0.5}px` : `${ship.size * (cellSize * 0.5)}px`) : (ship.horizontal ? `${cellSize * 0.4}px` : `${ship.size * (cellSize * 0.4)}px`),
+                    opacity: 1,
+                    cursor: isPlacementConfirmed ? 'default' : 'grab',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    touchAction: 'none'
+                  }}
+                />
               </div>
-            </div>
-          )
-        ))}
+            )
+          ))}
+        </div>
       </div>
     );
   }, [isPlacementConfirmed, ships, cellSize, isDragging, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
