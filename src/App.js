@@ -125,7 +125,7 @@ const App = () => {
   const seededRandom = useRef(null);
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
-  const touchStartRef = useRef({ time: 0, x: 0, y: 0, shipId: null, isDragging: false });
+  const touchStartRef = useRef(null);
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -865,7 +865,7 @@ const App = () => {
       const newHorizontal = !ship.horizontal;
       const startPos = ship.positions[0];
 
-      if (startPos === undefined) {
+      if (!startPos) {
         setMessage('Cannot rotate: Ship not placed yet.');
         return prev;
       }
@@ -880,8 +880,6 @@ const App = () => {
         return prev;
       }
 
-      const otherShipsPositions = updated
-        .filter((_, idx) => idx !== shipIndex)
       updated[shipIndex] = {
         ...ship,
         horizontal: newHorizontal,
@@ -936,23 +934,27 @@ const App = () => {
 
   // Function to handle touch move
   const handleTouchMove = useCallback((e) => {
-    if (isPlacementConfirmed || !touchStartRef.current.shipId) return;
+    if (!touchStartRef.current || isPlacementConfirmed) return;
+    e.preventDefault();
 
+    const { x, y, shipIndex } = touchStartRef.current;
     const touch = e.touches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
-    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const deltaX = Math.abs(touch.clientX - x);
+    const deltaY = Math.abs(touch.clientY - y);
 
-    if (deltaX > 10 || deltaY > 10) {
-      if (!touchStartRef.current.isDragging) {
+    if (!touchStartRef.current.isDragging && (deltaX > 10 || deltaY > 10)) {
+        console.log(`Starting drag for ship ${shipIndex}`);
         touchStartRef.current.isDragging = true;
-        setIsDragging(touchStartRef.current.shipId);
-      }
-      setDragPosition({
-        x: touch.clientX - (e.currentTarget.offsetWidth / 2),
-        y: touch.clientY - (e.currentTarget.offsetHeight / 2),
-      });
+        setIsDragging(shipIndex);
     }
-  }, [isPlacementConfirmed, setDragPosition]);
+
+    if (touchStartRef.current.isDragging) {
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const dragX = touch.clientX - gridRect.left;
+        const dragY = touch.clientY - gridRect.top;
+        setDragPosition({ x: dragX, y: dragY });
+    }
+  }, [isPlacementConfirmed, gridRef, setIsDragging, setDragPosition]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
@@ -998,7 +1000,6 @@ const App = () => {
       return;
     }
 
-    let updatedShips;
     setMyBoard((prev) => {
       const newBoard = [...prev];
       if (ship.positions.length > 0) {
@@ -1016,7 +1017,6 @@ const App = () => {
         positions: newPositions,
         placed: true,
       };
-      updatedShips = updated;
 
       // Calculate the new ship count based on placed ships
       const placedCount = updated.filter(s => s.positions.length > 0).length;
@@ -1033,35 +1033,31 @@ const App = () => {
 
     playPlaceSound();
     setIsDragging(null);
-    if (updatedShips) updateServerBoard(updatedShips);
+    updateServerBoard();
   }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
-    if (isPlacementConfirmed || !touchStartRef.current.shipId) return;
-    console.log('Touch ended');
-    
-    if (touchStartRef.current.isDragging) {
-      const touch = e.changedTouches[0];
-      const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!touchStartRef.current || isPlacementConfirmed) return;
+    e.preventDefault();
 
-      if (dropTarget && dropTarget.classList.contains('cell')) {
-        const destinationId = dropTarget.dataset.gridIndex;
-        if (destinationId) {
-          handleGridDrop({ x: touch.clientX, y: touch.clientY, shipIndex: touchStartRef.current.shipId });
-        }
-      }
-      setIsDragging(null);
+    const { shipIndex, isDragging } = touchStartRef.current;
+
+    if (isDragging) {
+        const touch = e.changedTouches[0];
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const x = touch.clientX - gridRect.left;
+        const y = touch.clientY - gridRect.top;
+        console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
+        handleGridDrop({ x, y, shipIndex });
     } else {
-      const touchDuration = Date.now() - touchStartRef.current.time;
-      if (touchDuration < 250) {
-        e.preventDefault();
-        toggleOrientation(touchStartRef.current.shipId);
-      }
+        console.log(`Tapped on ship ${shipIndex}, rotating.`);
+        toggleOrientation(shipIndex);
     }
-    
-    touchStartRef.current = { time: 0, x: 0, y: 0, shipId: null, isDragging: false };
-  }, [isPlacementConfirmed, handleGridDrop, toggleOrientation]);
+
+    touchStartRef.current = null;
+    setIsDragging(null);
+  }, [isPlacementConfirmed, handleGridDrop, toggleOrientation, setIsDragging]);
 
   // Function to handle drag start
   const handleDragStart = useCallback((e, shipIndex) => {
@@ -1076,18 +1072,14 @@ const App = () => {
 
   // Function to handle touch start
   const handleTouchStart = useCallback((e, shipIndex) => {
-    if (isPlacementConfirmed) {
-      e.preventDefault();
-      return;
-    }
-    console.log(`Touch started for ship: ${shipIndex}`);
-    const touch = e.touches[0];
+    if (isPlacementConfirmed) return;
+    e.preventDefault();
     touchStartRef.current = {
-      time: Date.now(),
-      x: touch.clientX,
-      y: touch.clientY,
-      shipId: shipIndex,
-      isDragging: false,
+        shipIndex,
+        time: Date.now(),
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        isDragging: false
     };
   }, [isPlacementConfirmed]);
 
@@ -1216,6 +1208,10 @@ const App = () => {
         {ships.map((ship, i) => (
           !ship.placed && (
             <div key={i} className="ship-container">
+              <div className="ship-info">
+                <span style={{ color: '#ffffff' }}>{ship.name}</span>
+                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
+              </div>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1237,7 +1233,9 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
-              />
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
             </div>
           )
         ))}
