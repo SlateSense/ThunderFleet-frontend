@@ -1346,64 +1346,297 @@ const App = () => {
     );
   }, [isSoundEnabled]);
 
-  // Component to render the terms and conditions modal
-  const TermsModal = useMemo(() => {
-    console.log('Rendering TermsModal');
-    return (
-      <div className="modal">
-        <div className="modal-content">
-          <h2>Terms and Conditions</h2>
-          <p>
-            Welcome to Lightning Sea Battle! By using this application, you agree to the following terms:
-          </p>
-          <ul>
-            <li>All payments are made in Bitcoin SATS via the Lightning Network.</li>
-            <li>Winnings are subject to platform fees as displayed during bet selection.</li>
-            <li>We are not responsible for any losses due to network issues or payment failures.</li>
-            <li>Game results are final and determined by the server.</li>
-            <li>Users must be 18+ to participate.</li>
-          </ul>
-          <p>Please contact support@thunderfleet.com for any inquiries.</p>
-          <button
-            onClick={() => setShowTermsModal(false)}
-            onTouchStart={() => setShowTermsModal(false)}
-            className="join-button"
-          >
-            Close
-          </button>
-        </div>
+ // Component to render the terms and conditions modal
+const TermsModal = useMemo(() => {
+  console.log('Rendering TermsModal');
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <h2>Terms and Conditions for Thunder Fleet</h2>
+        <p>Welcome to Thunder Fleet!</p>
+        <p>
+          By accessing, downloading, installing, or using the Thunder Fleet platform, application, or associated services (collectively, the "Service"), you agree to be bound by these Terms and Conditions ("Terms"). These Terms constitute a legally binding agreement between you ("User" or "you") and Thunder Fleet ("we," "us," or "our"). Please read them carefully. If you do not agree with any part of these Terms, you must refrain from using the Service. Your continued use of the Service after any updates to these Terms will constitute acceptance of the revised Terms.
+        </p>
+        <h3>1. Acceptance of Terms</h3>
+        <p>
+          By creating an account, participating in gameplay, making payments, or engaging with any features of the Service, you acknowledge that you have read, understood, and agreed to be bound by these Terms, our Privacy Policy, and any additional guidelines or rules posted on the Service. You represent that you are at least 18 years of age or have obtained parental consent to use the Service. Minors are prohibited from participating without verifiable parental approval.
+        </p>
+        <h3>2. User Eligibility and Account Responsibilities</h3>
+        <ul>
+          <li><strong>Eligibility:</strong> You must be a resident of a jurisdiction where the use of the Service is legal and not prohibited by local laws.</li>
+          <li><strong>Account Creation:</strong> You are required to provide accurate, current, and complete information during registration. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities conducted under your account.</li>
+          <li><strong>Prohibited Conduct:</strong> You agree not to engage in any activity that interferes with the Service, including but not limited to cheating, using automated scripts, exploiting bugs, distributing malware, or attempting to gain unauthorized access to our systems or other users' accounts.</li>
+          <li><strong>Account Security:</strong> Notify us immediately at slatexsense@gmail.com if you suspect unauthorized use of your account. We are not liable for losses resulting from compromised accounts due to your negligence.</li>
+        </ul>
+        <h3>3. Payment Terms and Transactions</h3>
+        <ul>
+          <li><strong>Currency and Payment Method:</strong> All transactions are conducted exclusively in Bitcoin SATS via the Lightning Network. We do not accept other forms of payment.</li>
+          <li><strong>Betting and Winnings:</strong> Winnings are calculated based on bet amounts and are subject to a platform fee, which will be clearly displayed during the bet selection process (e.g., a 300 SATS bet yields 500 SATS, with a 100 SATS fee). Winnings are credited to your Lightning address upon game completion, subject to verification.</li>
+          <li><strong>Payment Processing:</strong> Payments are processed through third-party Lightning Network providers. We are not responsible for delays, failures, or errors caused by these providers, including network congestion or payment disputes.</li>
+          <li><strong>Refunds and Cancellations:</strong> Refunds are not available for payments made, except in cases of service outages lasting more than 24 hours, at our sole discretion. You may cancel a game before payment verification by notifying us, but no partial refunds will be issued for initiated games.</li>
+          <li><strong>Tax Obligations:</strong> You are solely responsible for any taxes, duties, or levies applicable to your winnings or use of the Service in your jurisdiction.</li>
+        </ul>
+        <h3>4. Intellectual Property and User Content</h3>
+        <ul>
+          <li><strong>Ownership:</strong> All content within the Service, including game design, graphics, sound effects, code, logos, and trademarks (e.g., "Thunder Fleet"), is the property of Thunder Fleet or its licensors and is protected by international copyright, trademark, and intellectual property laws.</li>
+          <li><strong>License:</strong> We grant you a limited, non-exclusive, non-transferable, revocable license to use the Service for personal, non-commercial entertainment purposes, subject to these Terms.</li>
+          <li><strong>User-Generated Data:</strong> Any data you generate during gameplay (e.g., ship placements, game logs) may be stored temporarily for operational purposes, dispute resolution, or analytics, as outlined in our Privacy Policy. You retain no ownership rights over such data.</li>
+          <li><strong>Restrictions:</strong> You may not reproduce, modify, distribute, perform, display, create derivative works, or otherwise exploit any part of the Service without our prior written consent. Unauthorized use may result in legal action and account termination.</li>
+        </ul>
+        <h3>5. Gameplay Rules and Conduct</h3>
+        <ul>
+          <li><strong>Game Integrity:</strong> All game outcomes are determined by our servers using secure, randomized algorithms. Any attempt to manipulate game results will result in immediate account suspension and potential legal action.</li>
+          <li><strong>Fair Play:</strong> You agree to play fairly, avoiding collusion with other players, using external aids (e.g., bots, calculators), or sharing account access.</li>
+          <li><strong>Ship Placement and Strategy:</strong> You are responsible for placing your ships within the allotted time. Failure to do so may result in automatic placement or game forfeiture.</li>
+          <li><strong>Bot Matchmaking:</strong> You acknowledge that due to the nature of the Service, you may be matched against automated players (bots) instead of human opponents, especially during periods of low player activity or for testing purposes. The use of bots is designed to ensure a consistent gaming experience, and their behavior is governed by our algorithms. You agree that matching with bots does not constitute a breach of these Terms or entitle you to refunds or compensation.</li>
+          <li><strong>Disputes:</strong> Any disputes regarding game results must be reported within 24 hours of the game’s conclusion, supported by evidence (e.g., screenshots), to slatexsense@gmail.com.</li>
+        </ul>
+        <h3>6. Limitation on Legal Action</h3>
+        <ul>
+          <li><strong>No Liability for Suits:</strong> You expressly agree not to initiate any legal action, lawsuit, or claim against Thunder Fleet, its affiliates, officers, employees, or agents for any reason, including but not limited to losses of currency, winnings, data, or any other damages arising from your use of the Service.</li>
+          <li><strong>Automatic Case Closure:</strong> In the event that any legal action is brought against Thunder Fleet despite this agreement, such case shall be automatically deemed closed and dismissed with prejudice, with all associated costs borne by the initiating party. This clause is intended to protect Thunder Fleet from frivolous or unjustified litigation and is a fundamental condition of your use of the Service.</li>
+        </ul>
+        <h3>7. Liability and Disclaimers</h3>
+        <ul>
+          <li><strong>Service Availability:</strong> The Service is provided "as is" and "as available" without warranties of any kind, express or implied, including but not limited to merchantability, fitness for a particular purpose, or non-infringement.</li>
+          <li><strong>Network Issues:</strong> We are not liable for losses, delays, or damages caused by internet disruptions, Lightning Network failures, or server outages beyond our reasonable control.</li>
+          <li><strong>Limitation of Liability:</strong> In no event shall Thunder Fleet, its affiliates, officers, employees, or agents be liable for indirect, incidental, special, consequential, or punitive damages, including lost profits, arising from your use of the Service, even if advised of the possibility of such damages. Our total liability shall not exceed the amount you paid us in the last 12 months.</li>
+          <li><strong>Third-Party Links:</strong> The Service may contain links to third-party websites or services (e.g., payment processors). We are not responsible for their content, privacy practices, or reliability.</li>
+        </ul>
+        <h3>8. Termination and Suspension</h3>
+        <ul>
+          <li><strong>Our Rights:</strong> We reserve the right to suspend or terminate your account at our discretion for violations of these Terms, including but not limited to fraud, abuse, or inactivity for 180 consecutive days.</li>
+          <li><strong>Effects of Termination:</strong> Upon termination, you will lose access to the Service, and any pending winnings or balances may be forfeited. Terminated accounts cannot be reactivated.</li>
+          <li><strong>User Termination:</strong> You may terminate your account by submitting a written request to slatexsense@gmail.com. Termination does not entitle you to a refund of any payments made.</li>
+          <li><strong>Post-Termination:</strong> Sections 4 (Intellectual Property), 5 (Gameplay Rules), 6 (Limitation on Legal Action), 7 (Liability), 8 (Termination), 10 (Governing Law), 14 (Technical Requirements and Compatibility), 15 (Limitation on Refunds and Chargebacks), 16 (Intellectual Property Indemnification), 17 (Force Majeure Expansion), 18 (User Feedback and Suggestions), 20 (Third-Party Services and Liability), and 22 (Severability and Survival Clause Enhancement) will survive termination.</li>
+        </ul>
+        <h3>9. Privacy and Data Protection</h3>
+        <ul>
+          <li><strong>Data Collection:</strong> We collect personal data (e.g., Lightning address, gameplay statistics) as described in our Privacy Policy. By using the Service, you consent to such collection and processing.</li>
+          <li><strong>Data Security:</strong> We implement reasonable security measures to protect your data, but no method is 100% secure. You acknowledge this risk.</li>
+          <li><strong>Data Sharing:</strong> We may share your data with third parties (e.g., payment processors, legal authorities) only as required by law or to provide the Service.</li>
+        </ul>
+        <h3>10. Governing Law and Dispute Resolution</h3>
+        <ul>
+          <li><strong>Applicable Law:</strong> These Terms are governed by the laws of India, without regard to conflict of law principles.</li>
+          <li><strong>Dispute Resolution:</strong> Any disputes arising from these Terms or your use of the Service shall be resolved through binding arbitration in Mumbai, India, conducted by a single arbitrator under the rules of the Indian Arbitration and Conciliation Act, 1996. Each party shall bear its own costs unless otherwise ordered.</li>
+          <li><strong>Class Action Waiver:</strong> You agree to waive any right to participate in a class action lawsuit or class-wide arbitration against us.</li>
+          <li><strong>Jurisdiction:</strong> If arbitration is unavailable, you consent to the exclusive jurisdiction of the courts in Mumbai, India.</li>
+        </ul>
+        <h3>11. Changes to Terms</h3>
+        <ul>
+          <li><strong>Updates:</strong> We may modify these Terms at any time to reflect changes in law, technology, or business practices. The updated Terms will be posted on the Service with an effective date.</li>
+          <li><strong>Notification:</strong> Significant changes will be communicated via email, in-game notifications, or other reasonable means at least 30 days in advance, unless immediate action is required for security reasons.</li>
+          <li><strong>Acceptance:</strong> Continued use of the Service after the effective date of the revised Terms constitutes your acceptance of the changes.</li>
+        </ul>
+        <h3>12. Technical Requirements and Compatibility</h3>
+        <ul>
+          <li>The Service requires a compatible device (e.g., smartphone or computer), a stable internet connection, and a Lightning Network-compatible wallet. Minimum requirements include Android 8.0+, iOS 13+, or a modern web browser.</li>
+          <li>We are not liable for issues arising from outdated devices, unsupported browsers, or inadequate internet connectivity. You are responsible for ensuring your equipment meets these standards.</li>
+        </ul>
+        <h3>13. Limitation on Refunds and Chargebacks</h3>
+        <ul>
+          <li>All payments are final upon successful transaction verification. No refunds or chargebacks will be issued except as explicitly stated in Section 3 (Payment Terms and Transactions).</li>
+          <li>Any attempt to reverse a payment through your wallet provider or third-party services will be considered a breach of these Terms, potentially leading to account termination and legal action to recover funds.</li>
+        </ul>
+        <h3>14. Intellectual Property Indemnification</h3>
+        <ul>
+          <li>You agree to indemnify, defend, and hold harmless Thunder Fleet, its affiliates, and agents from any claims, damages, or liabilities arising from your assertion that the Service infringes on your intellectual property rights. You waive any such claims and agree to bear all costs associated with defending against them.</li>
+        </ul>
+        <h3>15. Force Majeure Expansion</h3>
+        <ul>
+          <li>In addition to the events listed in Section 21 (Miscellaneous Provisions), force majeure includes blockchain network outages, Lightning Network disruptions, or government-imposed restrictions on cryptocurrency use. We are not liable for delays or failures caused by these events, and no compensation will be provided.</li>
+        </ul>
+        <h3>16. User Feedback and Suggestions</h3>
+        <ul>
+          <li>Any feedback, suggestions, or ideas you provide regarding the Service become the property of Thunder Fleet. You assign all rights to such submissions to us and waive any claims to compensation or ownership. We may use this input to enhance the Service without obligation to you.</li>
+        </ul>
+        <h3>17. Third-Party Services and Liability</h3>
+        <ul>
+          <li>The Service may integrate with third-party services (e.g., app stores, Lightning Network providers). We are not responsible for their performance, security, or availability. Any disputes with third parties must be resolved directly with them, and we disclaim all liability for their actions or omissions.</li>
+        </ul>
+        <h3>18. Severability and Survival Clause Enhancement</h3>
+        <ul>
+          <li>If any provision of these Terms is deemed invalid or unenforceable by a court or arbitrator in India, the remaining provisions will continue in full force and effect. The invalid provision will be replaced with a valid one that most closely approximates the original intent. Sections 4, 5, 6, 7, 8, 10, 13, 14, 15, 16, 17, and 18 will survive termination or expiration of these Terms.</li>
+        </ul>
+        <h3>19. Contact Information</h3>
+        <p>For questions, support, or to report violations, please contact us at:</p>
+        <ul>
+          <li>Email: slatexsense@gmail.com</li>
+          <li>Effective Date: July 5, 2025</li>
+          <li>Last Updated: July 5, 2025</li>
+        </ul>
+        <button
+          onClick={() => setShowTermsModal(false)}
+          onTouchStart={() => setShowTermsModal(false)}
+          className="join-button"
+        >
+          Close
+        </button>
       </div>
-    );
-  }, []);
-
-  // Component to render the privacy policy modal
-  const PrivacyModal = useMemo(() => {
-    console.log('Rendering PrivacyModal');
-    return (
-      <div className="modal">
-        <div className="modal-content">
-          <h2>Privacy Policy</h2>
-          <p>
-            At Lightning Sea Battle, we value your privacy:
-          </p>
-          <ul>
-            <li>We collect your Lightning address solely for payment processing.</li>
-            <li>Game data (e.g., board state, game results) is stored temporarily to facilitate gameplay.</li>
-            <li>We do not share your data with third parties, except as required for payment processing.</li>
-            <li>Payment logs are stored securely and used for transparency and dispute resolution.</li>
-          </ul>
-          <p>Contact support@thunderfleet.com for privacy-related concerns.</p>
-          <button
-            onClick={() => setShowPrivacyModal(false)}
-            onTouchStart={() => setShowPrivacyModal(false)}
-            className="join-button"
-          >
-            Close
-          </button>
-        </div>
+    </div>
+  );
+}, []);
+// Component to render the privacy policy modal
+const PrivacyModal = useMemo(() => {
+  console.log('Rendering PrivacyModal');
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <h2>Privacy Policy for Thunder Fleet</h2>
+        <p>Effective Date: July 5, 2025</p>
+        <p>Last Updated: July 5, 2025</p>
+        <p>
+          At Thunder Fleet, we are deeply committed to safeguarding your privacy and ensuring the utmost protection of your personal information. This Privacy Policy provides a detailed, transparent explanation of how we collect, use, disclose, store, process, transfer, and protect your data when you access, download, install, or use our Service (the "Service"), which includes the Thunder Fleet game platform, available on a variety of compatible devices such as smartphones, tablets, and computers. By engaging with the Service—whether by creating an account, participating in gameplay, making payments in Bitcoin SATS via the Lightning Network, or interacting with any features—you expressly agree to the data practices outlined in this Privacy Policy. We urge you to read this document carefully and in its entirety to fully understand your rights and our obligations. If you do not consent to these practices, please refrain from using the Service.
+        </p>
+        <h3>1. Introduction and Scope</h3>
+        <p>
+          This Privacy Policy applies to all users of the Thunder Fleet Service, including those accessing it through web browsers, mobile applications (e.g., Android 8.0+ or iOS 13+ devices), or other supported platforms. It governs the handling of data collected directly from you, as well as data generated through your interactions with the Service, such as gameplay activities and payment transactions. This policy is designed to comply with applicable Indian laws, including the Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000, and related regulations, while also adhering to best practices for international data protection standards. We reserve the right to update this policy periodically, and any changes will be communicated as outlined in Section 12.
+        </p>
+        <h3>2. Information We Collect</h3>
+        <p>We collect a wide range of information to provide, maintain, and enhance the Service. This includes:</p>
+        <ul>
+          <li><strong>Personal Information:</strong>
+            <ul>
+              <li><strong>Lightning Network Data:</strong> Your Lightning Network address or wallet identifier, which is required for processing payments in Bitcoin SATS and verifying transactions.</li>
+              <li><strong>Contact Information:</strong> Your email address (e.g., slatexsense@gmail.com) if you provide it during registration, contact us for support, or opt-in to receive notifications about updates, promotions, or legal matters.</li>
+              <li><strong>Identity Verification Data:</strong> In cases where we are legally required to verify your identity (e.g., under anti-money laundering laws), we may request additional details such as your full name or a government-issued ID, though this is not currently a standard requirement.</li>
+            </ul>
+          </li>
+          <li><strong>Gameplay Data:</strong>
+            <ul>
+              <li><strong>In-Game Actions:</strong> Detailed records of your ship placements, firing patterns, game outcomes, and turn-based decisions to ensure fair play and resolve disputes.</li>
+              <li><strong>Performance Statistics:</strong> Metrics such as shots fired, hits, misses, and win/loss ratios, which are tracked to analyze your performance and improve game balance.</li>
+              <li><strong>Bot Interaction Data:</strong> Information about your matches against automated players (bots), including response times and strategic choices, to refine bot algorithms and enhance the gaming experience.</li>
+            </ul>
+          </li>
+          <li><strong>Device and Technical Information:</strong>
+            <ul>
+              <li><strong>Device Identifiers:</strong> Unique device IDs, IP addresses, and MAC addresses to authenticate your access and ensure security.</li>
+              <li><strong>System Details:</strong> Operating system version (e.g., Android 8.0+, iOS 13+, or browser type), screen resolution, and hardware capabilities to optimize compatibility and performance.</li>
+              <li><strong>Connection Data:</strong> Internet service provider (ISP) details, connection speed, and session duration to troubleshoot connectivity issues and enhance network stability.</li>
+            </ul>
+          </li>
+          <li><strong>Optional Information:</strong>
+            <ul>
+              <li><strong>User-Submitted Content:</strong> Feedback, suggestions, bug reports, or ideas you voluntarily provide, which may include your name, email, or other personal details if included.</li>
+              <li><strong>Profile Preferences:</strong> Custom settings or preferences you set within the game, such as sound options or display themes, if applicable.</li>
+            </ul>
+          </li>
+          <li><strong>Cookies and Tracking Technologies:</strong>
+            <p>We employ cookies, web beacons, and similar technologies to monitor your usage patterns, personalize your experience, and measure the effectiveness of our marketing efforts. These may include session cookies (temporary) and persistent cookies (long-term), which track your visits across sessions. You can manage cookie preferences through your browser settings, though disabling them may limit certain features.</p>
+          </li>
+        </ul>
+        <h3>3. How We Use Your Information</h3>
+        <p>We utilize your data for a variety of purposes to ensure the Service operates smoothly and meets your expectations:</p>
+        <ul>
+          <li><strong>Service Delivery:</strong> To provide access to the game, match you with opponents (human or bot), process payments in Bitcoin SATS via the Lightning Network, and deliver real-time gameplay updates.</li>
+          <li><strong>Game Integrity and Security:</strong> To detect cheating, prevent unauthorized access, and resolve disputes by analyzing gameplay logs and transaction records.</li>
+          <li><strong>Communication:</strong> To send you important updates (e.g., game patches, server maintenance), respond to support requests, or notify you of legal or policy changes via email or in-game messages.</li>
+          <li><strong>Improvement and Analytics:</strong> To analyze usage trends, optimize game design, balance bot difficulty, and enhance user experience using aggregated, anonymized data where feasible.</li>
+          <li><strong>Legal Compliance:</strong> To fulfill obligations under Indian laws, such as reporting suspicious transactions to authorities or retaining data as required by the DPDP Act, 2023.</li>
+          <li><strong>Marketing (Optional):</strong> With your consent, to send promotional offers or newsletters, which you can opt out of at any time by contacting us.</li>
+        </ul>
+        <h3>4. How We Share Your Information</h3>
+        <p>We are committed to not selling your personal information to third parties. However, we may share it under the following circumstances:</p>
+        <ul>
+          <li><strong>Third-Party Service Providers:</strong> With payment processors (e.g., Lightning Network nodes) to facilitate Bitcoin SATS transactions, analytics platforms to track usage, and cloud service providers to host the Service. These partners are contractually obligated to protect your data and use it only for the purposes we specify.</li>
+          <li><strong>Legal Requirements:</strong> With law enforcement, regulatory bodies, or government authorities in India if required by law, court order, or to protect our rights, property, or the safety of our users. This may include sharing data to comply with anti-money laundering (AML) or counter-terrorism financing (CTF) regulations.</li>
+          <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, sale of assets, or bankruptcy, your data may be transferred to the successor entity, subject to this Privacy Policy or a comparable notice.</li>
+          <li><strong>With Your Consent:</strong> For any other purpose with your explicit, informed consent, which you can withdraw at any time by contacting us.</li>
+          <li><strong>Aggregated or Anonymized Data:</strong> We may share non-personally identifiable data (e.g., aggregated statistics on game performance) with partners or the public to promote the Service, provided it cannot be linked to you.</li>
+        </ul>
+        <h3>5. Data Security</h3>
+        <p>We employ a multi-layered approach to protect your data, including:</p>
+        <ul>
+          <li><strong>Physical Security:</strong> Secure data centers with restricted access and surveillance.</li>
+          <li><strong>Technical Measures:</strong> Encryption of sensitive data (e.g., Lightning addresses) during transmission and storage using industry-standard protocols like TLS.</li>
+          <li><strong>Organizational Controls:</strong> Access restrictions for employees and regular security audits to prevent unauthorized access or breaches.</li>
+        </ul>
+        <p>
+          Despite these efforts, no system is entirely immune to risks, especially given the decentralized nature of the Lightning Network. You acknowledge these inherent risks, and we are not liable for data breaches caused by external factors beyond our reasonable control. In the event of a breach affecting your personal data, we will notify you via email (e.g., slatexsense@gmail.com) within 72 hours, as required by the DPDP Act, 2023, and take remedial actions such as notifying the Indian Data Protection Authority and offering support.
+        </p>
+        <h3>6. Data Retention and Deletion</h3>
+        <p><strong>Retention Periods:</strong></p>
+        <ul>
+          <li>Personal information (e.g., Lightning address, email) is retained for 1 year after your last activity or as long as needed to provide the Service, unless extended by legal requirements (e.g., 5 years for financial records under Indian tax laws).</li>
+          <li>Gameplay data (e.g., logs, statistics) is stored for 30 days post-game for dispute resolution, then anonymized or deleted.</li>
+          <li>Technical data (e.g., IP addresses) is retained for 90 days for security purposes, then discarded.</li>
+        </ul>
+        <p><strong>Deletion Requests:</strong> You may request deletion of your data by contacting us at slatexsense@gmail.com, and we will comply within 30 days, subject to legal retention obligations (e.g., AML compliance). We will confirm deletion in writing.</p>
+        <h3>7. Your Rights and Choices</h3>
+        <p>Under the Digital Personal Data Protection Act, 2023, you have the following rights, which you can exercise by contacting us at slatexsense@gmail.com:</p>
+        <ul>
+          <li><strong>Right to Access:</strong> Request a detailed report of the personal data we hold about you, including its source and purpose, within 30 days.</li>
+          <li><strong>Right to Correction:</strong> Update or rectify inaccurate or incomplete data, such as correcting a misspelled email address.</li>
+          <li><strong>Right to Deletion:</strong> Request erasure of your data, except where retention is mandated by law (e.g., tax records).</li>
+          <li><strong>Right to Restriction:</strong> Limit the processing of your data for specific purposes (e.g., opting out of marketing).</li>
+          <li><strong>Right to Data Portability:</strong> Receive your data in a structured, machine-readable format for transfer to another service, where technically feasible.</li>
+          <li><strong>Right to Object:</strong> Challenge the processing of your data for direct marketing or profiling, which we will honor unless overridden by a legitimate interest.</li>
+        </ul>
+        <p>We may require identity verification (e.g., a copy of your ID) to process these requests, and we will respond within the legal timeframe, typically 30 days, with possible extensions for complex cases.</p>
+        <h3>8. International Data Transfers</h3>
+        <p>
+          Your data may be processed on servers located in India or other countries where our third-party providers operate (e.g., the United States or Singapore). We ensure compliance with Indian data protection laws by implementing safeguards such as Standard Contractual Clauses (SCCs) or binding corporate rules, as approved by the Indian Data Protection Authority. You consent to these transfers by using the Service, understanding that data protection standards may vary by jurisdiction.
+        </p>
+        <h3>9. Children’s Privacy</h3>
+        <p>
+          The Service is intended for users aged 18 and above, as stipulated in our Terms and Conditions. We do not knowingly collect personal data from children under 18. If we discover such collection, we will delete the data immediately, notify the parent or guardian via email (e.g., slatexsense@gmail.com), and report the incident to the relevant authorities if required. Parents or guardians may contact us to initiate this process.
+        </p>
+        <h3>10. Third-Party Links and Services</h3>
+        <p>
+          The Service may contain links to third-party websites (e.g., payment gateways, app stores) or integrate with external services (e.g., Lightning Network nodes). We are not responsible for the privacy practices or data security of these entities. Their use of your data is governed by their own policies, which we recommend you review. We disclaim all liability for any unauthorized access or misuse of your data by third parties.
+        </p>
+        <h3>11. Cookies and Tracking Technologies</h3>
+        <p>We use cookies and similar technologies for various purposes:</p>
+        <ul>
+          <li><strong>Essential Cookies:</strong> To maintain your session, authenticate your login, and enable core functionality.</li>
+          <li><strong>Analytical Cookies:</strong> To track usage metrics (e.g., time spent playing, match frequency) and improve the Service, using tools like Google Analytics with anonymized data.</li>
+          <li><strong>Advertising Cookies:</strong> With your consent, to deliver targeted ads based on your gameplay preferences, which you can opt out of via your device settings.</li>
+        </ul>
+        <p>You can manage cookie preferences through your browser or device settings, but disabling them may impair the Service’s performance or accessibility.</p>
+        <h3>12. Changes to This Privacy Policy</h3>
+        <p>
+          We may revise this Privacy Policy to reflect changes in legal requirements, technological advancements, or our data practices. The updated version will be posted on the Service with a new effective date and version number. Significant changes, such as new data collection methods or sharing practices, will be communicated via email, in-game notifications, or a prominent banner at least 30 days in advance, unless immediate updates are needed for compliance or security reasons. Your continued use of the Service after the effective date constitutes acceptance of the revised policy.
+        </p>
+        <h3>13. Compliance with Indian Laws</h3>
+        <p>
+          This Privacy Policy is crafted to comply with the Digital Personal Data Protection Act, 2023, the Information Technology Act, 2000, and Reserve Bank of India (RBI) guidelines on cryptocurrency transactions. We may collect additional data or adjust our practices to meet emerging regulations, such as those related to anti-money laundering (AML) or data localization. You agree to use the Service in accordance with these laws, and we reserve the right to suspend your account if your use violates them.
+        </p>
+        <h3>14. Data Breach Notification</h3>
+        <p>In the event of a data breach involving your personal information, we will follow a structured response plan:</p>
+        <ul>
+          <li>Notify the Indian Data Protection Authority and affected users within 72 hours, as required by the DPDP Act, 2023.</li>
+          <li>Provide details of the breach, including the nature of the data exposed and recommended actions (e.g., changing your Lightning Network password).</li>
+          <li>Offer support, such as monitoring services, if deemed necessary.</li>
+        </ul>
+        <p>You will be contacted at the email address provided (e.g., slatexsense@gmail.com) unless otherwise specified.</p>
+        <h3>15. Dispute Resolution</h3>
+        <p>
+          Any disputes arising from this Privacy Policy or the handling of your data will be resolved through binding arbitration in Mumbai, India, under the Indian Arbitration and Conciliation Act, 1996. Each party will bear its own costs unless otherwise ordered by the arbitrator. This clause does not preclude your right to lodge a complaint with the Indian Data Protection Authority.
+        </p>
+        <h3>16. Limitation of Liability</h3>
+        <p>
+          We are not liable for any indirect, incidental, or consequential damages resulting from data breaches, loss of access, or misuse of your information by third parties, to the extent permitted by Indian law. Our total liability for any privacy-related claims shall not exceed the amount you paid us for the Service in the preceding 12 months.
+        </p>
+        <h3>17. Contact Us</h3>
+        <p>For questions, concerns, data requests, or to report privacy issues, please contact us at:</p>
+        <ul>
+          <li>Email: slatexsense@gmail.com</li>
+          <li>Hours: Available for email support 9:00 AM to 6:00 PM IST, Monday to Friday, with responses within 3 business days.</li>
+        </ul>
+        <p>We value your trust and are here to assist you in exercising your privacy rights or addressing any concerns.</p>
+        <button
+          onClick={() => setShowPrivacyModal(false)}
+          onTouchStart={() => setShowPrivacyModal(false)}
+          className="join-button"
+        >
+          Close
+        </button>
       </div>
-    );
-  }, []);
+    </div>
+  );
+}, []);
 
   // Component to render the how-to-play modal
   const HowToPlayModal = useMemo(() => {
