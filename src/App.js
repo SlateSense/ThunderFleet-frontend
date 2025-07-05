@@ -125,6 +125,7 @@ const App = () => {
   const seededRandom = useRef(null);
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const touchStartRef = useRef({ time: 0, x: 0, y: 0, shipId: null, isDragging: false });
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -222,35 +223,7 @@ const App = () => {
         setPaymentTimer(PAYMENT_TIMEOUT);
         setLightningInvoice(null);
         setHostedInvoiceUrl(null);
-        setMessage('Payment verified! Connecting to game...');
-        setTimeout(() => {
-          setGameState('waitingForOpponent');
-          setMessage('Waiting for opponent to join... Estimated wait time: 10-25 seconds');
-        }, 2000); // 2-second delay
-      },
-      error: ({ message }) => {
-        console.log('Received error from server:', message);
-        if (message.includes('Invalid webhook signature')) {
-          setMessage('Payment verification failed: Invalid webhook signature. Please try again or contact support.');
-        } else {
-          setMessage(`Error: ${message}. Click Retry to try again.`);
-        }
-        clearTimeout(joinGameTimeoutRef.current);
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setIsLoading(false);
-        setPaymentTimer(PAYMENT_TIMEOUT);
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
-      },
-      waitingForOpponent: ({ message }) => {
-        console.log('Received waitingForOpponent event:', message);
-        setGameState('waitingForOpponent');
-        setMessage(message);
-      },
-      matchmakingTimer: ({ message }) => {
-        console.log('Received matchmaking timer update:', message);
-        setMessage(message);
+        setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
         console.log('Starting ship placement phase');
@@ -269,41 +242,17 @@ const App = () => {
         );
         setShipCount(0);
         setGameStats({ shotsFired: 0, hits: 0, misses: 0 });
+        setTimerActive(true);
+        setTimeLeft(PLACEMENT_TIME);
       },
-      placementSaved: () => {
-        console.log('Placement saved on server');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+      waitingForOpponent: ({ message }) => {
+        console.log('Received waitingForOpponent event:', message);
+        setGameState('waitingForOpponent');
+        setMessage(message);
       },
-      placementAutoSaved: () => {
-        console.log('Placement auto-saved due to timeout');
-        setIsPlacementConfirmed(true);
-        setPlacementSaved(true);
-        setMessage('Time up! Ships auto-placed. Waiting for opponent...');
-      },
-      games: ({ count, grid, ships: serverShips }) => {
-        console.log(`Received games update: count=${count}, grid=${grid}, ships=`, serverShips);
-        setShipCount(count);
-        if (grid && serverShips) {
-          setMyBoard(grid);
-          setShips(prev => {
-            const updated = [...prev];
-            serverShips.forEach(serverShip => {
-              const shipIndex = updated.findIndex(s => s.name === serverShip.name);
-              if (shipIndex !== -1) {
-                updated[shipIndex] = {
-                  ...updated[shipIndex],
-                  positions: serverShip.positions,
-                  horizontal: serverShip.horizontal,
-                  placed: serverShip.positions.length > 0,
-                };
-              }
-            });
-            return updated;
-          });
-          playPlaceSound();
-        }
+      matchmakingTimer: ({ message }) => {
+        console.log('Received matchmaking timer update:', message);
+        setMessage(message);
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
@@ -987,21 +936,23 @@ const App = () => {
 
   // Function to handle touch move
   const handleTouchMove = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) return;
-    e.preventDefault();
+    if (isPlacementConfirmed || !touchStartRef.current.shipId) return;
+
     const touch = e.touches[0];
-    const rect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    setDragPosition({ x, y });
-    const data = JSON.parse(sessionStorage.getItem('dragData'));
-    if (data) {
-      data.startX = touch.clientX;
-      data.startY = touch.clientY;
-      sessionStorage.setItem('dragData', JSON.stringify(data));
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+
+    if (deltaX > 10 || deltaY > 10) {
+      if (!touchStartRef.current.isDragging) {
+        touchStartRef.current.isDragging = true;
+        setIsDragging(touchStartRef.current.shipId);
+      }
+      setDragPosition({
+        x: touch.clientX - (e.currentTarget.offsetWidth / 2),
+        y: touch.clientY - (e.currentTarget.offsetHeight / 2),
+      });
     }
-    console.log(`Touch moving for ship ${isDragging}`);
-  }, [isDragging, isPlacementConfirmed, gridRef, setDragPosition]);
+  }, [isPlacementConfirmed, setDragPosition]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
@@ -1087,20 +1038,30 @@ const App = () => {
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
-    if (isDragging === null || isPlacementConfirmed) return;
-    e.preventDefault();
-    setIsDragging(null);
-    const data = JSON.parse(sessionStorage.getItem('dragData'));
-    if (!data) return;
-    const { shipIndex, startX, startY } = data;
-    const touch = e.changedTouches[0];
-    const gridRect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - gridRect.left + (startX - touch.clientX); // Adjust for movement
-    const y = touch.clientY - gridRect.top + (startY - touch.clientY);
-    console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
-    handleGridDrop({ x, y, shipIndex: parseInt(shipIndex) });
-    sessionStorage.removeItem('dragData');
-  }, [isDragging, isPlacementConfirmed, handleGridDrop, gridRef]);
+    if (isPlacementConfirmed || !touchStartRef.current.shipId) return;
+    console.log('Touch ended');
+    
+    if (touchStartRef.current.isDragging) {
+      const touch = e.changedTouches[0];
+      const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+
+      if (dropTarget && dropTarget.classList.contains('cell')) {
+        const destinationId = dropTarget.dataset.gridIndex;
+        if (destinationId) {
+          handleGridDrop({ x: touch.clientX, y: touch.clientY, shipIndex: touchStartRef.current.shipId });
+        }
+      }
+      setIsDragging(null);
+    } else {
+      const touchDuration = Date.now() - touchStartRef.current.time;
+      if (touchDuration < 250) {
+        e.preventDefault();
+        toggleOrientation(touchStartRef.current.shipId);
+      }
+    }
+    
+    touchStartRef.current = { time: 0, x: 0, y: 0, shipId: null, isDragging: false };
+  }, [isPlacementConfirmed, handleGridDrop, toggleOrientation]);
 
   // Function to handle drag start
   const handleDragStart = useCallback((e, shipIndex) => {
@@ -1119,17 +1080,16 @@ const App = () => {
       e.preventDefault();
       return;
     }
-    e.preventDefault();
-    setIsDragging(shipIndex);
+    console.log(`Touch started for ship: ${shipIndex}`);
     const touch = e.touches[0];
-    const rect = gridRef.current.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    setDragPosition({ x, y });
-    const data = { shipIndex, startX: touch.clientX, startY: touch.clientY };
-    sessionStorage.setItem('dragData', JSON.stringify(data));
-    console.log(`Touch drag started for ship ${shipIndex}`);
-  }, [isPlacementConfirmed, setIsDragging, gridRef, setDragPosition]);
+    touchStartRef.current = {
+      time: Date.now(),
+      x: touch.clientX,
+      y: touch.clientY,
+      shipId: shipIndex,
+      isDragging: false,
+    };
+  }, [isPlacementConfirmed]);
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
@@ -1200,6 +1160,8 @@ const App = () => {
                   onDragStart={(e) => handleDragStart(e, ship.id)}
                   onDragEnd={() => setIsDragging(null)}
                   onTouchStart={(e) => handleTouchStart(e, ship.id)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   style={{
                     position: 'absolute',
                     top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize + 2,
@@ -1240,7 +1202,7 @@ const App = () => {
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove, handleTouchEnd]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -1254,10 +1216,6 @@ const App = () => {
         {ships.map((ship, i) => (
           !ship.placed && (
             <div key={i} className="ship-container">
-              <div className="ship-info">
-                <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
-              </div>
               <div
                 className="ship"
                 draggable={!isPlacementConfirmed}
@@ -1279,9 +1237,7 @@ const App = () => {
                   marginBottom: '10px',
                   touchAction: 'none'
                 }}
-              >
-                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-              </div>
+              />
             </div>
           )
         ))}
@@ -1421,7 +1377,7 @@ const App = () => {
             Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
           </p>
           <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet amount to join a game.</li>
+            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
             <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
             <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
             <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
