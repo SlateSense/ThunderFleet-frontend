@@ -226,6 +226,10 @@ const App = () => {
         setHostedInvoiceUrl(null);
         setMessage('Payment verified! Waiting for opponent...');
         setGameState('waitingForOpponent');
+        // Add a 3-second delay before allowing state transition
+        setTimeout(() => {
+          console.log('Delay completed, ready for next state');
+        }, 3000);
       },
       startPlacing: () => {
         console.log('Starting ship placement phase');
