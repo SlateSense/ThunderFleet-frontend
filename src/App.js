@@ -250,6 +250,10 @@ const App = () => {
         console.log('Received waitingForOpponent event:', message);
         setGameState('waitingForOpponent');
         setMessage(message);
+        // Add a small delay to ensure the state is fully rendered
+        setTimeout(() => {
+          console.log('Ensuring waiting state is held');
+        }, 100);
       },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
@@ -257,12 +261,15 @@ const App = () => {
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
-        setGameState('playing');
-        setTurn(turn);
-        setMessage(message);
-        setIsOpponentThinking(turn !== newSocket.id);
-        setPlacementSaved(false);
-        setEnemyBoard(Array(GRID_SIZE).fill('water'));
+        // Only transition if currently in waitingForOpponent state
+        if (gameState === 'waitingForOpponent') {
+          setGameState('playing');
+          setTurn(turn);
+          setMessage(message);
+          setIsOpponentThinking(turn !== newSocket.id);
+          setPlacementSaved(false);
+          setEnemyBoard(Array(GRID_SIZE).fill('water'));
+        }
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -1225,8 +1232,8 @@ const App = () => {
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    width: isDragging === i ? (ship.horizontal ? `${ship.size * (cellSize * 0.5)}px` : `${cellSize * 0.5}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.4)}px` : `${cellSize * 0.4}px`),
-                    height: isDragging === i ? (ship.horizontal ? `${cellSize * 0.5}px` : `${ship.size * (cellSize * 0.5)}px`) : (ship.horizontal ? `${cellSize * 0.4}px` : `${ship.size * (cellSize * 0.4)}px`),
+                    width: isDragging === i ? (ship.horizontal ? `${ship.size * (cellSize * 0.8)}px` : `${cellSize * 0.8}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.7)}px` : `${cellSize * 0.7}px`),
+                    height: isDragging === i ? (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.8)}px`) : (ship.horizontal ? `${cellSize * 0.7}px` : `${ship.size * (cellSize * 0.7)}px`),
                     opacity: 1,
                     cursor: isPlacementConfirmed ? 'default' : 'grab',
                     border: '2px solid #333',
@@ -1254,8 +1261,8 @@ const App = () => {
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    width: isDragging === i + 2 ? (ship.horizontal ? `${ship.size * (cellSize * 0.5)}px` : `${cellSize * 0.5}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.4)}px` : `${cellSize * 0.4}px`),
-                    height: isDragging === i + 2 ? (ship.horizontal ? `${cellSize * 0.5}px` : `${ship.size * (cellSize * 0.5)}px`) : (ship.horizontal ? `${cellSize * 0.4}px` : `${ship.size * (cellSize * 0.4)}px`),
+                    width: isDragging === i + 2 ? (ship.horizontal ? `${ship.size * (cellSize * 0.8)}px` : `${cellSize * 0.8}px`) : (ship.horizontal ? `${ship.size * (cellSize * 0.7)}px` : `${cellSize * 0.7}px`),
+                    height: isDragging === i + 2 ? (ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.8)}px`) : (ship.horizontal ? `${cellSize * 0.7}px` : `${ship.size * (cellSize * 0.7)}px`),
                     opacity: 1,
                     cursor: isPlacementConfirmed ? 'default' : 'grab',
                     border: '2px solid #333',
