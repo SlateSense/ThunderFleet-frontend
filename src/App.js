@@ -97,7 +97,7 @@ const App = () => {
   const [isPlacementConfirmed, setIsPlacementConfirmed] = useState(false);
   const [isDragging, setIsDragging] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 }); // Track drag position
-  const [cellSize, setCellSize] = useState(60); // Increased base cell size for larger grid
+  const [cellSize, setCellSize] = useState(40);
   const [timeLeft, setTimeLeft] = useState(PLACEMENT_TIME);
   const [timerActive, setTimerActive] = useState(false);
   const [lightningInvoice, setLightningInvoice] = useState(null);
@@ -658,12 +658,17 @@ const App = () => {
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
     const width = window.innerWidth;
-    const height = window.innerHeight;
-    const maxDimension = Math.min(width, height);
-    console.log(`Window resized to width: ${width}px, height: ${height}px`);
-    const newCellSize = Math.max(60, Math.floor((maxDimension - 20) / Math.max(GRID_COLS, GRID_ROWS))); // Ensure grid touches edges
-    setCellSize(newCellSize);
-    console.log(`Set cell size to ${newCellSize}px to fit screen`);
+    console.log(`Window resized to width: ${width}px`);
+    if (width < 480) {
+      setCellSize(30);
+      console.log('Set cell size to 30px for small phones');
+    } else if (width < 768) {
+      setCellSize(35);
+      console.log('Set cell size to 35px for tablets');
+    } else {
+      setCellSize(40);
+      console.log('Set cell size to 40px for desktop');
+    }
   }, []);
 
   useEffect(() => {
@@ -821,7 +826,7 @@ const App = () => {
     }, JOIN_GAME_TIMEOUT);
 
     setGameState('waiting');
-    setMessage("Joining game...");
+    setMessage('Joining game...');
     console.log('Emitted joinGame event to server');
   }, [socket, lightningAddress, betAmount]);
 
@@ -1090,11 +1095,9 @@ const App = () => {
         ref={isEnemy ? null : gridRef}
         className="grid-container"
         style={{
-          width: GRID_COLS * cellSize,
-          height: GRID_ROWS * cellSize,
+          width: GRID_COLS * cellSize + 4,
+          height: GRID_ROWS * cellSize + 4,
           position: 'relative',
-          margin: 0,
-          padding: 0,
         }}
         onDragOver={handleGridDragOver}
         onTouchMove={handleTouchMove}
@@ -1104,9 +1107,6 @@ const App = () => {
           style={{
             gridTemplateColumns: `repeat(${GRID_COLS}, ${cellSize}px)`,
             gridTemplateRows: `repeat(${GRID_ROWS}, ${cellSize}px)`,
-            width: '100%',
-            height: '100%',
-            border: '2px solid #333',
           }}
         >
           {board.map((cell, index) => {
@@ -1160,10 +1160,10 @@ const App = () => {
                   onTouchEnd={handleTouchEnd}
                   style={{
                     position: 'absolute',
-                    top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize,
-                    left: (ship.positions[0] % GRID_COLS) * cellSize,
-                    width: ship.horizontal ? ship.size * cellSize : cellSize,
-                    height: ship.horizontal ? cellSize : ship.size * cellSize,
+                    top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize + 2,
+                    left: (ship.positions[0] % GRID_COLS) * cellSize + 2,
+                    width: ship.horizontal ? ship.size * cellSize - 4 : cellSize - 4,
+                    height: ship.horizontal ? cellSize - 4 : ship.size * cellSize - 4,
                     backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                     backgroundSize: 'cover',
                     backgroundPosition: "center",
@@ -1183,10 +1183,10 @@ const App = () => {
             className="dragging-ship"
             style={{
               position: 'absolute',
-              top: Math.floor(dragPosition.y / cellSize) * cellSize,
-              left: Math.floor(dragPosition.x / cellSize) * cellSize,
-              width: ships[isDragging].horizontal ? ships[isDragging].size * cellSize : cellSize,
-              height: ships[isDragging].horizontal ? cellSize : ships[isDragging].size * cellSize,
+              top: Math.floor(dragPosition.y / cellSize) * cellSize + 2,
+              left: Math.floor(dragPosition.x / cellSize) * cellSize + 2,
+              width: ships[isDragging].horizontal ? ships[isDragging].size * cellSize - 4 : cellSize - 4,
+              height: ships[isDragging].horizontal ? cellSize - 4 : ships[isDragging].size * cellSize - 4,
               backgroundImage: `url(${ships[isDragging].horizontal ? ships[isDragging].horizontalImg : ships[isDragging].verticalImg})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
@@ -1285,7 +1285,7 @@ const App = () => {
   const SplashScreen = useMemo(() => {
     console.log('Rendering SplashScreen with logo path: ./logo.png');
     return (
-      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="splash-screen">
         <div
           className="game-logo"
           style={{
@@ -1293,10 +1293,6 @@ const App = () => {
             backgroundSize: 'contain',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            width: '50%', // Larger logo
-            height: 'auto',
-            minHeight: '200px',
-            marginBottom: '20px',
           }}
         />
         <h1 className="game-title">
@@ -1312,11 +1308,10 @@ const App = () => {
             setGameState('join');
           }}
           className="join-button"
-          style={{ padding: '15px 30px', fontSize: '1.2em' }} // Match other button sizes
         >
           Start Game
         </button>
-        <div className="button-group" style={{ marginTop: '20px' }}>
+        <div className="button-group">
           <button
             onClick={() => {
               console.log('How to Play button clicked');
@@ -1327,7 +1322,6 @@ const App = () => {
               setShowHowToPlayModal(true);
             }}
             className="join-button"
-            style={{ padding: '15px 30px', fontSize: '1.2em' }}
           >
             How to Play
           </button>
@@ -1341,7 +1335,6 @@ const App = () => {
               setIsSoundEnabled(!isSoundEnabled);
             }}
             className="join-button sound-toggle"
-            style={{ padding: '15px 30px', fontSize: '1.2em' }}
           >
             {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
           </button>
@@ -1518,7 +1511,7 @@ const App = () => {
   const DefaultFallbackUI = useMemo(() => {
     console.log('Rendering DefaultFallbackUI');
     return (
-      <div className="fallback-ui" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="fallback-ui">
         <h2>
           {isSocketConnected ? 'Loading Game...' : 'Disconnected from Server'}
         </h2>
@@ -1532,7 +1525,6 @@ const App = () => {
             onClick={handleReconnect}
             onTouchStart={handleReconnect}
             className="join-button"
-            style={{ padding: '15px 30px', fontSize: '1.2em' }}
           >
             Retry Connection
           </button>
@@ -1565,17 +1557,11 @@ const App = () => {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        height: '100vh',
-        width: '100vw',
-        overflow: 'hidden', // Remove scrolling
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
       }}
     >
       {/* Show loading screen until app is fully loaded */}
       {!isAppLoaded && (
-        <div className="loading-screen" style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="loading-screen">
           <h2>Loading...</h2>
         </div>
       )}
@@ -1591,21 +1577,21 @@ const App = () => {
 
           {/* Join Game Screen */}
           {gameState === 'join' && socket && (
-            <div className="join-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="join-screen">
               <h2>Join the Battle ⚡</h2>
               <p>
                 Enter your Lightning address and select a bet to start.
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <input
                   type="text"
                   placeholder="Lightning Address (e.g., user)"
                   value={lightningAddress}
                   onChange={(e) => {
-                    setLightningAddress(e.target.value.toLowerCase()); // Convert to lowercase
-                    console.log('Lightning address updated:', e.target.value.toLowerCase());
+                    setLightningAddress(e.target.value);
+                    console.log('Lightning address updated:', e.target.value);
                   }}
-                  style={{ flex: 1, padding: '10px', fontSize: '1em', marginRight: '5px' }}
+                  style={{ flex: 1 }}
                 />
                 <span style={{ marginLeft: '5px', color: '#fff' }}>
                   @speed.app
@@ -1613,7 +1599,7 @@ const App = () => {
               </div>
               <div className="bet-selection">
                 <label htmlFor="bet-amount">Select Bet Amount (Sats): </label>
-                <select id="bet-amount" value={betAmount} onChange={selectBet} style={{ padding: '10px', fontSize: '1em' }}>
+                <select id="bet-amount" value={betAmount} onChange={selectBet}>
                   {BET_OPTIONS.map((option, index) => (
                     <option key={index} value={option.amount}>
                       {option.amount} SATS (Win {option.winnings} SATS)
@@ -1626,11 +1612,10 @@ const App = () => {
                 onTouchStart={handleJoinGame}
                 className="join-button"
                 disabled={isLoading}
-                style={{ padding: '15px 30px', fontSize: '1.2em', marginTop: '20px' }}
               >
                 {isLoading ? 'Joining...' : 'Join Game'}
               </button>
-              <div className="legal-notice" style={{ marginTop: '10px', fontSize: '0.9em' }}>
+              <div className="legal-notice">
                 By playing game you agree to our 
                 <button
                   onClick={() => setShowTermsModal(true)}
@@ -1658,35 +1643,34 @@ const App = () => {
                   Privacy Policy
                 </button>.
               </div>
-              <p style={{ marginTop: '10px' }}>{message}</p>
+              <p>{message}</p>
             </div>
           )}
 
           {/* Waiting for Payment Screen */}
           {gameState === 'waiting' && (
-            <div className="waiting-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="waiting-screen">
               {PaymentModal}
               {!isLoading && (
                 <button
                   onClick={handleJoinGame}
                   onTouchStart={handleJoinGame}
                   className="join-button"
-                  style={{ padding: '15px 30px', fontSize: '1.2em', marginTop: '20px' }}
                 >
                   Retry
                 </button>
               )}
-              <p style={{ marginTop: '10px' }}>{message}</p>
+              <p>{message}</p>
             </div>
           )}
 
           {/* Waiting for Opponent Screen */}
           {gameState === 'waitingForOpponent' && (
-            <div className="waiting-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="waiting-screen">
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
               <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading} style={{ padding: '15px 30px', fontSize: '1.2em' }}>
+              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading}>
                 Cancel
               </button>
             </div>
@@ -1694,7 +1678,7 @@ const App = () => {
 
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
-            <div className="placing-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'auto' }}>
+            <div className="placing-screen">
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
@@ -1713,24 +1697,22 @@ const App = () => {
                   </span>
                 </div>
               </div>
-              <div className="fleet-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div className="fleet-container">
                 {renderShipList()}
                 <div
                   onDrop={handleGridDrop}
                   onDragOver={handleGridDragOver}
                   onTouchEnd={handleTouchEnd}
-                  style={{ margin: 0, padding: 0 }}
                 >
                   {renderGrid(myBoard, false)}
                 </div>
               </div>
-              <div className="action-buttons" style={{ marginTop: '10px' }}>
+              <div className="action-buttons">
                 <button
                   onClick={randomizeShips}
                   onTouchStart={randomizeShips}
                   className="action-button"
                   disabled={isPlacementConfirmed}
-                  style={{ padding: '10px 20px', fontSize: '1em' }}
                 >
                   Randomize
                 </button>
@@ -1739,7 +1721,6 @@ const App = () => {
                   onTouchStart={randomizeUnplacedShips}
                   className="action-button place-remaining"
                   disabled={isPlacementConfirmed}
-                  style={{ padding: '10px 20px', fontSize: '1em' }}
                 >
                   Place Remaining
                 </button>
@@ -1748,7 +1729,6 @@ const App = () => {
                   onTouchStart={clearBoard}
                   className="action-button clear-board"
                   disabled={isPlacementConfirmed}
-                  style={{ padding: '10px 20px', fontSize: '1em' }}
                 >
                   Clear Board
                 </button>
@@ -1757,7 +1737,6 @@ const App = () => {
                   onTouchStart={saveShipPlacement}
                   className="action-button save-placement"
                   disabled={shipCount < 5 || isPlacementConfirmed}
-                  style={{ padding: '10px 20px', fontSize: '1em' }}
                 >
                   Save Placement
                 </button>
@@ -1767,7 +1746,7 @@ const App = () => {
 
           {/* Playing Game Screen */}
           {gameState === 'playing' && socket && (
-            <div className="playing-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="playing-screen">
               <h3
                 className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
               >
@@ -1780,7 +1759,7 @@ const App = () => {
                   <p>Opponent is thinking...</p>
                 </div>
               )}
-              <div className="game-boards" style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
+              <div className="game-boards">
                 <div>
                   <h4>Your Fleet</h4>
                   {renderGrid(myBoard, false)}
@@ -1799,10 +1778,9 @@ const App = () => {
             </div>
           )}
 
-
           {/* Finished Game Screen */}
           {gameState === 'finished' && (
-            <div className="finished-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="finished-screen">
               <h2>{message}</h2>
               {transactionMessage && (
                 <p>{transactionMessage}</p>
@@ -1853,7 +1831,6 @@ const App = () => {
                   setShowConfetti(false);
                 }}
                 className="join-button"
-                style={{ padding: '15px 30px', fontSize: '1.2em' }}
               >
                 Play Again
               </button>
