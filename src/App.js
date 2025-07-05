@@ -938,22 +938,22 @@ const App = () => {
     if (!touchStartRef.current || isPlacementConfirmed) return;
     e.preventDefault();
 
-    const { x, y, shipIndex } = touchStartRef.current;
+    const { x: startX, y: startY, shipIndex } = touchStartRef.current;
     const touch = e.touches[0];
-    const deltaX = Math.abs(touch.clientX - x);
-    const deltaY = Math.abs(touch.clientY - y);
+    const deltaX = Math.abs(touch.clientX - startX);
+    const deltaY = Math.abs(touch.clientY - startY);
 
     if (!touchStartRef.current.isDragging && (deltaX > 10 || deltaY > 10)) {
-        console.log(`Starting drag for ship ${shipIndex}`);
-        touchStartRef.current.isDragging = true;
-        setIsDragging(shipIndex);
+      console.log(`Starting drag for ship ${shipIndex} after ${deltaX}px/${deltaY}px movement`);
+      touchStartRef.current.isDragging = true;
+      setIsDragging(shipIndex);
     }
 
     if (touchStartRef.current.isDragging) {
-        const gridRect = gridRef.current.getBoundingClientRect();
-        const dragX = touch.clientX - gridRect.left;
-        const dragY = touch.clientY - gridRect.top;
-        setDragPosition({ x: dragX, y: dragY });
+      const gridRect = gridRef.current.getBoundingClientRect();
+      const dragX = touch.clientX - gridRect.left;
+      const dragY = touch.clientY - gridRect.top;
+      setDragPosition({ x: dragX, y: dragY });
     }
   }, [isPlacementConfirmed, gridRef, setIsDragging, setDragPosition]);
 
@@ -1042,18 +1042,21 @@ const App = () => {
     if (!touchStartRef.current || isPlacementConfirmed) return;
     e.preventDefault();
 
-    const { shipIndex, isDragging } = touchStartRef.current;
+    const { shipIndex, isDragging, x: startX, y: startY, time: startTime } = touchStartRef.current;
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - startX);
+    const deltaY = Math.abs(touch.clientY - startY);
+    const duration = (Date.now() - startTime) / 1000; // Time in seconds
 
     if (isDragging) {
-        const touch = e.changedTouches[0];
-        const gridRect = gridRef.current.getBoundingClientRect();
-        const x = touch.clientX - gridRect.left;
-        const y = touch.clientY - gridRect.top;
-        console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
-        handleGridDrop({ x, y, shipIndex });
-    } else {
-        console.log(`Tapped on ship ${shipIndex}, rotating.`);
-        toggleOrientation(shipIndex);
+      const gridRect = gridRef.current.getBoundingClientRect();
+      const x = touch.clientX - gridRect.left;
+      const y = touch.clientY - gridRect.top;
+      console.log(`Touch ended for ship ${shipIndex}, dropping at x:${x}, y:${y}`);
+      handleGridDrop({ x, y, shipIndex });
+    } else if (deltaX < 10 && deltaY < 10 && duration < 0.3) { // Tap detected (minimal movement, short duration)
+      console.log(`Tapped on ship ${shipIndex}, rotating.`);
+      toggleOrientation(shipIndex);
     }
 
     touchStartRef.current = null;
@@ -1076,11 +1079,11 @@ const App = () => {
     if (isPlacementConfirmed) return;
     e.preventDefault();
     touchStartRef.current = {
-        shipIndex,
-        time: Date.now(),
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-        isDragging: false
+      shipIndex,
+      time: Date.now(),
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      isDragging: false
     };
   }, [isPlacementConfirmed]);
 
