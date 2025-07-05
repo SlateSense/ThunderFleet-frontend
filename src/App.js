@@ -1204,7 +1204,7 @@ const App = () => {
             <div key={i} className="ship-container">
               <div className="ship-info">
                 <span style={{ color: '#ffffff' }}>{ship.name}</span>
-                {/* Removed placed/not placed status */}
+                <span className="ship-status" style={{ color: '#ffffff' }}>{'❌ Not placed'}</span>
               </div>
               <div
                 className="ship"
@@ -1256,6 +1256,11 @@ const App = () => {
         </h1>
         <button
           onClick={() => {
+            console.log('Start Game button clicked');
+            setGameState('join');
+          }}
+          onTouchStart={() => {
+            console.log('Start Game button touched');
             setGameState('join');
           }}
           className="join-button"
