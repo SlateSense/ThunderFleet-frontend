@@ -1639,34 +1639,55 @@ const PrivacyModal = useMemo(() => {
 }, []);
 
   // Component to render the how-to-play modal
-  const HowToPlayModal = useMemo(() => {
-    console.log('Rendering HowToPlayModal');
-    return (
-      <div className="modal">
-        <div className="modal-content">
-          <h2>How to Play Lightning Sea Battle</h2>
-          <p>
-            Lightning Sea Battle is a classic Battleship game with a Bitcoin twist! Here's how to play:
-          </p>
-          <ul>
-            <li><strong>Join the Game:</strong> Enter your Lightning address and select a bet to start.</li>
-            <li><strong>Pay to Play:</strong> Scan the QR code or click "Pay Now" to pay the bet amount in SATS via the Lightning Network.</li>
-            <li><strong>Place Your Ships:</strong> Drag your ships onto the grid. Tap or click to rotate them. Place all 5 ships within the time limit.</li>
-            <li><strong>Battle Phase:</strong> Take turns firing at your opponent's grid. A red marker indicates a hit, a gray marker indicates a miss.</li>
-            <li><strong>Win or Lose:</strong> Sink all your opponent's ships to win! Winnings are paid out automatically to your Lightning address, minus the platform fee.</li>
-          </ul>
-          <p>Good luck, Captain!</p>
-          <button
-            onClick={() => setShowHowToPlayModal(false)}
-            onTouchStart={() => setShowHowToPlayModal(false)}
-            className="join-button"
-          >
-            Close
-          </button>
+const HowToPlayModal = useMemo(() => {
+  console.log('Rendering HowToPlayModal');
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <h2>How to Play Thunderfleet</h2>
+        <div className="how-to-play-sections">
+          <section>
+            <h3>1: Getting Started</h3>
+            <p>
+              Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. Keep your ship placements secret from your opponent. Take your time to plan your layout—good placement is key to victory!
+            </p>
+          </section>
+          <section>
+            <h3>2: Taking Turns</h3>
+            <p>
+              Thunderfleet is a turn-based game. On your turn, select a coordinate (e.g., A1 to I7) on your opponent’s grid to launch an attack. After you call your shot, your opponent will respond: "Hit" if you strike a ship, "Miss" if you hit water, or "Sunk" if you’ve destroyed an entire ship. Mark your tracking grid accordingly—"X" for hits, "O" for misses. If you score a hit, you get another turn immediately. Keep the pressure on!
+            </p>
+          </section>
+          <section>
+            <h3>3: Attacking and Sinking</h3>
+            <p>
+              When attacking, focus on uncovering your opponent’s fleet. Each successful hit reveals part of a ship, so track your progress. A ship sinks when all its cells are hit—listen for the "Sunk" call to know you’ve taken one down. With 17 cells across all 5 ships, you’ll need to land multiple hits. Use your tracking grid to spot patterns, but beware—random shots can throw off your opponent’s strategy too!
+            </p>
+          </section>
+          <section>
+            <h3>4: Game Strategy</h3>
+            <p>
+              Mastering Thunderfleet takes skill! Start by targeting edges or corners to limit possible ship locations. If you hit a ship, try adjacent cells to find its length and orientation—horizontal or vertical. Mix up your shots to avoid predictability. Pay attention to sunk ships to narrow down remaining targets. The player who balances aggression and cunning will come out on top!
+            </p>
+          </section>
+          <section>
+            <h3>5: Winning the Game</h3>
+            <p>
+              The game ends when you sink all your opponent’s ships—17 hits total! Once you’ve cleared their fleet, shout "You sank my fleet!" to claim victory. Your opponent will do the same if they sink yours first. Celebrate your tactical triumph or learn from the battle to improve next time. Ready to dominate the seas? Let’s finish this, bro!
+            </p>
+          </section>
         </div>
+        <button
+          onClick={() => setShowHowToPlayModal(false)}
+          onTouchStart={() => setShowHowToPlayModal(false)}
+          className="join-button"
+        >
+          Close
+        </button>
       </div>
-    );
-  }, []);
+    </div>
+  );
+}, []);
 
   // Component to render the payment modal
   const PaymentModal = useMemo(() => {
