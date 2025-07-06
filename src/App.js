@@ -53,18 +53,6 @@ const mulberry32 = (a) => {
 };
 
 // Sound effects hook to play audio files for game events
-/**
- * Initializes and plays an audio file based on provided source and sound settings.
- * @example
- * playAudio('url/to/audio.mp3', true)
- * Plays the audio if sound is enabled.
- * @param {string} src - The source URL of the audio file to be loaded and played.
- * @param {boolean} isSoundEnabled - A flag indicating whether the sound should be played or not.
- * @returns {Function} A callback function that plays the audio when invoked.
- * @description
- *   - Adds an event listener to log the duration of the audio file once loaded.
- *   - Handles potential errors during audio playback.
- */
 const useSound = (src, isSoundEnabled) => {
   const [audio] = useState(() => {
     const audio = new Audio(src);
