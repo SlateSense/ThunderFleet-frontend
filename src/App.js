@@ -430,31 +430,33 @@ const App = () => {
     });
   }, [gameState, isPlacementConfirmed, ships, socket, gameId]);
 
-  // Function to randomize unplaced ships on the board
-  const randomizeUnplacedShips = useCallback(() => {
+  // Function to randomize unplaced ships
+  const randomizeUnplacedShips = useCallback((callback) => {
     if (isPlacementConfirmed) {
       console.log('Cannot randomize ships: Placement already confirmed');
+      if (callback) callback(false);
       return;
     }
 
     const unplacedShips = ships.filter(ship => !ship.placed);
-    console.log(`Found ${unplacedShips.length} unplaced ships to randomize`);
     if (unplacedShips.length === 0) {
       console.log('No unplaced ships to randomize');
+      if (callback) callback(true);
       return;
     }
 
+    console.log(`Randomizing ${unplacedShips.length} unplaced ships`);
     const newBoard = [...myBoard];
     const newShips = [...ships];
     let successfulPlacements = 0;
 
-    unplacedShips.forEach((ship) => {
+    unplacedShips.forEach(ship => {
+      const shipSize = SHIP_CONFIG.find(config => config.name === ship.name)?.size || 1;
+      const shipId = ship.id;
       let placed = false;
       let attempts = 0;
-      const shipSize = ship.size;
-      const shipId = ship.id;
 
-      console.log(`Attempting to place ship ${ship.name} (size: ${shipSize})`);
+      console.log(`Attempting to place ${ship.name} (size: ${shipSize})`);
       while (!placed && attempts < 100) {
         attempts++;
         const horizontal = seededRandom.current() > 0.5;
@@ -516,14 +518,18 @@ const App = () => {
         if (response && response.success) {
           setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
           console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
+          if (callback) callback(true);
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
           console.log('Server failed to update board');
           // Revert to previous state if server fails
           setMyBoard(prev => [...prev]);
           setShips(prev => [...prev]);
+          if (callback) callback(false);
         }
       });
+    } else {
+      if (callback) callback(false);
     }
 
     playPlaceSound();
@@ -623,7 +629,7 @@ const App = () => {
   }, [isPlacementConfirmed, ships, playPlaceSound, socket, gameId]);
 
   // Function to save ship placement to the server
-  const saveShipPlacement = useCallback(() => {
+  const saveShipPlacement = useCallback(async () => {
     if (placementSaved || !socket) return;
 
     // Validate all ship placements
@@ -640,7 +646,17 @@ const App = () => {
 
     const unplacedShips = ships.filter(ship => !ship.placed);
     if (unplacedShips.length > 0) {
-      randomizeUnplacedShips();
+      // Wait for randomizeUnplacedShips to complete before proceeding
+      await new Promise((resolve) => {
+        randomizeUnplacedShips((success) => {
+          if (success) {
+            console.log('Auto-placement completed successfully');
+          } else {
+            console.log('Auto-placement failed');
+          }
+          resolve();
+        });
+      });
     }
 
     setPlacementSaved(true);

@@ -1163,12 +1163,12 @@
     font-size: 1.3rem;
     margin-bottom: 15px;
   }
- 
+  
   .modal-content p {
     font-size: 0.9rem;
     line-height: 1.4;
   }
- 
+  
   /* Enhanced Mobile Grid Optimization */
   @media (max-width: 768px) {
     .App {
@@ -1177,7 +1177,7 @@
       justify-content: flex-start;
       padding-top: 10px;
     }
- 
+  
     /* Grid Mobile Optimization */
     .grid-container {
       border: 2px solid #2c5f8b;
@@ -1187,18 +1187,18 @@
       transform: none;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
- 
+  
     .grid {
       width: 100%;
       gap: 1px;
     }
- 
+  
     .cell {
       min-height: calc((100vw - 32px) / 10 - 2px);
       min-width: calc((100vw - 32px) / 10 - 2px);
       border: 0.5px solid #d3d3d3;
     }
- 
+  
     /* Compact spacing for mobile */
     .playing-screen,
     .placing-screen {
@@ -1206,37 +1206,37 @@
       padding: 0 5px;
       max-width: 100%;
     }
- 
+  
     .game-boards {
       gap: 12px;
       width: 100%;
     }
- 
+  
     .game-boards h4 {
       font-size: 1rem;
       margin: 3px 0;
     }
- 
+  
     /* Ship placement mobile optimization */
     .ships-list {
       gap: 6px;
       margin: 8px 0;
       max-width: 100%;
     }
- 
+  
     .ship-container {
       gap: 3px;
     }
- 
+  
     .ship {
       max-width: calc(100vw - 40px);
       height: 30px;
     }
- 
+  
     .ship-label {
       font-size: 0.6rem;
     }
- 
+  
     /* Action buttons mobile */
     .action-buttons {
       gap: 6px;
@@ -1244,7 +1244,7 @@
       flex-wrap: wrap;
       justify-content: space-around;
     }
- 
+  
     .action-button {
       padding: 8px 12px;
       font-size: 0.85rem;
@@ -1252,46 +1252,46 @@
       min-width: 80px;
       max-width: 120px;
     }
- 
+  
     /* Game stats mobile */
     .game-stats {
       margin-top: 10px;
       padding: 8px;
       font-size: 0.8rem;
     }
- 
+  
     .game-stats h4 {
       font-size: 0.9rem;
       margin: 3px 0;
     }
- 
+  
     .game-stats p {
       margin: 2px 0;
       font-size: 0.8rem;
     }
- 
+  
     /* Timer mobile */
     .timer-container {
       max-width: calc(100vw - 20px);
       margin: 5px auto;
     }
- 
+  
     .timer-bar {
       height: 8px;
     }
- 
+  
     .timer-text {
       font-size: 0.8rem;
       margin-top: 3px;
     }
   }
- 
+  
   @media (max-width: 480px) {
     .App {
       padding: 5px;
       padding-top: 5px;
     }
- 
+  
     /* Ultra-compact grid for small phones */
     .grid-container {
       border: 1px solid #2c5f8b;
@@ -1299,115 +1299,115 @@
       max-width: calc(100vw - 10px);
       width: calc(100vw - 10px);
     }
- 
+  
     .cell {
       min-height: calc((100vw - 20px) / 10 - 1px);
       min-width: calc((100vw - 20px) / 10 - 1px);
       border: 0.3px solid #d3d3d3;
     }
- 
+  
     /* Compact content spacing */
     .playing-screen,
     .placing-screen {
       gap: 5px;
       padding: 0 3px;
     }
- 
+  
     .game-boards {
       gap: 8px;
     }
- 
+  
     .game-boards h4 {
       font-size: 0.9rem;
       margin: 2px 0;
     }
- 
+  
     /* Ultra-compact ships */
     .ships-list {
       gap: 4px;
       margin: 5px 0;
     }
- 
+  
     .ship {
       height: 25px;
       max-width: calc(100vw - 30px);
     }
- 
+  
     .ship-label {
       font-size: 0.55rem;
     }
- 
+  
     /* Compact buttons */
     .action-buttons {
       gap: 4px;
       margin-top: 5px;
     }
- 
+  
     .action-button {
       padding: 6px 8px;
       font-size: 0.75rem;
       min-width: 70px;
       max-width: 100px;
     }
- 
+  
     /* Status indicators */
     .bot-indicator {
       font-size: 0.8rem;
       padding: 3px 8px;
     }
- 
+  
     .opponent-thinking {
       gap: 6px;
       margin: 5px 0;
       font-size: 0.8rem;
     }
- 
+  
     /* Compact modals */
     .modal-content {
       width: 98%;
       padding: 12px;
       max-height: 85vh;
     }
- 
+  
     .modal-content h2 {
       font-size: 1.1rem;
       margin-bottom: 10px;
     }
- 
+  
     .modal-content p,
     .modal-content li {
       font-size: 0.8rem;
       line-height: 1.3;
     }
- 
+  
     /* Payment modal mobile */
     .payment-modal {
       padding: 12px;
       max-width: 95%;
     }
- 
+  
     .winnings-info {
       font-size: 1rem;
     }
- 
+  
     .qr-container svg {
       width: 120px;
       height: 120px;
     }
- 
+  
     .invoice-controls {
       gap: 6px;
       flex-direction: column;
       width: 100%;
     }
- 
+  
     .pay-button,
     .cancel-button {
       padding: 8px 16px;
       font-size: 0.9rem;
       width: 100%;
     }
- 
+  
     /* Join/waiting screens mobile */
     .join-screen,
     .waiting-screen,
@@ -1416,24 +1416,24 @@
       padding: 12px;
       max-width: 95%;
     }
- 
+  
     .join-screen input,
     .join-screen select {
       padding: 8px;
       font-size: 0.9rem;
       max-width: 100%;
     }
- 
+  
     .bet-selection label {
       font-size: 0.9rem;
     }
- 
+  
     .legal-notice {
       font-size: 0.8rem;
       margin-top: 8px;
     }
   }
- 
+  
   /* Landscape orientation optimization for mobile */
   @media (max-width: 768px) and (orientation: landscape) {
     .App {
@@ -1442,30 +1442,30 @@
       justify-content: center;
       padding: 5px;
     }
- 
+  
     .playing-screen {
       flex-direction: row;
       gap: 10px;
       max-width: 100%;
       align-items: flex-start;
     }
- 
+  
     .game-boards {
       flex-direction: row;
       gap: 15px;
       align-items: flex-start;
     }
- 
+  
     .grid-container {
       max-width: 45vw;
       width: 45vw;
     }
- 
+  
     .cell {
       min-height: calc(45vw / 10 - 2px);
       min-width: calc(45vw / 10 - 2px);
     }
- 
+  
     .game-stats {
       position: fixed;
       bottom: 5px;
@@ -1496,7 +1496,7 @@
     .game-stats::-webkit-scrollbar-thumb:hover {
       background: #777;
     }
- 
+  
     .timer-container {
       position: fixed;
       top: 5px;
@@ -1506,45 +1506,45 @@
       z-index: 100;
     }
   }
- 
+  
   /* Ultra-small screens (< 360px width) */
   @media (max-width: 360px) {
     .grid-container {
       max-width: calc(100vw - 8px);
       width: calc(100vw - 8px);
     }
- 
+  
     .cell {
       min-height: calc((100vw - 16px) / 10 - 1px);
       min-width: calc((100vw - 16px) / 10 - 1px);
     }
- 
+  
     .action-button {
       font-size: 0.7rem;
       padding: 5px 6px;
       min-width: 60px;
       max-width: 90px;
     }
- 
+  
     .ship {
       height: 22px;
     }
- 
+  
     .ship-label {
       font-size: 0.5rem;
     }
   }
- 
+  
   /* Ensure no horizontal scrolling */
   * {
     box-sizing: border-box;
   }
- 
+  
   html, body {
     overflow-x: hidden;
     width: 100%;
   }
- 
+  
   .unplaced-ships {
     display: flex;
     flex-direction: row;
