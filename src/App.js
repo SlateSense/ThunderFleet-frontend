@@ -26,7 +26,7 @@ const CONFETTI_COUNT = 50;
 const FIRE_TIMEOUT = 15;
 const FIRE_HIT_PROBABILITY = 0.2;
 const PLAYER_RECONNECT_TIMEOUT = 10000;
-const TELEGRAM_URL = 'https://t.me/thunderfleetgroup'; // Replace with your actual Telegram group URL
+const TELEGRAM_URL = 'https://t.me/+y-Iv3drUz2dhM2E1'; // Replace with your actual Telegram group URL
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
@@ -1210,34 +1210,46 @@ const App = () => {
         </div>
         {!isEnemy &&
           ships.map((ship) => {
+            // Only render ships that are placed and have valid positions
+            if (!ship.placed || !ship.positions || ship.positions.length === 0 || ship.positions[0] === undefined) {
+              console.log(`Ship ${ship.name} not rendered: placed=${ship.placed}, positions=${ship.positions}`);
+              return null;
+            }
+           
+            const topPosition = Math.floor(ship.positions[0] / GRID_COLS) * cellSize;
+            const leftPosition = (ship.positions[0] % GRID_COLS) * cellSize;
+           
+            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, size=${ship.size}`);
+           
             return (
-              ship.placed && (
-                <div
-                  key={`ship-${ship.id}`}
-                  className="ship-on-grid"
-                  draggable={!isPlacementConfirmed}
-                  onDragStart={(e) => handleDragStart(e, ship.id)}
-                  onDragEnd={() => setIsDragging(null)}
-                  onTouchStart={(e) => handleTouchStart(e, ship.id)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  style={{
-                    position: 'absolute',
-                    top: Math.floor(ship.positions[0] / GRID_COLS) * cellSize,
-                    left: (ship.positions[0] % GRID_COLS) * cellSize,
-                    width: ship.horizontal ? ship.size * cellSize : cellSize,
-                    height: ship.horizontal ? cellSize : ship.size * cellSize,
-                    backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: "center",
-                    opacity: isPlacementConfirmed ? 1 : 0.8,
-                    cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                    pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
-                    touchAction: 'none',
-                  }}
-                  onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
-                />
-              )
+              <div
+                key={`ship-${ship.id}`}
+                className="ship-on-grid"
+                draggable={!isPlacementConfirmed}
+                onDragStart={(e) => handleDragStart(e, ship.id)}
+                onDragEnd={() => setIsDragging(null)}
+                onTouchStart={(e) => handleTouchStart(e, ship.id)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  position: 'absolute',
+                  top: topPosition,
+                  left: leftPosition,
+                  width: ship.horizontal ? ship.size * cellSize : cellSize,
+                  height: ship.horizontal ? cellSize : ship.size * cellSize,
+                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: "center",
+                  backgroundRepeat: 'no-repeat',
+                  opacity: isPlacementConfirmed ? 1 : 0.8,
+                  cursor: !isPlacementConfirmed ? 'grab' : 'default',
+                  pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
+                  touchAction: 'none',
+                  // Add border for debugging visibility
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                }}
+                onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
+              />
             );
           })}
         {/* Dragging ship preview */}
