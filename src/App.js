@@ -668,7 +668,10 @@ const App = () => {
   const autoSavePlacement = useCallback(() => {
     console.log('Auto-saving placement due to time running out');
     randomizeUnplacedShips();
-    saveShipPlacement();
+    // Delay setting placement confirmed to allow UI to update with auto-placed ships
+    setTimeout(() => {
+      saveShipPlacement();
+    }, 500);
   }, [randomizeUnplacedShips, saveShipPlacement]);
 
   // Effect to adjust cell size based on screen width for mobile optimization
