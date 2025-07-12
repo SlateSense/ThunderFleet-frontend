@@ -26,7 +26,7 @@ const CONFETTI_COUNT = 50;
 const FIRE_TIMEOUT = 15;
 const FIRE_HIT_PROBABILITY = 0.2;
 const PLAYER_RECONNECT_TIMEOUT = 10000;
-const TELEGRAM_URL = 'https://t.me/+y-Iv3drUz2dhM2E1'; // Replace with your actual Telegram group URL
+const TELEGRAM_URL = 'https://t.me/thunderfleetgroup'; // Replace with your actual Telegram group URL
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
@@ -270,7 +270,7 @@ const App = () => {
         setIsOpponentThinking(turn !== newSocket.id);
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
-       
+        
         // Start fire timer if it's player's turn
         if (turn === newSocket.id) {
           setFireTimeLeft(FIRE_TIMEOUT);
@@ -304,15 +304,8 @@ const App = () => {
             return newBoard;
           });
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-          // Ensure opponent thinking state resets if bot is stuck
-          if (this.players && this.players[player] && this.players[player].isBot && !hit) {
-            setIsOpponentThinking(false);
-          }
-        }
-        // Force a turn update if the bot is stuck
-        if (player !== newSocket.id && this.players && this.players[player] && this.players[player].isBot && !hit) {
-          setTurn(newSocket.id); // Assume turn switches back if bot fails to fire
-          setMessage('Your turn to fire!');
+          // Reset opponent thinking state for opponent moves
+          setIsOpponentThinking(false);
         }
       },
       nextTurn: ({ turn }) => {
@@ -320,7 +313,7 @@ const App = () => {
         setTurn(turn);
         setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
         setIsOpponentThinking(turn !== newSocket.id);
-       
+        
         // Start fire timer if it's player's turn
         if (turn === newSocket.id) {
           setFireTimeLeft(FIRE_TIMEOUT);
@@ -635,8 +628,8 @@ const App = () => {
 
     // Validate all ship placements
     const invalidShips = ships.filter(ship => {
-      return !ship.positions ||
-             ship.positions.length === 0 ||
+      return !ship.positions || 
+             ship.positions.length === 0 || 
              ship.positions.some(pos => pos < 0 || pos >= GRID_SIZE);
     });
 
@@ -791,14 +784,24 @@ const App = () => {
     } else if (fireTimerActive && fireTimeLeft === 0) {
       console.log('Fire time up, auto-firing with reduced accuracy');
       setFireTimerActive(false);
-     
+      
       // Auto-fire at a random position with reduced hit chance
       const availablePositions = enemyBoard.map((cell, index) => cell === 'water' ? index : null).filter(pos => pos !== null);
       if (availablePositions.length > 0) {
         const randomIndex = Math.floor(Math.random() * availablePositions.length);
         const randomPosition = availablePositions[randomIndex];
         console.log(`Auto-firing at position ${randomPosition}`);
-        socket?.emit('fire', { gameId, position: randomPosition, autoFire: true });
+        
+        // Make sure to emit the fire event properly so turn switches
+        if (socket && gameId) {
+          socket.emit('fire', { gameId, position: randomPosition, autoFire: true });
+          
+          // Show visual feedback
+          const row = Math.floor(randomPosition / GRID_COLS);
+          const col = randomPosition % GRID_COLS;
+          setCannonFire({ row, col, hit: false });
+          setTimeout(() => setCannonFire(null), 1000);
+        }
       }
     }
     return () => {
@@ -851,14 +854,14 @@ const App = () => {
 
     // Clean and validate the Lightning address - only send the username part
     const cleanedAddress = lightningAddress.trim().toLowerCase();
-   
+    
     // Validate that it's a valid username (no @ symbol should be entered by user)
     if (cleanedAddress.includes('@')) {
       setMessage('Please enter only the username part (before @speed.app)');
       console.log('Validation failed: User entered @ symbol');
       return;
     }
-   
+    
     // Validate username format (basic alphanumeric check)
     if (!/^[a-z0-9._-]+$/.test(cleanedAddress)) {
       setMessage('Invalid username format. Use only letters, numbers, dots, hyphens, and underscores.');
@@ -967,10 +970,10 @@ const App = () => {
       return;
     }
     console.log(`Firing at position ${position}`);
-   
+    
     // Stop the fire timer when player fires manually
     setFireTimerActive(false);
-   
+    
     socket?.emit('fire', { gameId, position });
     const row = Math.floor(position / GRID_COLS);
     const col = position % GRID_COLS;
@@ -1210,17 +1213,22 @@ const App = () => {
         </div>
         {!isEnemy &&
           ships.map((ship) => {
-            // Only render ships that are placed and have valid positions
-            if (!ship.placed || !ship.positions || ship.positions.length === 0 || ship.positions[0] === undefined) {
-              console.log(`Ship ${ship.name} not rendered: placed=${ship.placed}, positions=${ship.positions}`);
+            // Only render ships that have valid positions (regardless of placed status)
+            // During playing phase, show all ships with positions
+            if (!ship.positions || ship.positions.length === 0 || ship.positions[0] === undefined) {
+              console.log(`Ship ${ship.name} not rendered: positions=${ship.positions}`);
               return null;
             }
-           
+            
+            // Log ship rendering for debugging
+            console.log(`Ship ${ship.name}: placed=${ship.placed}, positions=${ship.positions}, gameState=${gameState}`);
+            
+            
             const topPosition = Math.floor(ship.positions[0] / GRID_COLS) * cellSize;
             const leftPosition = (ship.positions[0] % GRID_COLS) * cellSize;
-           
+            
             console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, size=${ship.size}`);
-           
+            
             return (
               <div
                 key={`ship-${ship.id}`}
@@ -1241,9 +1249,9 @@ const App = () => {
                   backgroundSize: 'cover',
                   backgroundPosition: "center",
                   backgroundRepeat: 'no-repeat',
-                  opacity: isPlacementConfirmed ? 1 : 0.8,
-                  cursor: !isPlacementConfirmed ? 'grab' : 'default',
-                  pointerEvents: isPlacementConfirmed ? 'none' : 'auto',
+                  opacity: (gameState === 'playing' || isPlacementConfirmed) ? 1 : 0.8,
+                  cursor: (!isPlacementConfirmed && gameState !== 'playing') ? 'grab' : 'default',
+                  pointerEvents: (isPlacementConfirmed || gameState === 'playing') ? 'none' : 'auto',
                   touchAction: 'none',
                   // Add border for debugging visibility
                   border: '1px solid rgba(255, 255, 255, 0.3)',
@@ -1955,7 +1963,7 @@ const App = () => {
                 {isLoading ? 'Joining...' : 'Join Game'}
               </button>
               <div className="legal-notice" style={{ marginTop: '10px', fontSize: '0.9em' }}>
-                By playing game you agree to our
+                By playing game you agree to our 
                 <button
                   onClick={() => setShowTermsModal(true)}
                   style={{
@@ -1968,7 +1976,7 @@ const App = () => {
                 >
                   Terms and Conditions
                 </button>
-                and
+                and 
                 <button
                   onClick={() => setShowPrivacyModal(true)}
                   style={{
@@ -2093,7 +2101,7 @@ const App = () => {
                 {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
               </h3>
               <p>{message}</p>
-             
+              
               {/* Circular Firing Timer */}
               {fireTimerActive && turn === socket.id && (
                 <div className="firing-timer" style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -2122,15 +2130,15 @@ const App = () => {
                         style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.5s ease' }}
                       />
                     </svg>
-                    <div
-                      className="timer-text"
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        color: fireTimeLeft <= 5 ? '#ff4444' : '#fff',
-                        fontSize: '24px',
+                    <div 
+                      className="timer-text" 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '50%', 
+                        left: '50%', 
+                        transform: 'translate(-50%, -50%)', 
+                        color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', 
+                        fontSize: '24px', 
                         fontWeight: 'bold',
                         textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
                       }}
