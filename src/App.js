@@ -1154,6 +1154,7 @@ const App = () => {
         </div>
         {!isEnemy &&
           ships.map((ship) => {
+            console.log(`Rendering ship ${ship.name} at positions:`, ship.positions);
             return (
               ship.placed && (
                 <div
@@ -1248,6 +1249,7 @@ const App = () => {
                   marginBottom: '8px',
                   touchAction: 'none'
                 }}
+                onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
@@ -1278,6 +1280,7 @@ const App = () => {
                   marginBottom: '8px',
                   touchAction: 'none'
                 }}
+                onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
@@ -1340,6 +1343,9 @@ const App = () => {
           >
             {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
           </button>
+          <a href="https://t.me/your_telegram_group" target="_blank" rel="noopener noreferrer" className="telegram-button">
+            <img src="./assets/telegram-logo.png" alt="Contact Support" style={{ width: '30px', height: '30px' }} />
+          </a>
         </div>
       </div>
     );
@@ -1555,7 +1561,7 @@ const App = () => {
             <li><strong>Organizational Controls:</strong> Access restrictions for employees and regular security audits to prevent unauthorized access or breaches.</li>
           </ul>
           <p>
-            Despite these efforts, no system is entirely immune to risks, especially given the decentralized nature of the Lightning Network. You acknowledge these inherent risks, and we are not liable for data breaches caused by external factors beyond our reasonable control. In the event of a breach affecting your personal data, we will notify you via email (e.g., slatexsense@gmail.com) within 72 hours, as required by the DPDP Act, 2023, and take remedial actions such as notifying the Indian Data Protection Authority and offering support.
+            Despite these efforts, no system is entirely immune to risks, especially given the decentralized nature of the Lightning Network. You acknowledge these inherent risks, and we are not liable for data breaches caused by external factors beyond our reasonable control. In the event of a data breach involving your personal information, we will notify you via email (e.g., slatexsense@gmail.com) within 72 hours, as required by the DPDP Act, 2023, and take remedial actions such as notifying the Indian Data Protection Authority and offering support.
           </p>
           <h3>6. Data Retention and Deletion</h3>
           <p><strong>Retention Periods:</strong></p>
@@ -1649,7 +1655,7 @@ const App = () => {
             <section>
               <h3>1: Getting Started</h3>
               <p>
-                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. You have 45 seconds to place all ships. If you only place some ships before time runs out, those ships will stay exactly where you placed them, and only the unplaced ships will be positioned automatically. Keep your ship placements secret from your opponent!
+                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. You have 45 seconds to place all ships. If you only place some ships before time runs out, those ships will stay exactly where you placed them, and only the unplaced ships will be automatically positioned. Keep your ship placements secret from your opponent!
               </p>
             </section>
             <section>
