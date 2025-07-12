@@ -23,6 +23,10 @@ const PLACEMENT_TIME = 45;
 const PAYMENT_TIMEOUT = 300;
 const JOIN_GAME_TIMEOUT = 20000;
 const CONFETTI_COUNT = 50;
+const FIRE_TIMEOUT = 15;
+const FIRE_HIT_PROBABILITY = 0.2;
+const PLAYER_RECONNECT_TIMEOUT = 10000;
+const TELEGRAM_URL = 'https://t.me/thunderfleetgroup'; // Replace with your actual Telegram group URL
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
@@ -117,6 +121,8 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
+  const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
+  const [fireTimerActive, setFireTimerActive] = useState(false);
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -126,6 +132,7 @@ const App = () => {
   const gridRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const touchStartRef = useRef(null);
+  const fireTimerRef = useRef(null);
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -263,6 +270,12 @@ const App = () => {
         setIsOpponentThinking(turn !== newSocket.id);
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
+       
+        // Start fire timer if it's player's turn
+        if (turn === newSocket.id) {
+          setFireTimeLeft(FIRE_TIMEOUT);
+          setFireTimerActive(true);
+        }
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -307,6 +320,14 @@ const App = () => {
         setTurn(turn);
         setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
         setIsOpponentThinking(turn !== newSocket.id);
+       
+        // Start fire timer if it's player's turn
+        if (turn === newSocket.id) {
+          setFireTimeLeft(FIRE_TIMEOUT);
+          setFireTimerActive(true);
+        } else {
+          setFireTimerActive(false);
+        }
       },
       gameEnd: ({ message }) => {
         console.log('Game ended:', message);
@@ -614,8 +635,8 @@ const App = () => {
 
     // Validate all ship placements
     const invalidShips = ships.filter(ship => {
-      return !ship.positions || 
-             ship.positions.length === 0 || 
+      return !ship.positions ||
+             ship.positions.length === 0 ||
              ship.positions.some(pos => pos < 0 || pos >= GRID_SIZE);
     });
 
@@ -757,6 +778,34 @@ const App = () => {
     }
   }, [gameState, ships]);
 
+  // Effect to manage the fire timer during player's turn
+  useEffect(() => {
+    if (fireTimerActive && fireTimeLeft > 0) {
+      console.log(`Fire timer active, time left: ${fireTimeLeft} seconds`);
+      fireTimerRef.current = setTimeout(() => {
+        setFireTimeLeft(fireTimeLeft - 1);
+      }, 1000);
+    } else if (fireTimerActive && fireTimeLeft === 0) {
+      console.log('Fire time up, auto-firing with reduced accuracy');
+      setFireTimerActive(false);
+     
+      // Auto-fire at a random position with reduced hit chance
+      const availablePositions = enemyBoard.map((cell, index) => cell === 'water' ? index : null).filter(pos => pos !== null);
+      if (availablePositions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availablePositions.length);
+        const randomPosition = availablePositions[randomIndex];
+        console.log(`Auto-firing at position ${randomPosition}`);
+        socket?.emit('fire', { gameId, position: randomPosition, autoFire: true });
+      }
+    }
+    return () => {
+      if (fireTimerRef.current) {
+        console.log('Clearing fire timer');
+        clearTimeout(fireTimerRef.current);
+      }
+    };
+  }, [fireTimerActive, fireTimeLeft, enemyBoard, socket, gameId]);
+
   // Function to handle reconnection attempts
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= 3) {
@@ -799,14 +848,14 @@ const App = () => {
 
     // Clean and validate the Lightning address - only send the username part
     const cleanedAddress = lightningAddress.trim().toLowerCase();
-    
+   
     // Validate that it's a valid username (no @ symbol should be entered by user)
     if (cleanedAddress.includes('@')) {
       setMessage('Please enter only the username part (before @speed.app)');
       console.log('Validation failed: User entered @ symbol');
       return;
     }
-    
+   
     // Validate username format (basic alphanumeric check)
     if (!/^[a-z0-9._-]+$/.test(cleanedAddress)) {
       setMessage('Invalid username format. Use only letters, numbers, dots, hyphens, and underscores.');
@@ -915,6 +964,10 @@ const App = () => {
       return;
     }
     console.log(`Firing at position ${position}`);
+   
+    // Stop the fire timer when player fires manually
+    setFireTimerActive(false);
+   
     socket?.emit('fire', { gameId, position });
     const row = Math.floor(position / GRID_COLS);
     const col = position % GRID_COLS;
@@ -1887,7 +1940,7 @@ const App = () => {
                 {isLoading ? 'Joining...' : 'Join Game'}
               </button>
               <div className="legal-notice" style={{ marginTop: '10px', fontSize: '0.9em' }}>
-                By playing game you agree to our 
+                By playing game you agree to our
                 <button
                   onClick={() => setShowTermsModal(true)}
                   style={{
@@ -1900,7 +1953,7 @@ const App = () => {
                 >
                   Terms and Conditions
                 </button>
-                and 
+                and
                 <button
                   onClick={() => setShowPrivacyModal(true)}
                   style={{
@@ -2025,6 +2078,56 @@ const App = () => {
                 {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
               </h3>
               <p>{message}</p>
+             
+              {/* Circular Firing Timer */}
+              {fireTimerActive && turn === socket.id && (
+                <div className="firing-timer" style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div className="timer-container" style={{ position: 'relative', width: '120px', height: '120px', margin: '10px 0' }}>
+                    <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
+                      {/* Background circle */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.2)"
+                        strokeWidth="8"
+                      />
+                      {/* Progress circle */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke={fireTimeLeft <= 5 ? '#ff4444' : '#4CAF50'}
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 50}`}
+                        strokeDashoffset={`${2 * Math.PI * 50 * (1 - fireTimeLeft / FIRE_TIMEOUT)}`}
+                        style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.5s ease' }}
+                      />
+                    </svg>
+                    <div
+                      className="timer-text"
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: fireTimeLeft <= 5 ? '#ff4444' : '#fff',
+                        fontSize: '24px',
+                        fontWeight: 'bold',
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+                      }}
+                    >
+                      {fireTimeLeft}
+                    </div>
+                  </div>
+                  <p style={{ color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', fontSize: '14px', textAlign: 'center', margin: '5px 0' }}>
+                    {fireTimeLeft <= 5 ? 'Hurry! Time running out!' : 'Time to fire'}
+                  </p>
+                </div>
+              )}
               {isOpponentThinking && (
                 <div className="opponent-thinking">
                   <div className="loading-spinner"></div>
