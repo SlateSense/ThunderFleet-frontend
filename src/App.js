@@ -353,9 +353,6 @@ const App = () => {
     let row = Math.floor(position / GRID_COLS);
     let col = position % GRID_COLS;
 
-    console.log(`Attempting to place ship: ${ship.name}, size: ${ship.size}, horizontal: ${ship.horizontal}`);
-    console.log(`Initial position: row=${row}, col=${col}`);
-
     if (!ship.horizontal) {
       const maxRow = GRID_ROWS - ship.size;
       if (row > maxRow) {
@@ -392,8 +389,6 @@ const App = () => {
       positions.push(pos);
     }
     console.log(`Calculated positions for ${ship.name}:`, positions);
-    console.log(`Ship positions verified: ${positions.every(pos => pos >= 0 && pos < GRID_SIZE)}`);
-    console.log(`Ship positions do not overlap with existing ships: ${positions.every(pos => myBoard[pos] !== 'ship')}`);
     return positions;
   }, [myBoard]);
 
@@ -964,11 +959,84 @@ const App = () => {
   }, [isPlacementConfirmed, gridRef, setIsDragging, setDragPosition]);
 
   // Function to handle dropping a ship on the grid
-  const handleGridDrop = useCallback(({ x, y, shipIndex }) => {
-    const gridRect = gridRef.current.getBoundingClientRect();
-    const destinationId = Math.floor(y / cellSize) * GRID_COLS + Math.floor(x / cellSize);
-    handleShipPlacement(shipIndex, destinationId);
-  }, [cellSize, handleShipPlacement]);
+  const handleGridDrop = useCallback((e) => {
+    let shipIndex, x, y;
+    if (e.dataTransfer) {
+      e.preventDefault();
+      if (isPlacementConfirmed) {
+        console.log('Cannot drop ship: Placement confirmed');
+        return;
+      }
+      shipIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      const rect = e.currentTarget.getBoundingClientRect();
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+      console.log(`Desktop drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    } else {
+      shipIndex = e.shipIndex;
+      x = e.x;
+      y = e.y;
+      console.log(`Mobile drop at x:${x}, y:${y}, shipIndex:${shipIndex}`);
+    }
+
+    if (isPlacementConfirmed) {
+      console.log('Cannot drop ship: Placement confirmed');
+      return;
+    }
+
+    const ship = ships[shipIndex];
+    const col = Math.floor(x / cellSize);
+    const row = Math.floor(y / cellSize);
+    const position = row * GRID_COLS + col;
+
+    if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
+      setMessage('Invalid drop position!');
+      console.log(`Invalid drop position: row=${row}, col=${col}, position=${position}`);
+      return;
+    }
+
+    const newPositions = calculateShipPositions(ship, position.toString());
+    if (!newPositions) {
+      setMessage('Invalid placement!');
+      console.log('Invalid placement: Ship cannot be placed here');
+      return;
+    }
+
+    setMyBoard((prev) => {
+      const newBoard = [...prev];
+      if (ship.positions.length > 0) {
+        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      }
+      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
+      return newBoard;
+    });
+
+    setShips((prev) => {
+      const updated = [...prev];
+      updated[shipIndex] = {
+        ...updated[shipIndex],
+        positions: newPositions,
+        placed: true,
+      };
+
+      // Calculate the new ship count based on placed ships
+      const placedCount = updated.filter(s => s.positions.length > 0).length;
+      setShipCount(placedCount);
+      setMessage(
+        placedCount === 5
+          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+          : `${placedCount} of 5 ships placed. You can still reposition ships.`
+      );
+      console.log(`Ship count updated to ${placedCount}`);
+
+      return updated;
+    });
+
+    playPlaceSound();
+    setIsDragging(null);
+    updateServerBoard();
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
@@ -1086,7 +1154,6 @@ const App = () => {
         </div>
         {!isEnemy &&
           ships.map((ship) => {
-            console.log(`Rendering ship ${ship.name} at positions:`, ship.positions);
             return (
               ship.placed && (
                 <div
@@ -1181,7 +1248,6 @@ const App = () => {
                   marginBottom: '8px',
                   touchAction: 'none'
                 }}
-                onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
@@ -1212,7 +1278,6 @@ const App = () => {
                   marginBottom: '8px',
                   touchAction: 'none'
                 }}
-                onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               >
                 <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
               </div>
@@ -1222,52 +1287,6 @@ const App = () => {
       </div>
     );
   }, [isPlacementConfirmed, ships, cellSize, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
-
-  // Function to handle ship placement
-  const handleShipPlacement = useCallback((shipIndex, destinationId) => {
-    const ship = ships[shipIndex];
-    const newPositions = calculateShipPositions(ship, destinationId);
-    if (!newPositions) {
-      setMessage('Invalid placement!');
-      console.log('Invalid placement: Ship cannot be placed here');
-      return;
-    }
-
-    setMyBoard((prev) => {
-      const newBoard = [...prev];
-      if (ship.positions.length > 0) {
-        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
-      }
-      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
-      console.log(`Placed ${ship.name} on board at positions:`, newPositions);
-      return newBoard;
-    });
-
-    setShips((prev) => {
-      const updated = [...prev];
-      updated[shipIndex] = {
-        ...updated[shipIndex],
-        positions: newPositions,
-        placed: true,
-      };
-
-      // Calculate the new ship count based on placed ships
-      const placedCount = updated.filter(s => s.positions.length > 0).length;
-      setShipCount(placedCount);
-      setMessage(
-        placedCount === 5
-          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
-          : `${placedCount} of 5 ships placed. You can still reposition ships.`
-      );
-      console.log(`Ship count updated to ${placedCount}`);
-
-      return updated;
-    });
-
-    playPlaceSound();
-    setIsDragging(null);
-    updateServerBoard();
-  }, [calculateShipPositions, playPlaceSound, setIsDragging, setMyBoard, setShips, setShipCount, setMessage, ships, updateServerBoard]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
@@ -1321,9 +1340,6 @@ const App = () => {
           >
             {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
           </button>
-          <a href="https://t.me/your_telegram_group" target="_blank" rel="noopener noreferrer" className="telegram-button">
-            <img src="./assets/telegram-logo.png" alt="Contact Support" style={{ width: '30px', height: '30px' }} />
-          </a>
         </div>
       </div>
     );
@@ -1539,7 +1555,7 @@ const App = () => {
             <li><strong>Organizational Controls:</strong> Access restrictions for employees and regular security audits to prevent unauthorized access or breaches.</li>
           </ul>
           <p>
-            Despite these efforts, no system is entirely immune to risks, especially given the decentralized nature of the Lightning Network. You acknowledge these inherent risks, and we are not liable for data breaches caused by external factors beyond our reasonable control. In the event of a data breach involving your personal information, we will notify you via email (e.g., slatexsense@gmail.com) within 72 hours, as required by the DPDP Act, 2023, and take remedial actions such as notifying the Indian Data Protection Authority and offering support.
+            Despite these efforts, no system is entirely immune to risks, especially given the decentralized nature of the Lightning Network. You acknowledge these inherent risks, and we are not liable for data breaches caused by external factors beyond our reasonable control. In the event of a breach affecting your personal data, we will notify you via email (e.g., slatexsense@gmail.com) within 72 hours, as required by the DPDP Act, 2023, and take remedial actions such as notifying the Indian Data Protection Authority and offering support.
           </p>
           <h3>6. Data Retention and Deletion</h3>
           <p><strong>Retention Periods:</strong></p>
@@ -1633,7 +1649,7 @@ const App = () => {
             <section>
               <h3>1: Getting Started</h3>
               <p>
-                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. You have 45 seconds to place all ships. If you only place some ships before time runs out, those ships will stay exactly where you placed them, and only the unplaced ships will be automatically positioned. Keep your ship placements secret from your opponent!
+                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. You have 45 seconds to place all ships. If you only place some ships before time runs out, those ships will stay exactly where you placed them, and only the unplaced ships will be positioned automatically. Keep your ship placements secret from your opponent!
               </p>
             </section>
             <section>
