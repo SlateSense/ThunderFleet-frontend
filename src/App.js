@@ -797,15 +797,26 @@ const App = () => {
       return;
     }
 
-    const sanitizedAddress = lightningAddress.trim().toLowerCase() + '@speed.app';
-    if (!sanitizedAddress.includes('@')) {
-      setMessage('Invalid Lightning address format');
-      console.log('Validation failed: Invalid Lightning address format');
+    // Clean and validate the Lightning address - only send the username part
+    const cleanedAddress = lightningAddress.trim().toLowerCase();
+    
+    // Validate that it's a valid username (no @ symbol should be entered by user)
+    if (cleanedAddress.includes('@')) {
+      setMessage('Please enter only the username part (before @speed.app)');
+      console.log('Validation failed: User entered @ symbol');
+      return;
+    }
+    
+    // Validate username format (basic alphanumeric check)
+    if (!/^[a-z0-9._-]+$/.test(cleanedAddress)) {
+      setMessage('Invalid username format. Use only letters, numbers, dots, hyphens, and underscores.');
+      console.log('Validation failed: Invalid username format');
       return;
     }
 
     setIsLoading(true); // Start loading to disable button
-    socket.emit('joinGame', { lightningAddress: sanitizedAddress, betAmount: parseInt(betAmount) }, () => {
+    // Send only the username part - backend will add @speed.app
+    socket.emit('joinGame', { lightningAddress: cleanedAddress, betAmount: parseInt(betAmount) }, () => {
       console.log('Join game callback triggered');
     });
 
@@ -817,7 +828,7 @@ const App = () => {
 
     setGameState('waiting');
     setMessage("Joining game...");
-    console.log('Emitted joinGame event to server');
+    console.log('Emitted joinGame event to server with username:', cleanedAddress);
   }, [socket, lightningAddress, betAmount]);
 
   // Function to handle payment button click
@@ -1374,9 +1385,12 @@ const App = () => {
           <ul>
             <li><strong>Game Integrity:</strong> All game outcomes are determined by our servers using secure, randomized algorithms. Any attempt to manipulate game results will result in immediate account suspension and potential legal action.</li>
             <li><strong>Fair Play:</strong> You agree to play fairly, avoiding collusion with other players, using external aids (e.g., bots, calculators), or sharing account access.</li>
-            <li><strong>Ship Placement and Strategy:</strong> You are responsible for placing your ships within the allotted time. Failure to do so may result in automatic placement or game forfeiture.</li>
-            <li><strong>Bot Matchmaking:</strong> You acknowledge that due to the nature of the Service, you may be matched against automated players (bots) instead of human opponents, especially during periods of low player activity or for testing purposes. The use of bots is designed to ensure a consistent gaming experience, and their behavior is governed by our algorithms. You agree that matching with bots does not constitute a breach of these Terms or entitle you to refunds or compensation.</li>
-            <li><strong>Disputes:</strong> Any disputes regarding game results must be reported within 24 hours of the game’s conclusion, supported by evidence (e.g., screenshots), to slatexsense@gmail.com.</li>
+            <li><strong>Ship Placement and Strategy:</strong> You are responsible for placing your ships within the allotted time (45 seconds). If you partially place ships but do not complete all placements, your positioned ships will remain intact and only unplaced ships will be automatically positioned. Failure to place any ships may result in automatic placement or game forfeiture.</li>
+            <li><strong>Turn Time Limits:</strong> Each player has 15 seconds to fire during their turn. If you fail to fire within this time limit, an automatic shot will be fired on your behalf with reduced accuracy (approximately 20% hit chance). This ensures smooth gameplay flow and prevents delays.</li>
+            <li><strong>Bot Matchmaking and Behavior:</strong> You acknowledge that due to the nature of the Service, you may be matched against automated players (bots) instead of human opponents, especially during periods of low player activity or for testing purposes. Bots take approximately 3 seconds to place their ships to simulate realistic gameplay. The use of bots is designed to ensure a consistent gaming experience, and their behavior is governed by our algorithms. You agree that matching with bots does not constitute a breach of these Terms or entitle you to refunds or compensation.</li>
+            <li><strong>Disconnection and Reconnection:</strong> If you disconnect during gameplay, you have a 10-second grace period to reconnect before your opponent is awarded the win. This policy balances fair play with maintaining game flow. We are not responsible for connection issues caused by your internet service provider or device.</li>
+            <li><strong>Customer Support Access:</strong> Support is available through our integrated Telegram support channel, accessible via the "Contact Support" button in the game interface. Response times may vary based on volume and time of day.</li>
+            <li><strong>Disputes:</strong> Any disputes regarding game results must be reported within 24 hours of the game's conclusion, supported by evidence (e.g., screenshots), to slatexsense@gmail.com.</li>
           </ul>
           <h3>6. Limitation on Legal Action</h3>
           <ul>
@@ -1635,13 +1649,13 @@ const App = () => {
             <section>
               <h3>1: Getting Started</h3>
               <p>
-                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. Keep your ship placements secret from your opponent. Take your time to plan your layout—good placement is key to victory!
+                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. You have 45 seconds to place all ships. If you only place some ships before time runs out, those ships will stay exactly where you placed them, and only the unplaced ships will be positioned automatically. Keep your ship placements secret from your opponent!
               </p>
             </section>
             <section>
               <h3>2: Taking Turns</h3>
               <p>
-                Thunderfleet is a turn-based game. On your turn, select a coordinate (e.g., A1 to I7) on your opponent’s grid to launch an attack. After you call your shot, your opponent will respond: "Hit" if you strike a ship, "Miss" if you hit water, or "Sunk" if you’ve destroyed an entire ship. Mark your tracking grid accordingly—"X" for hits, "O" for misses. If you score a hit, you get another turn immediately. Keep the pressure on!
+                Thunderfleet is a turn-based game with time pressure! On your turn, you have 15 seconds to select a coordinate (e.g., A1 to I7) on your opponent's grid to launch an attack. A circular timer will show your remaining time. If you don't fire within 15 seconds, an automatic shot will be fired for you with reduced accuracy (only 20% chance to hit a ship). After you call your shot, your opponent will respond: "Hit" if you strike a ship, "Miss" if you hit water, or "Sunk" if you've destroyed an entire ship. Mark your tracking grid accordingly—"X" for hits, "O" for misses. If you score a hit, you get another turn immediately. Act fast and keep the pressure on!
               </p>
             </section>
             <section>
@@ -1657,9 +1671,15 @@ const App = () => {
               </p>
             </section>
             <section>
-              <h3>5: Winning the Game</h3>
+              <h3>5: Technical Features</h3>
               <p>
-                The game ends when you sink all your opponent’s ships—17 hits total! Once you’ve cleared their fleet, shout "You sank my fleet!" to claim victory. Your opponent will do the same if they sink yours first. Celebrate your tactical triumph or learn from the battle to improve next time. Ready to dominate the seas? Let’s finish this, bro!
+                Thunderfleet includes several technical features for smooth gameplay: When facing a bot opponent, they take 3 seconds to place their ships (just like a real player would). If you disconnect during a game, you have 10 seconds to reconnect before your opponent is awarded the win—this protects against unfair losses due to network issues. Need help? Click the Telegram support button in the top-right corner to reach our support team instantly!
+              </p>
+            </section>
+            <section>
+              <h3>6: Winning the Game</h3>
+              <p>
+                The game ends when you sink all your opponent's ships— 17 hits total! Once you've cleared their fleet, shout "You sank my fleet!" to claim victory. Your opponent will do the same if they sink yours first. Win fast to maximize your Lightning Network SATS rewards! Celebrate your tactical triumph or learn from the battle to improve next time. Ready to dominate the seas? Let's finish this, bro!
               </p>
             </section>
           </div>
@@ -1833,7 +1853,7 @@ const App = () => {
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                 <input
                   type="text"
-                  placeholder="Lightning Address (e.g., user)"
+                  placeholder="Enter username (e.g., user123)"
                   value={lightningAddress}
                   onChange={(e) => {
                     setLightningAddress(e.target.value.toLowerCase()); // Convert to lowercase
@@ -1841,10 +1861,13 @@ const App = () => {
                   }}
                   style={{ flex: 1, padding: '10px', fontSize: '1em', marginRight: '5px' }}
                 />
-                <span style={{ marginLeft: '5px', color: '#fff' }}>
+                <span style={{ marginLeft: '5px', color: '#fff', fontWeight: 'bold' }}>
                   @speed.app
                 </span>
               </div>
+              <p style={{ marginBottom: '20px', fontSize: '0.9em', color: '#ccc' }}>
+                Enter only your Speed Wallet username. We'll automatically add @speed.app
+              </p>
               <div className="bet-selection">
                 <label htmlFor="bet-amount">Select Bet Amount (Sats): </label>
                 <select id="bet-amount" value={betAmount} onChange={selectBet} style={{ padding: '10px', fontSize: '1em' }}>
