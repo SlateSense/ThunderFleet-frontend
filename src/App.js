@@ -1229,7 +1229,8 @@ const App = () => {
         </div>
         {!isEnemy &&
           ships.map((ship) => {
-            // Render all ships with valid positions, including auto-placed ones
+            // Only render ships that have valid positions (regardless of placed status)
+            // During playing phase, show all ships with positions
             if (!ship.positions || ship.positions.length === 0 || ship.positions[0] === undefined) {
               console.log(`Ship ${ship.name} not rendered: positions=${ship.positions}`);
               return null;
@@ -1237,6 +1238,7 @@ const App = () => {
             
             // Log ship rendering for debugging
             console.log(`Ship ${ship.name}: placed=${ship.placed}, positions=${ship.positions}, gameState=${gameState}`);
+            
             
             const topPosition = Math.floor(ship.positions[0] / GRID_COLS) * cellSize;
             const leftPosition = (ship.positions[0] % GRID_COLS) * cellSize;
