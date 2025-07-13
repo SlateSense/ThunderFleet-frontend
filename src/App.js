@@ -371,6 +371,29 @@ const App = () => {
           setShips(prev => [...prev]);   // Revert ships
         }
       },
+      shipsAutoPlaced: ({ newShips, allShips, grid }) => {
+        console.log('[Frontend] Ships auto-placed by server:', { newShips, allShips, grid });
+        // Update the board and ships with auto-placed data
+        if (grid) {
+          setMyBoard(grid);
+        }
+        if (allShips) {
+          const fullySyncedShips = SHIP_CONFIG.map(config => {
+            const synced = allShips.find(s => s.name === config.name && s.positions && s.positions.length > 0);
+            return {
+              ...config,
+              id: ships.find(s => s.name === config.name)?.id ?? config.name,
+              positions: synced ? [...synced.positions] : [],
+              horizontal: typeof synced?.horizontal === 'boolean' ? synced.horizontal : true,
+              placed: !!(synced && synced.positions && synced.positions.length > 0)
+            };
+          });
+          setShips(fullySyncedShips);
+          const placedCount = allShips.filter(s => s.positions && s.positions.length > 0).length;
+          setShipCount(placedCount);
+          setMessage(`Auto-placement complete! ${placedCount} ships placed.`);
+        }
+      },
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
