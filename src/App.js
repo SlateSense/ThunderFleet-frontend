@@ -224,13 +224,38 @@ const App = () => {
         setMessage(`Scan to pay ${betAmount} SATS`);
         setIsLoading(false); // Reset loading after transition
       },
-      paymentVerified: () => {
-        console.log('Payment verified successfully');
-        setIsWaitingForPayment(false);
-        setPayButtonLoading(false);
-        setPaymentTimer(PAYMENT_TIMEOUT);
-        setLightningInvoice(null);
-        setHostedInvoiceUrl(null);
+      placementAutoSaved: () => {
+        console.log('Auto-placement completed and saved on server');
+        setMessage('Auto-placement complete! Ships have been placed for you.');
+      },
+      games: ({ count, grid, ships: receivedShips }) => {
+        console.log('[Frontend] Received updated game state:', { count, grid, ships: receivedShips });
+        // Update board and ship state correctly during placement
+        if (gameState === 'placing' && receivedShips) {
+          setMyBoard(grid || Array(GRID_SIZE).fill('water'));
+          setShips(prevShips =>
+            prevShips.map(ship => {
+              const matched = receivedShips.find(s => s.name === ship.name && s.positions && s.positions.length > 0);
+              if (matched) {
+                return {
+                  ...ship,
+                  positions: matched.positions,
+                  horizontal: typeof matched.horizontal === 'boolean' ? matched.horizontal : true,
+                  placed: true
+                };
+              }
+              return ship;
+            })
+          );
+          const placedCount = (receivedShips || []).filter(s => s.positions && s.positions.length > 0).length;
+          setShipCount(placedCount);
+          setMessage(`${placedCount} of 5 ships placed. You can still reposition ships.`);
+        }
+        // Also handle updates during playing
+        if (gameState === 'playing' && grid) {
+          setMyBoard(grid);
+        }
+      },
         setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
