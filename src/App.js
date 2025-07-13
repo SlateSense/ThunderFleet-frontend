@@ -24,9 +24,6 @@ const PAYMENT_TIMEOUT = 300;
 const JOIN_GAME_TIMEOUT = 20000;
 const CONFETTI_COUNT = 50;
 const FIRE_TIMEOUT = 15;
-const FIRE_HIT_PROBABILITY = 0.2;
-const PLAYER_RECONNECT_TIMEOUT = 10000;
-const TELEGRAM_URL = 'https://t.me/thunderfleetgroup'; // Replace with your actual Telegram group URL
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
@@ -232,21 +229,26 @@ const App = () => {
         console.log('[Frontend] Received updated game state:', { count, grid, ships: receivedShips });
         // Update board and ship state correctly during placement
         if (gameState === 'placing' && receivedShips) {
-          setMyBoard(grid || Array(GRID_SIZE).fill('water'));
-          setShips(prevShips =>
-            prevShips.map(ship => {
-              const matched = receivedShips.find(s => s.name === ship.name && s.positions && s.positions.length > 0);
-              if (matched) {
-                return {
-                  ...ship,
-                  positions: matched.positions,
-                  horizontal: typeof matched.horizontal === 'boolean' ? matched.horizontal : true,
-                  placed: true
-                };
-              }
-              return ship;
-            })
-          );
+          // Aggressively synchronize all received ship data for perfect UI consistency
+          const fullySyncedShips = SHIP_CONFIG.map(config => {
+            const synced = receivedShips?.find(s => s.name === config.name && s.positions && s.positions.length > 0);
+            return {
+              ...config,
+              id: ships.find(s => s.name === config.name)?.id ?? config.name,
+              positions: synced ? [...synced.positions] : [],
+              horizontal: typeof synced?.horizontal === 'boolean' ? synced.horizontal : true,
+              placed: !!(synced && synced.positions && synced.positions.length > 0)
+            };
+          });
+          setShips(fullySyncedShips);
+          // Immediately update the board UI too
+          const syncedBoard = Array(GRID_SIZE).fill('water');
+          fullySyncedShips.forEach(ship => {
+            ship.positions.forEach(pos => {
+              if (pos >= 0 && pos < GRID_SIZE) syncedBoard[pos] = 'ship';
+            });
+          });
+          setMyBoard(syncedBoard);
           const placedCount = (receivedShips || []).filter(s => s.positions && s.positions.length > 0).length;
           setShipCount(placedCount);
           setMessage(`${placedCount} of 5 ships placed. You can still reposition ships.`);
@@ -256,6 +258,7 @@ const App = () => {
           setMyBoard(grid);
         }
       },
+      paymentVerified: () => {
         setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
@@ -383,7 +386,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, ships]);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
