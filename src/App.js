@@ -221,44 +221,13 @@ const App = () => {
         setMessage(`Scan to pay ${betAmount} SATS`);
         setIsLoading(false); // Reset loading after transition
       },
-      placementAutoSaved: () => {
-        console.log('Auto-placement completed and saved on server');
-        setMessage('Auto-placement complete! Ships have been placed for you.');
-      },
-      games: ({ count, grid, ships: receivedShips }) => {
-        console.log('[Frontend] Received updated game state:', { count, grid, ships: receivedShips });
-        // Update board and ship state correctly during placement
-        if (gameState === 'placing' && receivedShips) {
-          // Aggressively synchronize all received ship data for perfect UI consistency
-          const fullySyncedShips = SHIP_CONFIG.map(config => {
-            const synced = receivedShips?.find(s => s.name === config.name && s.positions && s.positions.length > 0);
-            return {
-              ...config,
-              id: ships.find(s => s.name === config.name)?.id ?? config.name,
-              positions: synced ? [...synced.positions] : [],
-              horizontal: typeof synced?.horizontal === 'boolean' ? synced.horizontal : true,
-              placed: !!(synced && synced.positions && synced.positions.length > 0)
-            };
-          });
-          setShips(fullySyncedShips);
-          // Immediately update the board UI too
-          const syncedBoard = Array(GRID_SIZE).fill('water');
-          fullySyncedShips.forEach(ship => {
-            ship.positions.forEach(pos => {
-              if (pos >= 0 && pos < GRID_SIZE) syncedBoard[pos] = 'ship';
-            });
-          });
-          setMyBoard(syncedBoard);
-          const placedCount = (receivedShips || []).filter(s => s.positions && s.positions.length > 0).length;
-          setShipCount(placedCount);
-          setMessage(`${placedCount} of 5 ships placed. You can still reposition ships.`);
-        }
-        // Also handle updates during playing
-        if (gameState === 'playing' && grid) {
-          setMyBoard(grid);
-        }
-      },
       paymentVerified: () => {
+        console.log('Payment verified successfully');
+        setIsWaitingForPayment(false);
+        setPayButtonLoading(false);
+        setPaymentTimer(PAYMENT_TIMEOUT);
+        setLightningInvoice(null);
+        setHostedInvoiceUrl(null);
         setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
@@ -371,27 +340,69 @@ const App = () => {
           setShips(prev => [...prev]);   // Revert ships
         }
       },
+      placementAutoSaved: () => {
+        console.log('Received placementAutoSaved event');
+        setMessage('Ships auto-placed due to time limit. Starting game...');
+        setPlacementSaved(true);
+        setIsPlacementConfirmed(true);
+      },
       shipsAutoPlaced: ({ newShips, allShips, grid }) => {
-        console.log('[Frontend] Ships auto-placed by server:', { newShips, allShips, grid });
-        // Update the board and ships with auto-placed data
-        if (grid) {
-          setMyBoard(grid);
-        }
-        if (allShips) {
-          const fullySyncedShips = SHIP_CONFIG.map(config => {
-            const synced = allShips.find(s => s.name === config.name && s.positions && s.positions.length > 0);
+        console.log('Received shipsAutoPlaced event:', { newShips, allShips });
+        // Update the board with auto-placed ships
+        setMyBoard(grid);
+        // Update ships state with all ships including auto-placed ones
+        setShips(prev => {
+          return SHIP_CONFIG.map((config, index) => {
+            const placedShip = allShips.find(s => s.name === config.name);
+            if (placedShip) {
+              return {
+                ...config,
+                id: index,
+                positions: placedShip.positions,
+                horizontal: placedShip.horizontal,
+                placed: true,
+              };
+            }
             return {
               ...config,
-              id: ships.find(s => s.name === config.name)?.id ?? config.name,
-              positions: synced ? [...synced.positions] : [],
-              horizontal: typeof synced?.horizontal === 'boolean' ? synced.horizontal : true,
-              placed: !!(synced && synced.positions && synced.positions.length > 0)
+              id: index,
+              positions: [],
+              horizontal: true,
+              placed: false,
             };
           });
-          setShips(fullySyncedShips);
-          const placedCount = allShips.filter(s => s.positions && s.positions.length > 0).length;
-          setShipCount(placedCount);
-          setMessage(`Auto-placement complete! ${placedCount} ships placed.`);
+        });
+        setShipCount(allShips.length);
+        setMessage(`${newShips.length} ship(s) were auto-placed. Game starting soon...`);
+      },
+      games: ({ count, grid, ships: serverShips }) => {
+        console.log('Received games event:', { count, grid, serverShips });
+        if (grid && serverShips) {
+          // Update board
+          setMyBoard(grid);
+          // Update ships with server data
+          setShips(prev => {
+            return SHIP_CONFIG.map((config, index) => {
+              const serverShip = serverShips.find(s => s.name === config.name);
+              if (serverShip) {
+                return {
+                  ...config,
+                  id: index,
+                  positions: serverShip.positions,
+                  horizontal: serverShip.horizontal,
+                  placed: true,
+                };
+              }
+              return {
+                ...config,
+                id: index,
+                positions: [],
+                horizontal: true,
+                placed: false,
+              };
+            });
+          });
+          setShipCount(serverShips.length);
         }
       },
     };
@@ -409,7 +420,7 @@ const App = () => {
       });
       newSocket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameState, ships]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
