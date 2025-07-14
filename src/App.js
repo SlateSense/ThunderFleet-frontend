@@ -477,7 +477,7 @@ const App = () => {
     console.log('Updating server with current board state');
     const placements = (updatedShips || ships).map(ship => ({
       name: ship.name,
-      positions: ship.positions.filter(pos => pos >= 0 && pos < GRID_SIZE),
+positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(ship, ship.positions[0]),
       horizontal: ship.horizontal,
     }));
     socket.emit('updateBoard', { gameId, playerId: socket?.id, placements }, (response) => {
@@ -490,7 +490,7 @@ const App = () => {
         console.log('Board update confirmed by server');
       }
     });
-  }, [gameState, isPlacementConfirmed, ships, socket, gameId]);
+  }, [gameState, isPlacementConfirmed, ships, socket, gameId, calculateShipPositions]);
 
   // Function to randomize unplaced ships
   const randomizeUnplacedShips = useCallback((callback) => {
