@@ -512,7 +512,6 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
 
     // Create a fresh random generator for this placement session
     const freshSeed = Date.now() + Math.random() * 1000;
-    const freshRandom = mulberry32(freshSeed);
     console.log(`Randomizing ${unplacedShips.length} unplaced ships with fresh seed: ${freshSeed}`);
     
     const newBoard = [...myBoard];
@@ -633,7 +632,6 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
 
     // Create a fresh random generator for this placement session
     const freshSeed = Date.now() + Math.random() * 1000;
-    const freshRandom = mulberry32(freshSeed);
     console.log(`Randomizing all ships with fresh seed: ${freshSeed}`);
     
     const newBoard = Array(GRID_SIZE).fill('water');
@@ -720,7 +718,7 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       })) }, (response) => {
         if (response && response.success) {
           if (successfulPlacements < SHIP_CONFIG.length) {
-            setMessage('Some ships couldn't be placed. Adjust manually or try again.');
+            setMessage('Some ships could not be placed. Adjust manually or try again.');
             console.log(`Randomized ${successfulPlacements} out of ${SHIP_CONFIG.length} ships`);
           } else {
             setMessage('Ships randomized! Drag to reposition or Save Placement.');
