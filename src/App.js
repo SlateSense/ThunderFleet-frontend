@@ -521,24 +521,42 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       console.log(`Attempting to place ${ship.name} (size: ${shipSize})`);
       while (!placed && attempts < 100) {
         attempts++;
-        const horizontal = seededRandom.current() > 0.5;
-        const row = Math.floor(seededRandom.current() * GRID_ROWS);
-        const col = Math.floor(seededRandom.current() * GRID_COLS);
+        const randomFunc = seededRandom.current || Math.random;
+        const horizontal = randomFunc() > 0.5;
+        let row, col;
+        
+        // Ensure starting position allows the entire ship to fit
+        if (horizontal) {
+          row = Math.floor(randomFunc() * GRID_ROWS);
+          col = Math.floor(randomFunc() * (GRID_COLS - shipSize + 1));
+        } else {
+          row = Math.floor(randomFunc() * (GRID_ROWS - shipSize + 1));
+          col = Math.floor(randomFunc() * GRID_COLS);
+        }
+        
         const positions = [];
         let valid = true;
 
         for (let i = 0; i < shipSize; i++) {
           const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
-          if (
-            pos >= GRID_SIZE ||
-            (horizontal && col + shipSize > GRID_COLS) ||
-            (!horizontal && row + shipSize > GRID_ROWS) ||
-            newBoard[pos] === 'ship'
-          ) {
+          
+          // Additional check to ensure we don't go out of bounds
+          if (pos >= GRID_SIZE || newBoard[pos] === 'ship') {
             valid = false;
             console.log(`Attempt ${attempts}: Invalid position for ${ship.name} at pos ${pos}`);
             break;
           }
+          
+          // For horizontal ships, ensure we don't wrap to next row
+          if (horizontal) {
+            const currentRow = Math.floor(pos / GRID_COLS);
+            if (currentRow !== row) {
+              valid = false;
+              console.log(`Attempt ${attempts}: Ship ${ship.name} would wrap to next row`);
+              break;
+            }
+          }
+          
           positions.push(pos);
         }
 
@@ -616,9 +634,10 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       console.log(`Attempting to place ${shipConfig.name} (size: ${shipConfig.size})`);
       while (!placed && attempts < 100) {
         attempts++;
-        const horizontal = seededRandom.current() > 0.5;
-        const row = Math.floor(seededRandom.current() * GRID_ROWS);
-        const col = Math.floor(seededRandom.current() * GRID_COLS);
+        const randomFunc = seededRandom.current || Math.random;
+        const horizontal = randomFunc() > 0.5;
+        const row = Math.floor(randomFunc() * GRID_ROWS);
+        const col = Math.floor(randomFunc() * GRID_COLS);
         const positions = [];
         let valid = true;
 
