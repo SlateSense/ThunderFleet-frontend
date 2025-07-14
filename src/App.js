@@ -528,26 +528,16 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       console.log(`Attempting to place ${ship.name} (size: ${shipSize})`);
       while (!placed && attempts < 100) {
         attempts++;
-        const randomFunc = freshRandom;
-        const orientationRand = randomFunc();
-        const horizontal = orientationRand > 0.5;
+        const horizontal = Math.random() > 0.5;
         let row, col;
         
         // Ensure starting position allows the entire ship to fit
         if (horizontal) {
-          const maxCol = GRID_COLS - shipSize;
-          const rowRand = randomFunc();
-          const colRand = randomFunc();
-          row = Math.floor(rowRand * GRID_ROWS);
-          col = maxCol > 0 ? Math.floor(colRand * (maxCol + 1)) : 0;
-          console.log(`${ship.name} attempt ${attempts} HORIZONTAL: orientationRand=${orientationRand}, rowRand=${rowRand}, colRand=${colRand}, maxCol=${maxCol}, final row=${row}, col=${col}`);
+          row = Math.floor(Math.random() * GRID_ROWS);
+          col = Math.floor(Math.random() * Math.max(1, GRID_COLS - shipSize + 1));
         } else {
-          const maxRow = GRID_ROWS - shipSize;
-          const rowRand = randomFunc();
-          const colRand = randomFunc();
-          row = maxRow > 0 ? Math.floor(rowRand * (maxRow + 1)) : 0;
-          col = Math.floor(colRand * GRID_COLS);
-          console.log(`${ship.name} attempt ${attempts} VERTICAL: orientationRand=${orientationRand}, rowRand=${rowRand}, colRand=${colRand}, maxRow=${maxRow}, final row=${row}, col=${col}`);
+          row = Math.floor(Math.random() * Math.max(1, GRID_ROWS - shipSize + 1));
+          col = Math.floor(Math.random() * GRID_COLS);
         }
         
         
@@ -613,8 +603,10 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
         horizontal: ship.horizontal,
       })) }, (response) => {
         if (response && response.success) {
-          setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. You can still reposition ships.`);
+          setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. Drag to reposition.`);
           console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
+          // Ensure ships remain draggable by not setting placement as confirmed
+          setIsPlacementConfirmed(false);
           if (callback) callback(true);
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
@@ -655,22 +647,17 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       console.log(`Attempting to place ${shipConfig.name} (size: ${shipConfig.size})`);
       while (!placed && attempts < 100) {
         attempts++;
-        const randomFunc = freshRandom;
-        const horizontal = randomFunc() > 0.5;
+        const horizontal = Math.random() > 0.5;
         let row, col;
         
         // Ensure starting position allows the entire ship to fit
         if (horizontal) {
-          const maxCol = GRID_COLS - shipConfig.size;
-          row = Math.floor(randomFunc() * GRID_ROWS);
-          col = maxCol > 0 ? Math.floor(randomFunc() * (maxCol + 1)) : 0;
+          row = Math.floor(Math.random() * GRID_ROWS);
+          col = Math.floor(Math.random() * Math.max(1, GRID_COLS - shipConfig.size + 1));
         } else {
-          const maxRow = GRID_ROWS - shipConfig.size;
-          row = maxRow > 0 ? Math.floor(randomFunc() * (maxRow + 1)) : 0;
-          col = Math.floor(randomFunc() * GRID_COLS);
+          row = Math.floor(Math.random() * Math.max(1, GRID_ROWS - shipConfig.size + 1));
+          col = Math.floor(Math.random() * GRID_COLS);
         }
-        
-        console.log(`${shipConfig.name} attempt ${attempts}: horizontal=${horizontal}, row=${row}, col=${col}, size=${shipConfig.size}, GRID_COLS=${GRID_COLS}, GRID_ROWS=${GRID_ROWS}`);
         
         
         const positions = [];
@@ -733,12 +720,14 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       })) }, (response) => {
         if (response && response.success) {
           if (successfulPlacements < SHIP_CONFIG.length) {
-            setMessage('Some ships couldn’t be placed. Adjust manually or try again.');
+            setMessage('Some ships couldn't be placed. Adjust manually or try again.');
             console.log(`Randomized ${successfulPlacements} out of ${SHIP_CONFIG.length} ships`);
           } else {
             setMessage('Ships randomized! Drag to reposition or Save Placement.');
             console.log('All ships successfully randomized');
           }
+          // Ensure ships remain draggable by not setting placement as confirmed
+          setIsPlacementConfirmed(false);
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
           console.log('Server failed to update board');

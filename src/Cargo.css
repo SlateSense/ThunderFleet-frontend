@@ -494,6 +494,13 @@
   padding: 5px;
   box-sizing: border-box;
   min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  touch-action: manipulation;
 }
 
 .your-turn {
@@ -632,6 +639,10 @@
   cursor: pointer;
   min-height: 50px;
   min-width: 50px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .cell:hover {
@@ -1678,7 +1689,24 @@
   
   html, body {
     overflow-x: hidden;
+    overflow-y: hidden;
     width: 100%;
+    height: 100%;
+    position: fixed;
+    touch-action: manipulation;
+  }
+  
+  /* Prevent viewport movement on mobile */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: none;
   }
   
   .unplaced-ships {
