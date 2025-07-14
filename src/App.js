@@ -21,7 +21,7 @@ const GRID_ROWS = 7;
 const GRID_SIZE = GRID_COLS * GRID_ROWS;
 const PLACEMENT_TIME = 45;
 const PAYMENT_TIMEOUT = 300;
-const JOIN_GAME_TIMEOUT = 20000;
+const JOIN_GAME_TIMEOUT = 5000;
 const CONFETTI_COUNT = 50;
 const FIRE_TIMEOUT = 15;
 
@@ -605,7 +605,8 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
           setMessage(`${successfulPlacements} ship(s) randomized! ${placedCount}/5 placed. Drag to reposition.`);
           console.log(`${successfulPlacements} ships randomized, total placed: ${placedCount}`);
           // Ensure ships remain draggable by not setting placement as confirmed
-          setIsPlacementConfirmed(false);
+setIsPlacementConfirmed(false);
+setPlacementSaved(false);
           if (callback) callback(true);
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
@@ -726,6 +727,7 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
           }
           // Ensure ships remain draggable by not setting placement as confirmed
           setIsPlacementConfirmed(false);
+          setPlacementSaved(false);
         } else {
           setMessage('Failed to save randomized ships. Please try again.');
           console.log('Server failed to update board');
@@ -1290,6 +1292,7 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
           padding: 0,
         }}
         onDragOver={handleGridDragOver}
+        onDrop={handleGridDrop}
         onTouchMove={handleTouchMove}
       >
         <div
@@ -1408,7 +1411,7 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleTouchMove, handleTouchEnd]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
