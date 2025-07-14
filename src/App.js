@@ -1553,6 +1553,18 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
           >
             {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
           </button>
+          <button
+            onClick={() => {
+              console.log('Telegram support button clicked');
+              // TODO: Replace with your actual Telegram channel/group URL
+              window.open('https://t.me/thunderfleet_support', '_blank');
+            }}
+            className="telegram-support-button"
+            style={{ padding: '15px 30px', fontSize: '1.2em' }}
+          >
+            <span className="telegram-icon">📢</span>
+            Contact Support
+          </button>
         </div>
       </div>
     );
