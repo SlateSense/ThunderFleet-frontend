@@ -526,17 +526,27 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
       while (!placed && attempts < 100) {
         attempts++;
         const randomFunc = freshRandom;
-        const horizontal = randomFunc() > 0.5;
+        const orientationRand = randomFunc();
+        const horizontal = orientationRand > 0.5;
         let row, col;
         
         // Ensure starting position allows the entire ship to fit
         if (horizontal) {
-          row = Math.floor(randomFunc() * GRID_ROWS);
-          col = Math.floor(randomFunc() * (GRID_COLS - shipSize + 1));
+          const maxCol = GRID_COLS - shipSize;
+          const rowRand = randomFunc();
+          const colRand = randomFunc();
+          row = Math.floor(rowRand * GRID_ROWS);
+          col = maxCol > 0 ? Math.floor(colRand * (maxCol + 1)) : 0;
+          console.log(`${ship.name} attempt ${attempts} HORIZONTAL: orientationRand=${orientationRand}, rowRand=${rowRand}, colRand=${colRand}, maxCol=${maxCol}, final row=${row}, col=${col}`);
         } else {
-          row = Math.floor(randomFunc() * (GRID_ROWS - shipSize + 1));
-          col = Math.floor(randomFunc() * GRID_COLS);
+          const maxRow = GRID_ROWS - shipSize;
+          const rowRand = randomFunc();
+          const colRand = randomFunc();
+          row = maxRow > 0 ? Math.floor(rowRand * (maxRow + 1)) : 0;
+          col = Math.floor(colRand * GRID_COLS);
+          console.log(`${ship.name} attempt ${attempts} VERTICAL: orientationRand=${orientationRand}, rowRand=${rowRand}, colRand=${colRand}, maxRow=${maxRow}, final row=${row}, col=${col}`);
         }
+        
         
         const positions = [];
         let valid = true;
@@ -648,12 +658,17 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
         
         // Ensure starting position allows the entire ship to fit
         if (horizontal) {
+          const maxCol = GRID_COLS - shipConfig.size;
           row = Math.floor(randomFunc() * GRID_ROWS);
-          col = Math.floor(randomFunc() * Math.max(1, GRID_COLS - shipConfig.size + 1));
+          col = maxCol > 0 ? Math.floor(randomFunc() * (maxCol + 1)) : 0;
         } else {
-          row = Math.floor(randomFunc() * Math.max(1, GRID_ROWS - shipConfig.size + 1));
+          const maxRow = GRID_ROWS - shipConfig.size;
+          row = maxRow > 0 ? Math.floor(randomFunc() * (maxRow + 1)) : 0;
           col = Math.floor(randomFunc() * GRID_COLS);
         }
+        
+        console.log(`${shipConfig.name} attempt ${attempts}: horizontal=${horizontal}, row=${row}, col=${col}, size=${shipConfig.size}, GRID_COLS=${GRID_COLS}, GRID_ROWS=${GRID_ROWS}`);
+        
         
         const positions = [];
         let valid = true;
