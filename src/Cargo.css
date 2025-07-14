@@ -729,18 +729,7 @@
   animation: waterShimmer 3s linear infinite;
 }
 
-.cell.water::after {
-  content: '✨';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.7);
-  animation: sparkle 5s ease-in-out infinite;
-  animation-delay: var(--sparkle-delay, 0s);
-}
+/* Removed sparkling stars to reduce distraction during gameplay */
 
 @keyframes gentleWaves {
   0%, 100% {
@@ -766,16 +755,7 @@
   }
 }
 
-@keyframes sparkle {
-  0%, 90%, 100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-  5%, 15% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
+/* Sparkle animation removed */
 
 .cell.ship {
   background: linear-gradient(45deg, #666 0%, #999 50%, #aaa 100%);
