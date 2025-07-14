@@ -2438,7 +2438,7 @@ setPlacementSaved(false);
                 <button
                   onClick={saveShipPlacement}
                   className="action-button save-placement"
-                  disabled={shipCount < 5 || isPlacementConfirmed}
+                  disabled={shipCount < 5 || isPlacementConfirmed || ships.some(ship => ship.isOverlapping)}
                   style={{ padding: '15px 20px', fontSize: '1em' }}
                 >
                   Save Placement
