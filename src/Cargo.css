@@ -650,7 +650,20 @@
 .cell.ship {
   background: linear-gradient(45deg, #666 0%, #999 50%, #aaa 100%);
   border: 1px solid #444;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3),
+              0 0 3px rgba(255, 255, 255, 0.4);
+  animation: shipGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes shipGlow {
+  from {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 0 3px rgba(255, 255, 255, 0.4);
+  }
+  to {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 0 6px rgba(255, 255, 255, 0.6);
+  }
 }
 
 .cell.hit {
