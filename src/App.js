@@ -1505,7 +1505,19 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
   const SplashScreen = useMemo(() => {
     console.log('Rendering SplashScreen with logo path: ./logo.png');
     return (
-      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        {/* Sound Toggle in top right corner */}
+        <button
+          onClick={() => {
+            console.log('Sound toggle button clicked');
+            setIsSoundEnabled(!isSoundEnabled);
+          }}
+          className="sound-toggle-corner"
+          title={isSoundEnabled ? 'Mute Sound' : 'Enable Sound'}
+        >
+          {isSoundEnabled ? '🔊' : '🔇'}
+        </button>
+        
         <div
           className="game-logo"
           style={{
@@ -1542,16 +1554,6 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
             style={{ padding: '15px 30px', fontSize: '1.2em' }}
           >
             How to Play
-          </button>
-          <button
-            onClick={() => {
-              console.log('Sound toggle button clicked');
-              setIsSoundEnabled(!isSoundEnabled);
-            }}
-            className="join-button sound-toggle"
-            style={{ padding: '15px 30px', fontSize: '1.2em' }}
-          >
-            {isSoundEnabled ? '🔇 Mute Sound' : '🔊 Enable Sound'}
           </button>
           <button
             onClick={() => {
