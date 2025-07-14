@@ -752,19 +752,13 @@
 
 .ship-on-grid {
   position: absolute;
-  z-index: 10;
-  /* Remove background gradient to avoid overriding background image */
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  z-index: 20;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
   border-radius: 3px;
   border: 1px solid #444;
   transition: all 0.3s ease;
-  /* Ensure background image is visible */
-  background-color: transparent;
-}
-
-.ship-on-grid:hover {
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
-  transform: scale(1.02);
+  background-color: rgba(255, 255, 255, 0.3);
+  opacity: 1;
 }
 
 .ship-on-grid img {
