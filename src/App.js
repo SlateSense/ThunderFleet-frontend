@@ -207,8 +207,8 @@ const App = () => {
         console.log(`Joined game ${gameId} as player ${playerId}`);
         setGameId(gameId);
         setPlayerId(playerId);
-        setGameState('waiting');
-        setMessage('Processing payment...');
+        setGameState('waitingForOpponent');
+        setMessage('Waiting for opponent...');
       },
       paymentRequest: ({ lightningInvoice, hostedInvoiceUrl }) => {
         console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
@@ -250,10 +250,13 @@ const App = () => {
         setTimerActive(true);
         setTimeLeft(PLACEMENT_TIME);
       },
-      waitingForOpponent: ({ message }) => {
-        console.log('Received waitingForOpponent event:', message);
+      waitingForOpponent: ({ message, countdown, timeLeft }) => {
+        console.log('Received waitingForOpponent event:', { message, countdown, timeLeft });
         setGameState('waitingForOpponent');
         setMessage(message);
+        if (countdown && timeLeft !== undefined) {
+          console.log(`Countdown update: ${timeLeft} seconds remaining`);
+        }
       },
       matchmakingTimer: ({ message }) => {
         console.log('Received matchmaking timer update:', message);
