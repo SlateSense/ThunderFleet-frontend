@@ -1096,6 +1096,37 @@ setPlacementSaved(false);
     updateServerBoard();
   }, [isPlacementConfirmed, updateServerBoard]);
 
+  // Function to create cannonball trajectory animation
+  const createCannonballTrajectory = useCallback((startElement, endElement) => {
+    if (!startElement || !endElement) return;
+    
+    const startRect = startElement.getBoundingClientRect();
+    const endRect = endElement.getBoundingClientRect();
+    
+    const cannonball = document.createElement('div');
+    cannonball.className = 'cannonball-trajectory flying';
+    
+    // Position cannonball at start
+    cannonball.style.left = `${startRect.left + startRect.width / 2}px`;
+    cannonball.style.top = `${startRect.top + startRect.height / 2}px`;
+    
+    // Set CSS custom properties for animation
+    cannonball.style.setProperty('--start-x', `${startRect.left + startRect.width / 2}px`);
+    cannonball.style.setProperty('--start-y', `${startRect.top + startRect.height / 2}px`);
+    cannonball.style.setProperty('--end-x', `${endRect.left + endRect.width / 2}px`);
+    cannonball.style.setProperty('--end-y', `${endRect.top + endRect.height / 2}px`);
+    cannonball.style.setProperty('--flight-duration', '0.8s');
+    
+    document.body.appendChild(cannonball);
+    
+    // Remove cannonball after animation
+    setTimeout(() => {
+      if (cannonball.parentNode) {
+        cannonball.parentNode.removeChild(cannonball);
+      }
+    }, 1000);
+  }, []);
+
   // Function to handle firing a shot
   const handleFire = useCallback((position) => {
     if (gameState !== 'playing' || turn !== socket?.id || enemyBoard[position] !== 'water') {
@@ -1107,12 +1138,20 @@ setPlacementSaved(false);
     // Stop the fire timer when player fires manually
     setFireTimerActive(false);
     
+    // Create cannonball trajectory animation
+    const playerGrid = document.querySelector('[data-grid-type="player"]');
+    const enemyCell = document.querySelector(`[data-grid-index="${position}"][data-grid-type="enemy"]`);
+    
+    if (playerGrid && enemyCell) {
+      createCannonballTrajectory(playerGrid, enemyCell);
+    }
+    
     socket?.emit('fire', { gameId, position });
     const row = Math.floor(position / GRID_COLS);
     const col = position % GRID_COLS;
     setCannonFire({ row, col, hit: false });
     setTimeout(() => setCannonFire(null), 1000);
-  }, [gameState, turn, enemyBoard, socket, gameId]);
+  }, [gameState, turn, enemyBoard, socket, gameId, createCannonballTrajectory]);
 
   // Function to handle drag over events on the grid
   const handleGridDragOver = useCallback((e) => {
@@ -1308,6 +1347,7 @@ setPlacementSaved(false);
       <div
         ref={isEnemy ? null : gridRef}
         className="grid-container"
+        data-grid-type={isEnemy ? "enemy" : "player"}
         style={{
           width: `${GRID_COLS * cellSize}px`,
           height: `${GRID_ROWS * cellSize}px`,
@@ -1358,6 +1398,7 @@ setPlacementSaved(false);
                   backgroundColor: isHit ? '#ff4500' : cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : '#333',
                 }}
                 data-grid-index={index}
+                data-grid-type={isEnemy ? "enemy" : "player"}
               >
                 {isEnemy && cannonFire && cannonFire.row === row && cannonFire.col === col && (
                   <div className={`cannonball-effect ${cannonFire.hit ? 'hit' : 'miss'}`}></div>
@@ -1378,16 +1419,18 @@ setPlacementSaved(false);
             // Log ship rendering for debugging
             console.log(`Ship ${ship.name}: placed=${ship.placed}, positions=${ship.positions}, gameState=${gameState}`);
             
+            // Check if ship is damaged (any position is hit)
+            const isDamaged = ship.positions.some(pos => myBoard[pos] === 'hit');
             
             const topPosition = Math.floor(ship.positions[0] / GRID_COLS) * cellSize;
             const leftPosition = (ship.positions[0] % GRID_COLS) * cellSize;
             
-            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, size=${ship.size}`);
+            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, size=${ship.size}, damaged=${isDamaged}`);
             
             return (
               <div
                 key={`ship-${ship.id}`}
-                className="ship-on-grid"
+                className={`ship-on-grid ${isDamaged ? 'damaged ship-damaged' : ''}`}
                 draggable={!isPlacementConfirmed}
                 onDragStart={(e) => handleDragStart(e, ship.id)}
                 onDragEnd={() => setIsDragging(null)}

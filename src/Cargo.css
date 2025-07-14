@@ -812,6 +812,88 @@
   animation: explosionIcon 1.2s ease-out;
 }
 
+/* Smoke Trails for Damaged Ships */
+.ship-damaged {
+  position: relative;
+}
+
+.ship-damaged::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(to top, 
+    rgba(60, 60, 60, 0.9) 0%,
+    rgba(100, 100, 100, 0.7) 30%,
+    rgba(150, 150, 150, 0.5) 60%,
+    rgba(200, 200, 200, 0.3) 80%,
+    transparent 100%);
+  border-radius: 50% 50% 0 0;
+  transform: translateX(-50%);
+  animation: smokeRise 3s ease-out infinite;
+  z-index: 10;
+}
+
+.ship-damaged::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 60%;
+  width: 2px;
+  height: 15px;
+  background: linear-gradient(to top, 
+    rgba(40, 40, 40, 0.8) 0%,
+    rgba(80, 80, 80, 0.6) 40%,
+    rgba(120, 120, 120, 0.4) 70%,
+    transparent 100%);
+  border-radius: 50% 50% 0 0;
+  transform: translateX(-50%);
+  animation: smokeRise 3s ease-out infinite 0.5s;
+  z-index: 9;
+}
+
+@keyframes smokeRise {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  20% {
+    opacity: 0.8;
+    transform: translateX(-50%) translateY(-5px) scale(1.1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateX(-50%) translateY(-12px) scale(1.3);
+  }
+  80% {
+    opacity: 0.3;
+    transform: translateX(-50%) translateY(-18px) scale(1.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-25px) scale(2);
+  }
+}
+
+/* Enhanced ship damage indicators */
+.ship-on-grid.damaged {
+  animation: shipBobbing 3s ease-in-out infinite, shipDamageShake 0.1s ease-in-out 3;
+}
+
+@keyframes shipDamageShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  75% {
+    transform: translateX(1px);
+  }
+}
+
 @keyframes hitPulse {
   0% {
     transform: scale(1);
@@ -1101,6 +1183,60 @@
   animation: explode 1s forwards;
   pointer-events: none;
   z-index: 15;
+}
+
+/* Animated Cannonball Trajectory */
+.cannonball-trajectory {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #333 0%, #666 50%, #333 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.cannonball-trajectory::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: cannonballGlow 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes cannonballGlow {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.cannonball-trajectory.flying {
+  animation: cannonballFly var(--flight-duration, 1s) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes cannonballFly {
+  0% {
+    transform: translate(var(--start-x, 0), var(--start-y, 0)) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--start-x, 0) + (var(--end-x, 0) - var(--start-x, 0)) * 0.5), calc(var(--start-y, 0) + (var(--end-y, 0) - var(--start-y, 0)) * 0.5 - 30px)) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--end-x, 0), var(--end-y, 0)) scale(0.6);
+    opacity: 0;
+  }
 }
 
 .cannonball-effect.hit {
