@@ -461,7 +461,11 @@ const App = () => {
         console.log(`Vertical ship exceeds row boundary at row ${row + i}`);
         return null;
       }
-      if (myBoard[pos] === 'ship' && !ship.positions.includes(pos)) {
+      // Check if position is occupied by another ship (exclude current ship's positions)
+      const isOccupiedByOtherShip = ships.some(otherShip => 
+        otherShip.id !== ship.id && otherShip.positions && otherShip.positions.includes(pos)
+      );
+      if (isOccupiedByOtherShip) {
         console.log(`Position ${pos} is already occupied by another ship`);
         return null;
       }
@@ -469,7 +473,7 @@ const App = () => {
     }
     console.log(`Calculated positions for ${ship.name}:`, positions);
     return positions;
-  }, [myBoard]);
+  }, [ships]);
 
   // Function to update the server with the current board state
   const updateServerBoard = useCallback((updatedShips) => {
@@ -1190,12 +1194,25 @@ setPlacementSaved(false);
       return;
     }
 
+    // Update the board state immediately
     setMyBoard((prev) => {
       const newBoard = [...prev];
-      if (ship.positions.length > 0) {
-        ship.positions.forEach((pos) => (newBoard[pos] = 'water'));
+      // Clear all ship positions first
+      for (let i = 0; i < newBoard.length; i++) {
+        if (newBoard[i] === 'ship') {
+          newBoard[i] = 'water';
+        }
       }
-      newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+      // Place all ships including the moved one
+      ships.forEach((s, idx) => {
+        if (idx === shipIndex) {
+          // Place the moved ship at new position
+          newPositions.forEach((pos) => (newBoard[pos] = 'ship'));
+        } else if (s.positions && s.positions.length > 0) {
+          // Place other ships at their existing positions
+          s.positions.forEach((pos) => (newBoard[pos] = 'ship'));
+        }
+      });
       console.log(`Placed ${ship.name} on board at positions:`, newPositions);
       return newBoard;
     });
@@ -1223,7 +1240,15 @@ setPlacementSaved(false);
 
     playPlaceSound();
     setIsDragging(null);
-    updateServerBoard();
+    
+    // Update server with the new ship positions
+    const updatedShipsForServer = [...ships];
+    updatedShipsForServer[shipIndex] = {
+      ...updatedShipsForServer[shipIndex],
+      positions: newPositions,
+      placed: true,
+    };
+    updateServerBoard(updatedShipsForServer);
   }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
 
   // Function to handle touch end
