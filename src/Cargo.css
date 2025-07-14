@@ -1,9 +1,13 @@
+/* Import Google Fonts for Professional Typography */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap');
+
 /* General Styles */
 .App {
   text-align: center;
   min-height: 100vh;
   color: #fff;
-  font-family: 'Arial', sans-serif;
+  font-family: 'Exo 2', 'Arial', sans-serif;
+  font-weight: 400;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -13,15 +17,40 @@
   position: relative;
   overflow-x: hidden;
   background: linear-gradient(135deg, #0a1a2b 0%, #1b3a5b 100%);
-  transition: opacity 0.5s ease-in-out;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .App.fade-in {
   opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .App.fade-out {
   opacity: 0;
+  transform: translateY(20px) scale(0.98);
+}
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Splash Screen */
@@ -63,10 +92,27 @@
 }
 
 .game-title {
-  font-size: 1.8rem;
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: 2rem;
   margin-bottom: 15px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 255, 0.3);
   flex-shrink: 0;
+  background: linear-gradient(45deg, #00ffff, #ffffff, #00ffff);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleShimmer 3s ease-in-out infinite;
+}
+
+@keyframes titleShimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .button-group {
@@ -340,6 +386,12 @@
   padding: 10px;
   box-sizing: border-box;
   min-height: 100vh;
+}
+
+.placing-screen h3, .playing-screen h3, .finished-screen h2, .join-screen h2, .waiting-screen h2 {
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 255, 255, 0.2);
 }
 
 .ships-list {
@@ -655,7 +707,74 @@
 }
 
 .cell.water {
-  background: linear-gradient(135deg, #87ceeb 0%, #b8e6ff 100%);
+  background: linear-gradient(135deg, #1e90ff 0%, #87ceeb 50%, #b8e6ff 100%);
+  position: relative;
+  overflow: hidden;
+  animation: gentleWaves 4s ease-in-out infinite;
+}
+
+.cell.water::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.1) 25%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    rgba(255, 255, 255, 0.1) 75%, 
+    transparent 100%);
+  animation: waterShimmer 3s linear infinite;
+}
+
+.cell.water::after {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  animation: sparkle 5s ease-in-out infinite;
+  animation-delay: var(--sparkle-delay, 0s);
+}
+
+@keyframes gentleWaves {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 25% 60%;
+  }
+  50% {
+    background-position: 50% 40%;
+  }
+  75% {
+    background-position: 75% 60%;
+  }
+}
+
+@keyframes waterShimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes sparkle {
+  0%, 90%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  5%, 15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .cell.ship {
@@ -683,6 +802,34 @@
   box-shadow: 0 0 10px rgba(255, 69, 0, 0.6),
               inset 0 0 8px rgba(0, 0, 0, 0.5);
   animation: hitPulse 0.8s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.cell.hit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle, 
+    rgba(255, 255, 0, 0.8) 0%, 
+    rgba(255, 165, 0, 0.6) 30%, 
+    rgba(255, 69, 0, 0.4) 60%, 
+    transparent 80%);
+  animation: fireEffect 1.5s ease-out infinite;
+}
+
+.cell.hit::after {
+  content: '💥';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  opacity: 0;
+  animation: explosionIcon 1.2s ease-out;
 }
 
 @keyframes hitPulse {
@@ -701,10 +848,35 @@
 }
 
 .cell.miss {
-  background: radial-gradient(circle, #fff 0%, #ddd 30%, #333 100%);
-  border: 1px solid #555;
+  background: radial-gradient(circle, #fff 0%, #87ceeb 30%, #1e90ff 70%, #0066cc 100%);
+  border: 1px solid #0088ff;
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
-  animation: missRipple 0.6s ease-out;
+  animation: missRipple 1.2s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.cell.miss::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(135, 206, 235, 0.4) 30%, transparent 70%);
+  animation: rippleEffect 1.2s ease-out;
+}
+
+.cell.miss::after {
+  content: '💧';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  opacity: 0;
+  animation: waterSplash 1s ease-out;
 }
 
 @keyframes missRipple {
@@ -719,6 +891,88 @@
   100% {
     transform: scale(1);
     box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@keyframes rippleEffect {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.8;
+    transform: translate(-50%, -50%);
+  }
+  50% {
+    width: 80%;
+    height: 80%;
+    opacity: 0.4;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    width: 120%;
+    height: 120%;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes fireEffect {
+  0% {
+    opacity: 0.8;
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.1) rotate(5deg);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(0.95) rotate(-3deg);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.05) rotate(2deg);
+  }
+  100% {
+    opacity: 0.8;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes explosionIcon {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.5) rotate(180deg);
+  }
+  70% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.2) rotate(270deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5) rotate(360deg);
+  }
+}
+
+@keyframes waterSplash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2) rotate(10deg);
+  }
+  70% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.8) rotate(-5deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
   }
 }
 
@@ -783,6 +1037,31 @@
   transition: all 0.3s ease;
   background-color: rgba(255, 255, 255, 0.3);
   opacity: 1;
+  animation: shipBobbing 3s ease-in-out infinite, shipSlideIn 0.8s ease-out;
+}
+
+@keyframes shipBobbing {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes shipSlideIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(10deg);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1) rotate(-2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .ship-on-grid img {
@@ -947,20 +1226,42 @@
 .action-button {
   padding: 12px 20px;
   font-size: 1rem;
-  background: #007bff;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: #fff;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.3s, transform 0.1s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   touch-action: manipulation;
   min-height: 44px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  font-weight: 600;
+}
+
+.join-button::before,
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.join-button:hover::before,
+.action-button:hover::before {
+  left: 100%;
 }
 
 .join-button:hover,
 .action-button:hover {
-  background: #0056b3;
-  transform: scale(1.05);
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.5);
 }
 
 .join-button:disabled,
@@ -1681,6 +1982,155 @@
       font-size: 0.5rem;
     }
   }
+
+/* Tooltips for new players */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 10px;
+  position: absolute;
+  z-index: 1000;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(10px);
+  font-size: 0.9rem;
+  font-weight: 400;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.tooltip .tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1a1a2e transparent transparent transparent;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tooltip .tooltip-text.show {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Tooltip variants */
+.tooltip-top .tooltip-text {
+  bottom: auto;
+  top: 125%;
+}
+
+.tooltip-top .tooltip-text::after {
+  top: auto;
+  bottom: 100%;
+  border-color: transparent transparent #1a1a2e transparent;
+}
+
+.tooltip-right .tooltip-text {
+  bottom: auto;
+  top: 50%;
+  left: 125%;
+  margin-left: 0;
+  margin-top: -25px;
+}
+
+.tooltip-right .tooltip-text::after {
+  top: 50%;
+  left: 0;
+  margin-left: -5px;
+  margin-top: -5px;
+  border-color: transparent #1a1a2e transparent transparent;
+}
+
+.tooltip-left .tooltip-text {
+  bottom: auto;
+  top: 50%;
+  right: 125%;
+  left: auto;
+  margin-top: -25px;
+}
+
+.tooltip-left .tooltip-text::after {
+  top: 50%;
+  right: 0;
+  left: auto;
+  margin-right: -5px;
+  margin-top: -5px;
+  border-color: transparent transparent transparent #1a1a2e;
+}
+
+/* Animated tooltip indicators */
+.tooltip-indicator {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  background: #00ff88;
+  border-radius: 50%;
+  animation: tooltipPulse 2s infinite;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+}
+
+@keyframes tooltipPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+/* Help tooltips for specific game elements */
+.help-tooltip {
+  background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+  border: 1px solid rgba(0, 136, 255, 0.3);
+}
+
+.help-tooltip::after {
+  border-color: #0066cc transparent transparent transparent;
+}
+
+.warning-tooltip {
+  background: linear-gradient(135deg, #ff6600 0%, #cc4400 100%);
+  border: 1px solid rgba(255, 136, 0, 0.3);
+}
+
+.warning-tooltip::after {
+  border-color: #ff6600 transparent transparent transparent;
+}
+
+.success-tooltip {
+  background: linear-gradient(135deg, #00aa44 0%, #008833 100%);
+  border: 1px solid rgba(0, 170, 68, 0.3);
+}
+
+.success-tooltip::after {
+  border-color: #00aa44 transparent transparent transparent;
+}
   
   /* Ensure no horizontal scrolling */
   * {
