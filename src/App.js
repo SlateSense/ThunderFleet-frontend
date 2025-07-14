@@ -2245,53 +2245,50 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
               </h3>
               <p>{message}</p>
               
-              {/* Circular Firing Timer */}
+              {/* Compact Firing Timer */}
               {fireTimerActive && turn === socket.id && (
-                <div className="firing-timer" style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div className="timer-container" style={{ position: 'relative', width: '120px', height: '120px', margin: '10px 0' }}>
-                    <svg width="120" height="120" style={{ transform: 'rotate(-90deg)' }}>
-                      {/* Background circle */}
+                <div className="firing-timer-compact" style={{ margin: '5px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <div className="timer-container-small" style={{ position: 'relative', width: '40px', height: '40px' }}>
+                    <svg width="40" height="40" style={{ transform: 'rotate(-90deg)' }}>
                       <circle
-                        cx="60"
-                        cy="60"
-                        r="50"
+                        cx="20"
+                        cy="20"
+                        r="16"
                         fill="none"
                         stroke="rgba(255, 255, 255, 0.2)"
-                        strokeWidth="8"
+                        strokeWidth="3"
                       />
-                      {/* Progress circle */}
                       <circle
-                        cx="60"
-                        cy="60"
-                        r="50"
+                        cx="20"
+                        cy="20"
+                        r="16"
                         fill="none"
                         stroke={fireTimeLeft <= 5 ? '#ff4444' : '#4CAF50'}
-                        strokeWidth="8"
+                        strokeWidth="3"
                         strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 50}`}
-                        strokeDashoffset={`${2 * Math.PI * 50 * (1 - fireTimeLeft / FIRE_TIMEOUT)}`}
+                        strokeDasharray={`${2 * Math.PI * 16}`}
+                        strokeDashoffset={`${2 * Math.PI * 16 * (1 - fireTimeLeft / FIRE_TIMEOUT)}`}
                         style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.5s ease' }}
                       />
                     </svg>
                     <div 
-                      className="timer-text" 
+                      className="timer-text-small" 
                       style={{ 
                         position: 'absolute', 
                         top: '50%', 
                         left: '50%', 
                         transform: 'translate(-50%, -50%)', 
                         color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', 
-                        fontSize: '24px', 
-                        fontWeight: 'bold',
-                        textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+                        fontSize: '12px', 
+                        fontWeight: 'bold'
                       }}
                     >
                       {fireTimeLeft}
                     </div>
                   </div>
-                  <p style={{ color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', fontSize: '14px', textAlign: 'center', margin: '5px 0' }}>
-                    {fireTimeLeft <= 5 ? 'Hurry! Time running out!' : 'Time to fire'}
-                  </p>
+                  <span style={{ color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', fontSize: '12px', fontWeight: 'bold' }}>
+                    {fireTimeLeft <= 5 ? 'Hurry!' : 'Fire!'}
+                  </span>
                 </div>
               )}
               {isOpponentThinking && (
