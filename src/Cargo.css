@@ -882,6 +882,26 @@
   animation: shipBobbing 3s ease-in-out infinite, shipDamageShake 0.1s ease-in-out 3;
 }
 
+/* Overlapping ship styles */
+.ship-on-grid.overlapping {
+  opacity: 0.5;
+  filter: grayscale(0.7) brightness(0.7);
+  border: 2px dashed #ff6b6b !important;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.6) !important;
+  animation: overlapWarning 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes overlapWarning {
+  from {
+    border-color: #ff6b6b;
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  }
+  to {
+    border-color: #ff4444;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.8);
+  }
+}
+
 @keyframes shipDamageShake {
   0%, 100% {
     transform: translateX(0);

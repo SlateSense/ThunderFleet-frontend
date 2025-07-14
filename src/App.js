@@ -88,6 +88,7 @@ const App = () => {
       positions: [],
       horizontal: true,
       placed: false,
+      isOverlapping: false,
     }))
   );
   const [shipCount, setShipCount] = useState(0);
@@ -425,6 +426,28 @@ const App = () => {
     };
   }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
+  // Function to check if ships are overlapping
+  const checkShipOverlaps = useCallback((shipsArray) => {
+    const updatedShips = shipsArray.map(ship => ({ ...ship, isOverlapping: false }));
+    
+    for (let i = 0; i < updatedShips.length; i++) {
+      for (let j = i + 1; j < updatedShips.length; j++) {
+        const ship1 = updatedShips[i];
+        const ship2 = updatedShips[j];
+        
+        if (ship1.positions.length > 0 && ship2.positions.length > 0) {
+          const hasOverlap = ship1.positions.some(pos => ship2.positions.includes(pos));
+          if (hasOverlap) {
+            updatedShips[i].isOverlapping = true;
+            updatedShips[j].isOverlapping = true;
+          }
+        }
+      }
+    }
+    
+    return updatedShips;
+  }, []);
+
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
     console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
@@ -461,14 +484,7 @@ const App = () => {
         console.log(`Vertical ship exceeds row boundary at row ${row + i}`);
         return null;
       }
-      // Check if position is occupied by another ship (exclude current ship's positions)
-      const isOccupiedByOtherShip = ships.some(otherShip => 
-        otherShip.id !== ship.id && otherShip.positions && otherShip.positions.includes(pos)
-      );
-      if (isOccupiedByOtherShip) {
-        console.log(`Position ${pos} is already occupied by another ship`);
-        return null;
-      }
+      // Allow overlapping during placement - overlap detection will be handled separately
       positions.push(pos);
     }
     console.log(`Calculated positions for ${ship.name}:`, positions);
@@ -790,15 +806,122 @@ setPlacementSaved(false);
     playPlaceSound();
   }, [placementSaved, ships, gameId, socket, playPlaceSound, randomizeUnplacedShips]);
 
+  // Function to fix overlapping ships by repositioning them
+  const fixOverlappingShips = useCallback(() => {
+    const overlappingShips = ships.filter(ship => ship.isOverlapping && ship.positions.length > 0);
+    
+    if (overlappingShips.length === 0) {
+      return Promise.resolve(true);
+    }
+    
+    return new Promise((resolve) => {
+      console.log(`Fixing ${overlappingShips.length} overlapping ships`);
+      
+      const newBoard = Array(GRID_SIZE).fill('water');
+      const newShips = [...ships];
+      
+      // First, place all non-overlapping ships on the board
+      newShips.forEach(ship => {
+        if (!ship.isOverlapping && ship.positions.length > 0) {
+          ship.positions.forEach(pos => (newBoard[pos] = 'ship'));
+        }
+      });
+      
+      // Then reposition overlapping ships
+      overlappingShips.forEach(ship => {
+        let placed = false;
+        let attempts = 0;
+        const shipSize = SHIP_CONFIG.find(config => config.name === ship.name)?.size || 1;
+        
+        console.log(`Attempting to reposition ${ship.name} (size: ${shipSize})`);
+        while (!placed && attempts < 100) {
+          attempts++;
+          const horizontal = Math.random() > 0.5;
+          let row, col;
+          
+          if (horizontal) {
+            row = Math.floor(Math.random() * GRID_ROWS);
+            col = Math.floor(Math.random() * Math.max(1, GRID_COLS - shipSize + 1));
+          } else {
+            row = Math.floor(Math.random() * Math.max(1, GRID_ROWS - shipSize + 1));
+            col = Math.floor(Math.random() * GRID_COLS);
+          }
+          
+          const positions = [];
+          let valid = true;
+          
+          for (let i = 0; i < shipSize; i++) {
+            const pos = horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
+            
+            if (pos >= GRID_SIZE || newBoard[pos] === 'ship') {
+              valid = false;
+              break;
+            }
+            
+            if (horizontal) {
+              const currentRow = Math.floor(pos / GRID_COLS);
+              if (currentRow !== row) {
+                valid = false;
+                break;
+              }
+            }
+            
+            positions.push(pos);
+          }
+          
+          if (valid) {
+            positions.forEach(pos => (newBoard[pos] = 'ship'));
+            const shipIndex = newShips.findIndex(s => s.id === ship.id);
+            if (shipIndex !== -1) {
+              newShips[shipIndex] = {
+                ...newShips[shipIndex],
+                positions,
+                horizontal,
+                placed: true,
+                isOverlapping: false,
+              };
+              console.log(`Successfully repositioned ${ship.name} at positions:`, positions);
+            }
+            placed = true;
+          }
+        }
+        
+        if (!placed) {
+          console.log(`Failed to reposition ship ${ship.name} after 100 attempts`);
+        }
+      });
+      
+      // Update state
+      setMyBoard(newBoard);
+      setShips(newShips);
+      const placedCount = newShips.filter(s => s.placed).length;
+      setShipCount(placedCount);
+      
+      console.log(`Fixed overlapping ships. Total placed: ${placedCount}`);
+      resolve(true);
+    });
+  }, [ships]);
+
   // Function to auto-save placement when time runs out
-  const autoSavePlacement = useCallback(() => {
+  const autoSavePlacement = useCallback(async () => {
     console.log('Auto-saving placement due to time running out');
+    
+    // First fix any overlapping ships
+    const hasOverlaps = ships.some(s => s.isOverlapping);
+    if (hasOverlaps) {
+      console.log('Fixing overlapping ships before auto-save');
+      await fixOverlappingShips();
+      setMessage('Fixed overlapping ships and placing remaining ships...');
+    }
+    
+    // Then randomize any unplaced ships
     randomizeUnplacedShips();
-    // Delay setting placement confirmed to allow UI to update with auto-placed ships
+    
+    // Delay setting placement confirmed to allow UI to update
     setTimeout(() => {
       saveShipPlacement();
     }, 500);
-  }, [randomizeUnplacedShips, saveShipPlacement]);
+  }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
@@ -1065,8 +1188,8 @@ setPlacementSaved(false);
         startPos.toString()
       );
 
-      if (!newPositions || newPositions.some(pos => pos < 0 || pos >= GRID_SIZE)) {
-        setMessage('Cannot rotate: Overlaps or out of bounds.');
+      if (!newPositions) {
+        setMessage('Cannot rotate: Ship would go out of bounds.');
         return prev;
       }
 
@@ -1076,11 +1199,22 @@ setPlacementSaved(false);
         positions: newPositions,
         placed: true
       };
+      
+      // Check for overlaps and update overlap status
+      const shipsWithOverlapCheck = checkShipOverlaps(updated);
+      const hasAnyOverlap = shipsWithOverlapCheck.some(s => s.isOverlapping);
+      
+      if (hasAnyOverlap) {
+        setMessage('Ships are overlapping! Fix placement before saving.');
+      } else {
+        setMessage('Ship rotated successfully!');
+      }
+      
       playPlaceSound();
-      updateServerBoard(updated);
-      return updated;
+      updateServerBoard(shipsWithOverlapCheck);
+      return shipsWithOverlapCheck;
     });
-  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, calculateShipPositions, playPlaceSound, updateServerBoard, checkShipOverlaps]);
 
   // Function to clear the board
   const clearBoard = useCallback(() => {
@@ -1264,17 +1398,26 @@ setPlacementSaved(false);
         placed: true,
       };
 
+      // Check for overlaps and update overlap status
+      const shipsWithOverlapCheck = checkShipOverlaps(updated);
+      const hasAnyOverlap = shipsWithOverlapCheck.some(s => s.isOverlapping);
+      
       // Calculate the new ship count based on placed ships
-      const placedCount = updated.filter(s => s.positions.length > 0).length;
+      const placedCount = shipsWithOverlapCheck.filter(s => s.positions.length > 0).length;
       setShipCount(placedCount);
-      setMessage(
-        placedCount === 5
-          ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
-          : `${placedCount} of 5 ships placed. You can still reposition ships.`
-      );
-      console.log(`Ship count updated to ${placedCount}`);
+      
+      if (hasAnyOverlap) {
+        setMessage('Ships are overlapping! Fix placement before saving.');
+      } else {
+        setMessage(
+          placedCount === 5
+            ? 'All ships placed! Click "Save Placement". You can still reposition ships.'
+            : `${placedCount} of 5 ships placed. You can still reposition ships.`
+        );
+      }
+      console.log(`Ship count updated to ${placedCount}, overlaps: ${hasAnyOverlap}`);
 
-      return updated;
+      return shipsWithOverlapCheck;
     });
 
     playPlaceSound();
