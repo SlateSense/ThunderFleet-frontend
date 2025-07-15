@@ -71,30 +71,62 @@ const useSound = (src, isSoundEnabled) => {
 
 // Fire Timer Component
 const FireTimer = ({ timeLeft, isMyTurn }) => {
+  const [timerDimensions, setTimerDimensions] = useState(() => {
+    const width = window.innerWidth;
+    if (width <= 480) {
+      return { size: 40, cx: 20, cy: 20, r: 16 };
+    } else if (width <= 768) {
+      return { size: 50, cx: 25, cy: 25, r: 20 };
+    } else {
+      return { size: 60, cx: 30, cy: 30, r: 25 };
+    }
+  });
+  
+  // Update dimensions on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width <= 480) {
+        setTimerDimensions({ size: 40, cx: 20, cy: 20, r: 16 });
+      } else if (width <= 768) {
+        setTimerDimensions({ size: 50, cx: 25, cy: 25, r: 20 });
+      } else {
+        setTimerDimensions({ size: 60, cx: 30, cy: 30, r: 25 });
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   if (!isMyTurn || timeLeft <= 0) return null;
+  
+  const { size, cx, cy, r } = timerDimensions;
+  const circumference = 2 * Math.PI * r;
+  const strokeDasharray = `${(timeLeft / 15) * circumference} ${circumference}`;
   
   return (
     <div className="fire-timer">
       <div className="timer-circle">
-        <svg width="60" height="60">
+        <svg width={size} height={size}>
           <circle
-            cx="30"
-            cy="30"
-            r="25"
+            cx={cx}
+            cy={cy}
+            r={r}
             fill="none"
             stroke="#ddd"
             strokeWidth="4"
           />
           <circle
-            cx="30"
-            cy="30"
-            r="25"
+            cx={cx}
+            cy={cy}
+            r={r}
             fill="none"
             stroke={timeLeft <= 5 ? "#ff4444" : "#4CAF50"}
             strokeWidth="4"
-            strokeDasharray={`${(timeLeft / 15) * 157} 157`}
+            strokeDasharray={strokeDasharray}
             strokeLinecap="round"
-            transform="rotate(-90 30 30)"
+            transform={`rotate(-90 ${cx} ${cy})`}
           />
         </svg>
         <span className="timer-text">{timeLeft}</span>
