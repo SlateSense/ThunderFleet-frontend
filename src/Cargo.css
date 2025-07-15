@@ -336,6 +336,8 @@
   width: 100%;
   max-width: 300px;
   margin: 10px auto;
+  position: relative;
+  z-index: 10;
 }
 
 .timer-bar {
@@ -386,6 +388,7 @@
   width: 100%;
   animation: slideIn 0.5s ease-out;
   padding: 10px;
+  padding-top: 75px; /* Add space for fixed message container */
   box-sizing: border-box;
   min-height: 100vh;
 }
@@ -404,6 +407,14 @@
   padding: 0 10px;
   box-sizing: border-box;
   flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10, 26, 43, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .message-container p {
@@ -575,6 +586,7 @@
   width: 100%;
   animation: slideIn 0.5s ease-out;
   padding: 5px;
+  padding-top: 75px; /* Add space for fixed message container */
   box-sizing: border-box;
   min-height: 100vh;
   position: fixed;
@@ -588,16 +600,11 @@
 
 .playing-screen .message-container,
 .placing-screen .message-container {
-  position: absolute;
-  top: 10px;
-  width: 100%;
+  position: fixed;
   height: 60px;
   min-height: 60px;
   max-height: 60px;
   flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .your-turn {
@@ -618,6 +625,9 @@
   gap: 15px;
   align-items: center;
   width: 100%;
+  position: relative;
+  flex: 1;
+  justify-content: center;
 }
 
 .game-boards h4 {
@@ -1733,6 +1743,7 @@
   .playing-screen {
     gap: 8px;
     padding: 5px;
+    padding-top: 70px; /* Space for fixed message container */
   }
 }
 
@@ -1833,6 +1844,7 @@
     .placing-screen {
       gap: 8px;
       padding: 0 5px;
+      padding-top: 65px; /* Space for fixed message container */
       max-width: 100%;
     }
   
@@ -1940,6 +1952,7 @@
     .placing-screen {
       gap: 5px;
       padding: 0 3px;
+      padding-top: 65px; /* Space for fixed message container */
     }
   
     .game-boards {
@@ -2383,5 +2396,96 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+/* Fire Timer Styles */
+.fire-timer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  text-align: center;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.fire-timer .timer-circle {
+  position: relative;
+  display: inline-block;
+}
+
+.fire-timer .timer-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.fire-timer p {
+  margin: 5px 0 0 0;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+/* Mobile adjustments for fire timer */
+@media (max-width: 768px) {
+  .fire-timer {
+    bottom: 15px;
+    right: 15px;
+    padding: 8px;
+  }
+  
+  .fire-timer .timer-circle svg {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .fire-timer .timer-circle svg circle {
+    cx: 25;
+    cy: 25;
+    r: 20;
+  }
+  
+  .fire-timer .timer-text {
+    font-size: 16px;
+  }
+  
+  .fire-timer p {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .fire-timer {
+    bottom: 10px;
+    right: 10px;
+    padding: 6px;
+  }
+  
+  .fire-timer .timer-circle svg {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .fire-timer .timer-circle svg circle {
+    cx: 20;
+    cy: 20;
+    r: 16;
+  }
+  
+  .fire-timer .timer-text {
+    font-size: 14px;
+  }
+  
+  .fire-timer p {
+    font-size: 0.7rem;
+    margin: 3px 0 0 0;
   }
 }

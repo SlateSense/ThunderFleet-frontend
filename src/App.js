@@ -69,6 +69,41 @@ const useSound = (src, isSoundEnabled) => {
   }, [isSoundEnabled, audio, src]);
 };
 
+// Fire Timer Component
+const FireTimer = ({ timeLeft, isMyTurn }) => {
+  if (!isMyTurn || timeLeft <= 0) return null;
+  
+  return (
+    <div className="fire-timer">
+      <div className="timer-circle">
+        <svg width="60" height="60">
+          <circle
+            cx="30"
+            cy="30"
+            r="25"
+            fill="none"
+            stroke="#ddd"
+            strokeWidth="4"
+          />
+          <circle
+            cx="30"
+            cy="30"
+            r="25"
+            fill="none"
+            stroke={timeLeft <= 5 ? "#ff4444" : "#4CAF50"}
+            strokeWidth="4"
+            strokeDasharray={`${(timeLeft / 15) * 157} 157`}
+            strokeLinecap="round"
+            transform="rotate(-90 30 30)"
+          />
+        </svg>
+        <span className="timer-text">{timeLeft}</span>
+      </div>
+      <p>Time to fire!</p>
+    </div>
+  );
+};
+
 const App = () => {
   console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
 
@@ -2380,7 +2415,7 @@ setPlacementSaved(false);
 
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
-            <div className="placing-screen" style={{ height: '100vh', overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: '20px' }}>
+            <div className="placing-screen">
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
@@ -2451,7 +2486,7 @@ setPlacementSaved(false);
 
           {/* Playing Game Screen */}
           {gameState === 'playing' && socket && (
-            <div className="playing-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="playing-screen">
               <h3
                 className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
               >
@@ -2461,52 +2496,8 @@ setPlacementSaved(false);
                 <p>{message}</p>
               </div>
               
-              {/* Compact Firing Timer */}
-              {fireTimerActive && turn === socket.id && (
-                <div className="firing-timer-compact" style={{ margin: '5px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <div className="timer-container-small" style={{ position: 'relative', width: '40px', height: '40px' }}>
-                    <svg width="40" height="40" style={{ transform: 'rotate(-90deg)' }}>
-                      <circle
-                        cx="20"
-                        cy="20"
-                        r="16"
-                        fill="none"
-                        stroke="rgba(255, 255, 255, 0.2)"
-                        strokeWidth="3"
-                      />
-                      <circle
-                        cx="20"
-                        cy="20"
-                        r="16"
-                        fill="none"
-                        stroke={fireTimeLeft <= 5 ? '#ff4444' : '#4CAF50'}
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 16}`}
-                        strokeDashoffset={`${2 * Math.PI * 16 * (1 - fireTimeLeft / FIRE_TIMEOUT)}`}
-                        style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.5s ease' }}
-                      />
-                    </svg>
-                    <div 
-                      className="timer-text-small" 
-                      style={{ 
-                        position: 'absolute', 
-                        top: '50%', 
-                        left: '50%', 
-                        transform: 'translate(-50%, -50%)', 
-                        color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', 
-                        fontSize: '12px', 
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      {fireTimeLeft}
-                    </div>
-                  </div>
-                  <span style={{ color: fireTimeLeft <= 5 ? '#ff4444' : '#fff', fontSize: '12px', fontWeight: 'bold' }}>
-                    {fireTimeLeft <= 5 ? 'Hurry!' : 'Fire!'}
-                  </span>
-                </div>
-              )}
+              {/* Fire Timer */}
+              <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
               {isOpponentThinking && (
                 <div className="opponent-thinking">
                   <div className="loading-spinner"></div>
