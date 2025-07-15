@@ -2384,7 +2384,9 @@ setPlacementSaved(false);
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
-              <p>{message}</p>
+              <div className="message-container">
+                <p>{message}</p>
+              </div>
               <div className="timer-container">
                 <div className="timer-bar">
                   <div

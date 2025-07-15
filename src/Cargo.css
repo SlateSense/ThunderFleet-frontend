@@ -392,6 +392,7 @@
 
 /* Message Container */
 .message-container {
+  height: 60px;
   min-height: 60px;
   max-height: 60px;
   display: flex;
@@ -402,6 +403,7 @@
   margin: 10px 0;
   padding: 0 10px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .message-container p {
@@ -582,6 +584,15 @@
   bottom: 0;
   overflow: hidden !important;
   touch-action: none !important;
+}
+
+.playing-screen .message-container,
+.placing-screen .message-container {
+  position: relative;
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  flex-shrink: 0;
 }
 
 .your-turn {
