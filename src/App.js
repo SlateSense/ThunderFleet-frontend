@@ -2455,7 +2455,9 @@ setPlacementSaved(false);
               >
                 {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
               </h3>
-              <p>{message}</p>
+              <div className="message-container">
+                <p>{message}</p>
+              </div>
               
               {/* Compact Firing Timer */}
               {fireTimerActive && turn === socket.id && (
