@@ -15,7 +15,9 @@
   padding: 10px;
   box-sizing: border-box;
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden !important;
+  height: 100vh !important;
+  touch-action: none !important;
   background: linear-gradient(135deg, #0a1a2b 0%, #1b3a5b 100%);
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -551,8 +553,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  overflow: hidden;
-  touch-action: manipulation;
+  overflow: hidden !important;
+  touch-action: none !important;
 }
 
 .your-turn {
@@ -2282,18 +2284,27 @@
     touch-action: manipulation;
   }
   
-  /* Prevent viewport movement on mobile */
-  html {
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-  }
-  
-  body {
-    margin: 0;
-    padding: 0;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
-  }
+/* Prevent viewport movement on mobile */
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+/* Prevent text selection and touch interaction causing scroll */
+.message-text, .header-text, .your-turn, .opponent-turn, .bot-indicator, .game-stats h4, .game-stats p {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: none;
+  touch-action: manipulation;
+}
   
   .unplaced-ships {
     display: flex;
