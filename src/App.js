@@ -1209,225 +1209,16 @@ setPlacementSaved(false);
     console.log('Emitted joinGame event to server with username:', cleanedAddress);
   }, [socket, lightningAddress, betAmount]);
 
-  // Function to detect if user is on mobile device
-  const isMobile = useCallback(() => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad detection
-  }, []);
-
-  // Function to handle payment button click with Speed Wallet deep linking
-const handlePay = useCallback(() => {
-    if (!lightningInvoice && !hostedInvoiceUrl) {
-      setMessage('No payment URL available. Please scan the QR code to pay.');
-      return;
-    }
-
-    setPayButtonLoading(true);
-    console.log('Processing payment with invoice:', lightningInvoice ? 'Lightning invoice available' : 'No Lightning invoice');
-    
-    // Function to safely try opening a URL scheme with error handling
-    const tryOpenDeepLink = (deepLink) => {
-      return new Promise((resolve, reject) => {
-        const startTime = Date.now();
-        let resolved = false;
-        
-        const cleanup = () => {
-          if (resolved) return;
-          resolved = true;
-          document.removeEventListener('visibilitychange', visibilityHandler);
-          window.removeEventListener('blur', blurHandler);
-          window.removeEventListener('focus', focusHandler);
-          window.removeEventListener('beforeunload', beforeUnloadHandler);
-        };
-        
-        const visibilityHandler = () => {
-          if (document.hidden) {
-            console.log('App opened successfully with scheme:', deepLink);
-            cleanup();
-            resolve(true);
-          }
-        };
-        
-        const blurHandler = () => {
-          console.log('Window blurred, app likely opened with scheme:', deepLink);
-          cleanup();
-          resolve(true);
-        };
-        
-        const focusHandler = () => {
-          // If we get focus back quickly, the app probably didn't open
-          const timeDiff = Date.now() - startTime;
-          if (timeDiff < 500) {
-            console.log('Got focus back too quickly, app probably didn\'t open');
-            cleanup();
-            reject(new Error('App did not open'));
-          }
-        };
-        
-        const beforeUnloadHandler = () => {
-          console.log('Page is unloading, app likely opened');
-          cleanup();
-          resolve(true);
-        };
-        
-        // Add event listeners
-        document.addEventListener('visibilitychange', visibilityHandler);
-        window.addEventListener('blur', blurHandler);
-        window.addEventListener('focus', focusHandler);
-        window.addEventListener('beforeunload', beforeUnloadHandler);
-        
-        // Try different methods to open the deep link
-        const tryMethods = async () => {
-          try {
-            // Method 1: Try window.location.href (most reliable)
-            console.log('Trying window.location.href for:', deepLink);
-            window.location.href = deepLink;
-            
-            // Give it a moment to potentially trigger the app
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-          } catch (locationError) {
-            console.log('window.location.href failed:', locationError.message);
-            
-            try {
-              // Method 2: Try creating a hidden iframe
-              console.log('Trying iframe method for:', deepLink);
-              const iframe = document.createElement('iframe');
-              iframe.style.display = 'none';
-              iframe.style.width = '1px';
-              iframe.style.height = '1px';
-              iframe.style.position = 'absolute';
-              iframe.style.left = '-1000px';
-              iframe.style.top = '-1000px';
-              
-              // Handle iframe errors
-              iframe.onerror = () => {
-                console.log('Iframe method failed for:', deepLink);
-                if (iframe.parentNode) {
-                  iframe.parentNode.removeChild(iframe);
-                }
-              };
-              
-              iframe.src = deepLink;
-              document.body.appendChild(iframe);
-              
-              // Clean up iframe after attempt
-              setTimeout(() => {
-                if (iframe && iframe.parentNode) {
-                  iframe.parentNode.removeChild(iframe);
-                }
-              }, 1000);
-              
-            } catch (iframeError) {
-              console.log('Iframe method also failed:', iframeError.message);
-              
-              try {
-                // Method 3: Try creating a hidden anchor link
-                console.log('Trying anchor method for:', deepLink);
-                const anchor = document.createElement('a');
-                anchor.href = deepLink;
-                anchor.style.display = 'none';
-                document.body.appendChild(anchor);
-                anchor.click();
-                
-                setTimeout(() => {
-                  if (anchor.parentNode) {
-                    anchor.parentNode.removeChild(anchor);
-                  }
-                }, 1000);
-                
-              } catch (anchorError) {
-                console.log('All methods failed for:', deepLink, anchorError.message);
-              }
-            }
-          }
-        };
-        
-        // Start trying methods
-        tryMethods();
-        
-        // If app doesn't open within 1.5 seconds, consider it failed
-        setTimeout(() => {
-          if (!resolved) {
-            console.log('Deep link timed out after 1.5s:', deepLink);
-            cleanup();
-            reject(new Error('Deep link timed out'));
-          }
-        }, 1500);
-      });
-    };
-    
-    // Try Speed Wallet deep linking on mobile devices
-    if (isMobile() && lightningInvoice) {
-      console.log('Mobile device detected, attempting Speed Wallet deep link');
-      
-      // Multiple URL schemes to try for Speed Wallet
-      const speedDeepLinks = [
-        `speedwallet:pay?invoice=${encodeURIComponent(lightningInvoice)}`,
-        `speedwallet://pay?invoice=${encodeURIComponent(lightningInvoice)}`,
-        `speed://pay?invoice=${encodeURIComponent(lightningInvoice)}`,
-        `lightning:${lightningInvoice}`,
-        `bitcoin:lightning:${lightningInvoice}`
-      ];
-      
-      // Try each scheme sequentially
-      const trySpeedWalletDeepLink = async () => {
-        let appOpened = false;
-        
-        for (let i = 0; i < speedDeepLinks.length && !appOpened; i++) {
-          const deepLink = speedDeepLinks[i];
-          console.log(`Attempting deep link scheme ${i + 1}/${speedDeepLinks.length}:`, deepLink);
-          
-          try {
-            await tryOpenDeepLink(deepLink);
-            appOpened = true;
-            console.log('Successfully opened Speed Wallet with scheme:', deepLink);
-            // Don't reset loading state here - let the payment process continue
-            break;
-          } catch (error) {
-            console.log(`Deep link failed for scheme ${i + 1}:`, error.message);
-            // Continue to next scheme
-          }
-        }
-        
-        if (!appOpened) {
-          console.log('All Speed Wallet deep link schemes failed, opening hosted URL');
-          if (hostedInvoiceUrl) {
-            try {
-              window.open(hostedInvoiceUrl, '_blank');
-              console.log('Opened hosted invoice URL as fallback');
-            } catch (hostedError) {
-              console.log('Failed to open hosted URL:', hostedError.message);
-              setMessage('Unable to open payment page. Please scan the QR code to pay.');
-              setPayButtonLoading(false);
-            }
-          } else {
-            setMessage('Speed Wallet app not found. Please scan the QR code to pay.');
-            setPayButtonLoading(false);
-          }
-        }
-      };
-      
-      trySpeedWalletDeepLink();
-      
+  // Function to handle payment button click
+  const handlePay = useCallback(() => {
+    if (hostedInvoiceUrl) {
+      setPayButtonLoading(true);
+      console.log('Opening hosted invoice URL:', hostedInvoiceUrl);
+      window.open(hostedInvoiceUrl, '_blank');
     } else {
-      // Desktop or no Lightning invoice: open hosted URL
-      if (hostedInvoiceUrl) {
-        console.log('Desktop or fallback: Opening hosted invoice URL:', hostedInvoiceUrl);
-        try {
-          window.open(hostedInvoiceUrl, '_blank');
-          setPayButtonLoading(false); // Reset loading state after opening
-        } catch (error) {
-          console.log('Failed to open hosted URL:', error.message);
-          setMessage('Unable to open payment page. Please scan the QR code to pay.');
-          setPayButtonLoading(false);
-        }
-      } else {
-        setMessage('No payment URL available. Please scan the QR code to pay.');
-        setPayButtonLoading(false);
-      }
+      setMessage('No payment URL available. Please scan the QR code to pay.');
     }
-  }, [lightningInvoice, hostedInvoiceUrl, isMobile]);
+  }, [hostedInvoiceUrl]);
 
   // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
@@ -2417,26 +2208,13 @@ const handlePay = useCallback(() => {
           <p>Generating invoice...</p>
         )}
         <div className="invoice-controls">
-          {/* Speed Wallet specific button for mobile */}
-          {isMobile() && lightningInvoice && (
-            <button
-              onClick={handlePay}
-              className={`speed-wallet-button ${payButtonLoading ? 'loading' : ''}`}
-              disabled={payButtonLoading || isLoading}
-            >
-              {payButtonLoading ? 'Opening Speed Wallet...' : '⚡ Open in Speed Wallet'}
-            </button>
-          )}
-          
-          {/* General pay button */}
           <button
             onClick={handlePay}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
             disabled={!hostedInvoiceUrl || payButtonLoading || isLoading}
           >
-            {payButtonLoading ? 'Loading...' : isMobile() && lightningInvoice ? 'Pay with Other Wallet' : 'Pay Now'}
+            {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
-          
           <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading}>
             Cancel
           </button>
