@@ -1209,16 +1209,50 @@ setPlacementSaved(false);
     console.log('Emitted joinGame event to server with username:', cleanedAddress);
   }, [socket, lightningAddress, betAmount]);
 
-  // Function to handle payment button click
+  // Function to detect if user is on mobile device
+  const isMobile = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad detection
+  }, []);
+
+  // Function to handle payment button click with Speed Wallet deep linking
   const handlePay = useCallback(() => {
-    if (hostedInvoiceUrl) {
-      setPayButtonLoading(true);
-      console.log('Opening hosted invoice URL:', hostedInvoiceUrl);
-      window.open(hostedInvoiceUrl, '_blank');
-    } else {
+    if (!lightningInvoice && !hostedInvoiceUrl) {
       setMessage('No payment URL available. Please scan the QR code to pay.');
+      return;
     }
-  }, [hostedInvoiceUrl]);
+
+    setPayButtonLoading(true);
+    console.log('Processing payment with invoice:', lightningInvoice ? 'Lightning invoice available' : 'No Lightning invoice');
+    
+    // Try Speed Wallet deep linking on mobile devices
+    if (isMobile() && lightningInvoice) {
+      console.log('Mobile device detected, attempting Speed Wallet deep link');
+      
+      // Create Speed Wallet deep link
+      const speedDeepLink = `speed://pay?invoice=${encodeURIComponent(lightningInvoice)}`;
+      
+      // Try to open Speed app
+      window.location.href = speedDeepLink;
+      
+      // Fallback to hosted URL after 1.5 seconds if Speed app doesn't open
+      setTimeout(() => {
+        if (hostedInvoiceUrl) {
+          console.log('Fallback: Opening hosted invoice URL:', hostedInvoiceUrl);
+          window.open(hostedInvoiceUrl, '_blank');
+        }
+      }, 1500);
+    } else {
+      // Desktop or no Lightning invoice: open hosted URL
+      if (hostedInvoiceUrl) {
+        console.log('Desktop or fallback: Opening hosted invoice URL:', hostedInvoiceUrl);
+        window.open(hostedInvoiceUrl, '_blank');
+      } else {
+        setMessage('No payment URL available. Please scan the QR code to pay.');
+        setPayButtonLoading(false);
+      }
+    }
+  }, [lightningInvoice, hostedInvoiceUrl, isMobile]);
 
   // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
