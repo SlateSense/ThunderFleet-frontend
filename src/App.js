@@ -2495,6 +2495,38 @@ setPlacementSaved(false);
       {/* Main App Content */}
       {isAppLoaded && (
         <>
+          {/* Zoom Controls at top - Show during placing and playing phases */}
+          {(gameState === 'placing' || gameStarted) && (
+            <div className="zoom-controls-top">
+              <button 
+                className="zoom-button zoom-out" 
+                onClick={zoomOut}
+                disabled={zoomLevel <= MIN_ZOOM}
+                title="Zoom Out"
+              >
+                −
+              </button>
+              <div className="zoom-level-indicator">
+                {Math.round(zoomLevel * 100)}%
+              </div>
+              <button 
+                className="zoom-button zoom-reset" 
+                onClick={resetZoom}
+                title="Reset Zoom"
+              >
+                1x
+              </button>
+              <button 
+                className="zoom-button zoom-in" 
+                onClick={zoomIn}
+                disabled={zoomLevel >= MAX_ZOOM}
+                title="Zoom In"
+              >
+                +
+              </button>
+            </div>
+          )}
+          
           {/* Splash Screen */}
           {gameState === 'splash' && SplashScreen}
 
@@ -2714,37 +2746,6 @@ setPlacementSaved(false);
             </div>
           )}
       
-          {/* Zoom Controls - Only show when game has started */}
-          {gameStarted && (
-            <div className="zoom-controls">
-              <button 
-                className="zoom-button zoom-out" 
-                onClick={zoomOut}
-                disabled={zoomLevel <= MIN_ZOOM}
-                title="Zoom Out"
-              >
-                −
-              </button>
-              <div className="zoom-level-indicator">
-                {Math.round(zoomLevel * 100)}%
-              </div>
-              <button 
-                className="zoom-button zoom-reset" 
-                onClick={resetZoom}
-                title="Reset Zoom"
-              >
-                1x
-              </button>
-              <button 
-                className="zoom-button zoom-in" 
-                onClick={zoomIn}
-                disabled={zoomLevel >= MAX_ZOOM}
-                title="Zoom In"
-              >
-                +
-              </button>
-            </div>
-          )}
           {gameState === 'finished' && (
             <div className="finished-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', color: '#fff', padding: '20px', borderRadius: '10px' }}>
               <h2>Game Over</h2>
