@@ -1810,41 +1810,6 @@ setPlacementSaved(false);
     );
   }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, zoomLevel]);
 
-  // Zoom Controls Component
-  const ZoomControls = useMemo(() => {
-    if (!gameStarted && gameState !== 'placing') return null;
-    
-    return (
-      <div className="zoom-controls">
-        <button 
-          className="zoom-button zoom-out" 
-          onClick={zoomOut}
-          disabled={zoomLevel <= MIN_ZOOM}
-          title="Zoom Out"
-        >
-          −
-        </button>
-        <div className="zoom-level-indicator">
-          {Math.round(zoomLevel * 100)}%
-        </div>
-        <button 
-          className="zoom-button zoom-reset" 
-          onClick={resetZoom}
-          title="Reset Zoom"
-        >
-          1x
-        </button>
-        <button 
-          className="zoom-button zoom-in" 
-          onClick={zoomIn}
-          disabled={zoomLevel >= MAX_ZOOM}
-          title="Zoom In"
-        >
-          +
-        </button>
-      </div>
-    );
-  }, [gameStarted, zoomLevel, MIN_ZOOM, MAX_ZOOM, zoomIn, zoomOut, resetZoom]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {

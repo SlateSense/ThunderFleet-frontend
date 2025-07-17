@@ -2003,10 +2003,34 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Top positioned zoom controls - horizontal layout */
+.zoom-controls-top {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .zoom-controls:hover {
   background: rgba(0, 0, 0, 0.8);
   border-color: rgba(255, 255, 255, 0.2);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.zoom-controls-top:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
 }
 
 .zoom-button {
@@ -2027,6 +2051,37 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   position: relative;
   overflow: hidden;
+}
+
+/* Smaller zoom buttons for top horizontal layout */
+.zoom-controls-top .zoom-button {
+  width: 30px;
+  height: 30px;
+  font-size: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-controls-top .zoom-button.zoom-reset {
+  font-size: 0.7rem;
+  padding: 0 2px;
+}
+
+.zoom-controls-top .zoom-level-indicator {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  color: #fff;
+  text-align: center;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  min-width: 28px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .zoom-button::before {
@@ -2142,6 +2197,30 @@
     font-size: 0.75rem;
     padding: 3px 6px;
   }
+  
+  .zoom-controls-top {
+    top: 65px;
+    right: 15px;
+    padding: 5px;
+    gap: 5px;
+  }
+  
+  .zoom-controls-top .zoom-button {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+  
+  .zoom-controls-top .zoom-button.zoom-reset {
+    font-size: 0.65rem;
+  }
+  
+  .zoom-controls-top .zoom-level-indicator {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+    min-width: 26px;
+    height: 28px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2166,6 +2245,30 @@
   .zoom-level-indicator {
     font-size: 0.7rem;
     padding: 2px 4px;
+  }
+  
+  .zoom-controls-top {
+    top: 60px;
+    right: 10px;
+    padding: 4px;
+    gap: 4px;
+  }
+  
+  .zoom-controls-top .zoom-button {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+  }
+  
+  .zoom-controls-top .zoom-button.zoom-reset {
+    font-size: 0.6rem;
+  }
+  
+  .zoom-controls-top .zoom-level-indicator {
+    font-size: 0.6rem;
+    padding: 1px 3px;
+    min-width: 24px;
+    height: 26px;
   }
 }
 
