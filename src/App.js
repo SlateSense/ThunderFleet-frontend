@@ -1686,9 +1686,6 @@ setPlacementSaved(false);
           position: 'relative',
           margin: '0 auto',
           padding: 0,
-          transform: `scale(${zoomLevel})`,
-          transformOrigin: 'center center',
-          transition: 'transform 0.2s ease', // Smooth zoom transition
         }}
         onDragOver={handleGridDragOver}
         onDrop={handleGridDrop}
@@ -2448,6 +2445,8 @@ setPlacementSaved(false);
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        transform: `scale(${zoomLevel})`,
+        transformOrigin: 'top left',
       }}
     >
       {/* Show loading screen until app is fully loaded */}
@@ -2461,7 +2460,7 @@ setPlacementSaved(false);
       {isAppLoaded && (
         <>
           {/* Zoom Controls at top - Show during placing and playing phases */}
-          {(gameState === 'placing' || gameStarted) && (
+          {(gameState === 'placing' || gameState === 'playing') && (
             <div className="zoom-controls-top">
               <button 
                 className="zoom-button zoom-out" 
