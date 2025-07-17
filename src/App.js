@@ -1812,7 +1812,7 @@ setPlacementSaved(false);
 
   // Zoom Controls Component
   const ZoomControls = useMemo(() => {
-    if (!gameStarted) return null;
+    if (!gameStarted && gameState !== 'placing') return null;
     
     return (
       <div className="zoom-controls">
