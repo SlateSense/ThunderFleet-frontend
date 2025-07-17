@@ -999,13 +999,16 @@ setPlacementSaved(false);
 
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const maxDimension = Math.min(width, height);
-    console.log(`Window resized to width: ${width}px, height: ${height}px`);
-    const newCellSize = Math.min(40, Math.floor((maxDimension - 20) / Math.max(GRID_COLS, GRID_ROWS))); // Cap at 40px
-    setCellSize(newCellSize);
-    console.log(`Set cell size to ${newCellSize}px to fit screen`);
+    if (gridRef.current) {
+      const { width } = gridRef.current.getBoundingClientRect();
+      const newCellSize = width / GRID_COLS;
+      setCellSize(newCellSize);
+    } else {
+      // Fallback
+      const width = window.innerWidth;
+      const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
+      setCellSize(newCellSize);
+    }
   }, []);
 
   useEffect(() => {
@@ -1569,9 +1572,6 @@ setPlacementSaved(false);
         className="grid-container"
         data-grid-type={isEnemy ? "enemy" : "player"}
         style={{
-          width: `${GRID_COLS * cellSize}px`,
-          height: `${GRID_ROWS * cellSize}px`,
-          maxWidth: '360px', // Cap grid width for mobile
           position: 'relative',
           margin: '0 auto',
           padding: 0,
@@ -1583,11 +1583,8 @@ setPlacementSaved(false);
         <div
           className="grid"
           style={{
-            gridTemplateColumns: `repeat(${GRID_COLS}, ${cellSize}px)`,
-            gridTemplateRows: `repeat(${GRID_ROWS}, ${cellSize}px)`,
-            width: '100%',
-            height: '100%',
-            border: '2px solid #333',
+            gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
           }}
         >
           {board.map((cell, index) => {
@@ -1612,8 +1609,6 @@ setPlacementSaved(false);
                     isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
                       ? 'crosshair'
                       : 'default',
-                  width: cellSize,
-                  height: cellSize,
                   touchAction: 'none',
                   backgroundColor: isHit ? '#ff4500' : cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : '#333',
                 }}
