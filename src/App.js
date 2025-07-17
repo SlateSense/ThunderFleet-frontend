@@ -182,8 +182,8 @@ const App = () => {
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [payButtonLoading, setPayButtonLoading] = useState(false);
   const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
-const [showConfetti, setShowConfetti] = useState(false);
-const [paymentInfo, setPaymentInfo] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState(null);
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
@@ -279,14 +279,14 @@ const [paymentInfo, setPaymentInfo] = useState(null);
         setGameState('waitingForOpponent');
         setMessage('Waiting for opponent...');
       },
-paymentRequest: ({ lightningInvoice, hostedInvoiceUrl, amountUSD, btcPriceUSD }) = 3e {
+paymentRequest: ({ lightningInvoice, hostedInvoiceUrl, amountUSD, btcPriceUSD }) => {
         console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
         clearTimeout(joinGameTimeoutRef.current);
         setLightningInvoice(lightningInvoice);
         setHostedInvoiceUrl(hostedInvoiceUrl || null);
         setIsWaitingForPayment(true);
-setPayButtonLoading(false);
-setPaymentInfo({ amountUSD, btcPriceUSD });
+        setPayButtonLoading(false);
+        setPaymentInfo({ amountUSD, btcPriceUSD });
         setPaymentTimer(PAYMENT_TIMEOUT);
         setMessage(`Scan to pay ${betAmount} SATS`);
         setIsLoading(false); // Reset loading after transition
@@ -558,7 +558,7 @@ setPaymentInfo({ amountUSD, btcPriceUSD });
     }
     console.log(`Calculated positions for ${ship.name}:`, positions);
     return positions;
-  }, [ships]);
+  }, []);
 
   // Function to update the server with the current board state
   const updateServerBoard = useCallback((updatedShips) => {
@@ -1500,7 +1500,7 @@ setPlacementSaved(false);
       placed: true,
     };
     updateServerBoard(updatedShipsForServer);
-  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard]);
+  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard, checkShipOverlaps]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
@@ -1691,7 +1691,7 @@ setPlacementSaved(false);
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -2193,62 +2193,62 @@ setPlacementSaved(false);
     );
   }, []);
 
-// Component to render the payment modal
-const PaymentModal = useMemo(() = 3e {
-  console.log('Rendering PaymentModal');
-  return (
-    <div className="payment-modal">
-      <h3>⚡ Pay {betAmount} SATS to join ⚡</h3>
-      <p className="winnings-info">
-        Win {payoutAmount} SATS!
-      </p>
-      {paymentInfo && (
-        <div className="conversion-info">
-          <p className="btc-price">BTC Price: ${paymentInfo.btcPriceUSD.toLocaleString()}</p>
-          <p className="usd-amount">{betAmount} SATS ≈ ${paymentInfo.amountUSD}</p>
+  // Component to render the payment modal
+  const PaymentModal = useMemo(() => {
+    console.log('Rendering PaymentModal');
+    return (
+      <div className="payment-modal">
+        <h3>⚡ Pay {betAmount} SATS to join ⚡</h3>
+        <p className="winnings-info">
+          Win {payoutAmount} SATS!
+        </p>
+        {paymentInfo && (
+          <div className="conversion-info">
+            <p className="btc-price">BTC Price: ${paymentInfo.btcPriceUSD.toLocaleString()}</p>
+            <p className="usd-amount">{betAmount} SATS ≈ ${paymentInfo.amountUSD}</p>
+          </div>
+        )}
+        {lightningInvoice ? (
+          <div className="qr-container">
+            <QRCodeSVG value={lightningInvoice} size={window.innerWidth < 320 ? 150 : 200} level="H" includeMargin={true} />
+          </div>
+        ) : (
+          <p>Generating invoice...</p>
+        )}
+        <div className="invoice-controls">
+          <button
+            onClick={handlePay}
+            className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
+            disabled={!hostedInvoiceUrl || payButtonLoading || isLoading}
+          >
+            {payButtonLoading ? 'Loading...' : 'Pay Now'}
+          </button>
+          <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading}>
+            Cancel
+          </button>
         </div>
-      )}
-      {lightningInvoice ? (
-        <div className="qr-container">
-          <QRCodeSVG value={lightningInvoice} size={window.innerWidth < 320 ? 150 : 200} level="H" includeMargin={true} />
-        </div>
-      ) : (
-        <p>Generating invoice...</p>
-      )}
-      <div className="invoice-controls">
-        <button
-          onClick={handlePay}
-          className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
-          disabled={!hostedInvoiceUrl || payButtonLoading || isLoading}
-        >
-          {payButtonLoading ? 'Loading...' : 'Pay Now'}
-        </button>
-        <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading}>
-          Cancel
-        </button>
-      </div>
-      {isWaitingForPayment && (
-        <div className="payment-status">
-          <p>Waiting for payment confirmation...</p>
-          <div className="timer-container">
-            <div className="timer-bar">
-              <div
-                className="timer-progress"
-                style={{ width: `${(paymentTimer / PAYMENT_TIMEOUT) * 100}%` }}
-              ></div>
-            </div>
-            <div className="timer-text">
-              Time left:{' '}
-              <span className={paymentTimer <= 30 ? 'time-warning' : ''}>
-                {paymentTimer} seconds
-              </span>
+        {isWaitingForPayment && (
+          <div className="payment-status">
+            <p>Waiting for payment confirmation...</p>
+            <div className="timer-container">
+              <div className="timer-bar">
+                <div
+                  className="timer-progress"
+                  style={{ width: `${(paymentTimer / PAYMENT_TIMEOUT) * 100}%` }}
+                ></div>
+              </div>
+              <div className="timer-text">
+                Time left:{' '}
+                <span className={paymentTimer <= 30 ? 'time-warning' : ''}>
+                  {paymentTimer} seconds
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame, isLoading, paymentInfo]);
+        )}
+      </div>
+    );
+  }, [betAmount, payoutAmount, lightningInvoice, hostedInvoiceUrl, payButtonLoading, isWaitingForPayment, paymentTimer, handlePay, handleCancelGame, isLoading, paymentInfo]);
 
   // Component to render confetti for winning
   const Confetti = useMemo(() => {
