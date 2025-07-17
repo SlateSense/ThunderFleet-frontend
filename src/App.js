@@ -139,6 +139,40 @@ const FireTimer = ({ timeLeft, isMyTurn }) => {
 const App = () => {
   console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
 
+  // Zoom Controls Component
+  const ZoomControls = useMemo(() => {
+    if (!showZoomControls) return null;
+    
+    return (
+      <div className="zoom-controls">
+        <button 
+          className="zoom-button" 
+          onClick={handleZoomOut}
+          disabled={zoomLevel <= 0.3}
+          title="Zoom Out"
+        >
+          -
+        </button>
+        <span className="zoom-level">{Math.round(zoomLevel * 100)}%</span>
+        <button 
+          className="zoom-button" 
+          onClick={handleZoomIn}
+          disabled={zoomLevel >= 3}
+          title="Zoom In"
+        >
+          +
+        </button>
+        <button 
+          className="zoom-button reset-zoom" 
+          onClick={handleResetZoom}
+          title="Auto Fit"
+        >
+          ⟲
+        </button>
+      </div>
+    );
+  }, [showZoomControls, zoomLevel, handleZoomIn, handleZoomOut, handleResetZoom]);
+
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
   const [gameId, setGameId] = useState(null);
@@ -189,6 +223,9 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [showZoomControls, setShowZoomControls] = useState(false);
+  const appContainerRef = useRef(null);
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -997,6 +1034,28 @@ setPlacementSaved(false);
     }, 500);
   }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
+  // Function to calculate optimal zoom level based on screen size
+  const calculateOptimalZoom = useCallback(() => {
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    // Calculate base zoom to fit grid + buttons
+    const baseGridSize = Math.min(viewportWidth * 0.9, 600); // Grid max width
+    const buttonsHeight = 150; // Estimated height for buttons below grid
+    const messageHeight = 60; // Fixed message container height
+    const totalContentHeight = baseGridSize + buttonsHeight + messageHeight + 100; // Extra padding
+    
+    let optimalZoom = 1;
+    if (totalContentHeight > viewportHeight) {
+      optimalZoom = viewportHeight / totalContentHeight;
+    }
+    
+    // Limit zoom between 0.5 and 1.5 for automatic adjustment
+    optimalZoom = Math.max(0.5, Math.min(1.5, optimalZoom));
+    
+    return optimalZoom;
+  }, []);
+
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
     if (gridRef.current) {
@@ -1009,7 +1068,13 @@ setPlacementSaved(false);
       const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
       setCellSize(newCellSize);
     }
-  }, []);
+    
+    // Auto-adjust zoom when game starts
+    if ((gameState === 'placing' || gameState === 'playing') && !showZoomControls) {
+      const optimalZoom = calculateOptimalZoom();
+      setZoomLevel(optimalZoom);
+    }
+  }, [gameState, showZoomControls, calculateOptimalZoom]);
 
   useEffect(() => {
     handleResize();
@@ -1085,11 +1150,15 @@ setPlacementSaved(false);
       setTimeLeft(PLACEMENT_TIME);
       setPlacementSaved(false);
       setIsPlacementConfirmed(false);
+      setShowZoomControls(true); // Show zoom controls when game starts
+      // Auto-adjust zoom
+      const optimalZoom = calculateOptimalZoom();
+      setZoomLevel(optimalZoom);
     } else {
       console.log('Exiting placing state, stopping timer');
       setTimerActive(false);
     }
-  }, [gameState]);
+  }, [gameState, calculateOptimalZoom]);
 
   // Effect to update myBoard when ships change during placing phase
   useEffect(() => {
@@ -1165,6 +1234,20 @@ setPlacementSaved(false);
     const selectedOption = BET_OPTIONS.find(option => option.amount === parseInt(selectedAmount));
     setPayoutAmount(selectedOption ? selectedOption.winnings : null);
   }, []);
+
+  // Function to handle zoom controls
+  const handleZoomIn = useCallback(() => {
+    setZoomLevel(prev => Math.min(3, prev + 0.1));
+  }, []);
+  
+  const handleZoomOut = useCallback(() => {
+    setZoomLevel(prev => Math.max(0.3, prev - 0.1));
+  }, []);
+  
+  const handleResetZoom = useCallback(() => {
+    const optimalZoom = calculateOptimalZoom();
+    setZoomLevel(optimalZoom);
+  }, [calculateOptimalZoom]);
 
   // Function to handle joining the game
   const handleJoinGame = useCallback(() => {
@@ -2458,70 +2541,73 @@ setPlacementSaved(false);
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
             <div className="placing-screen">
-              <h3>
-                Place Your Ships ({shipCount}/5)
-              </h3>
-              <div className="message-container">
-                <p>{message}</p>
-              </div>
-              <div className="timer-container">
-                <div className="timer-bar">
+              {ZoomControls}
+              <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center top', transition: 'transform 0.3s ease' }}>
+                <h3>
+                  Place Your Ships ({shipCount}/5)
+                </h3>
+                <div className="message-container">
+                  <p>{message}</p>
+                </div>
+                <div className="timer-container">
+                  <div className="timer-bar">
+                    <div
+                      className="timer-progress"
+                      style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
+                    ></div>
+                  </div>
+                  <div className="timer-text">
+                    Time left:{' '}
+                    <span className={timeLeft <= 10 ? 'time-warning' : ''}>
+                      {timeLeft} seconds
+                    </span>
+                  </div>
+                </div>
+                <div className="fleet-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {renderShipList()}
                   <div
-                    className="timer-progress"
-                    style={{ width: `${(timeLeft / PLACEMENT_TIME) * 100}%` }}
-                  ></div>
+                    onDrop={handleGridDrop}
+                    onDragOver={handleGridDragOver}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ margin: '0 auto', padding: 0 }}
+                  >
+                    {renderGrid(myBoard, false)}
+                  </div>
                 </div>
-                <div className="timer-text">
-                  Time left:{' '}
-                  <span className={timeLeft <= 10 ? 'time-warning' : ''}>
-                    {timeLeft} seconds
-                  </span>
+                <div className="action-buttons" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    onClick={randomizeShips}
+                    className="action-button"
+                    disabled={isPlacementConfirmed}
+                    style={{ padding: '15px 20px', fontSize: '1em' }}
+                  >
+                    Randomize
+                  </button>
+                  <button
+                    onClick={randomizeUnplacedShips}
+                    className="action-button place-remaining"
+                    disabled={isPlacementConfirmed}
+                    style={{ padding: '15px 20px', fontSize: '1em' }}
+                  >
+                    Place Remaining
+                  </button>
+                  <button
+                    onClick={clearBoard}
+                    className="action-button clear-board"
+                    disabled={isPlacementConfirmed}
+                    style={{ padding: '15px 20px', fontSize: '1em' }}
+                  >
+                    Clear Board
+                  </button>
+                  <button
+                    onClick={saveShipPlacement}
+                    className="action-button save-placement"
+                    disabled={shipCount < 5 || isPlacementConfirmed || ships.some(ship => ship.isOverlapping)}
+                    style={{ padding: '15px 20px', fontSize: '1em' }}
+                  >
+                    Save Placement
+                  </button>
                 </div>
-              </div>
-              <div className="fleet-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {renderShipList()}
-                <div
-                  onDrop={handleGridDrop}
-                  onDragOver={handleGridDragOver}
-                  onTouchEnd={handleTouchEnd}
-                  style={{ margin: '0 auto', padding: 0 }}
-                >
-                  {renderGrid(myBoard, false)}
-                </div>
-              </div>
-              <div className="action-buttons" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button
-                  onClick={randomizeShips}
-                  className="action-button"
-                  disabled={isPlacementConfirmed}
-                  style={{ padding: '15px 20px', fontSize: '1em' }}
-                >
-                  Randomize
-                </button>
-                <button
-                  onClick={randomizeUnplacedShips}
-                  className="action-button place-remaining"
-                  disabled={isPlacementConfirmed}
-                  style={{ padding: '15px 20px', fontSize: '1em' }}
-                >
-                  Place Remaining
-                </button>
-                <button
-                  onClick={clearBoard}
-                  className="action-button clear-board"
-                  disabled={isPlacementConfirmed}
-                  style={{ padding: '15px 20px', fontSize: '1em' }}
-                >
-                  Clear Board
-                </button>
-                <button
-                  onClick={saveShipPlacement}
-                  className="action-button save-placement"
-                  disabled={shipCount < 5 || isPlacementConfirmed || ships.some(ship => ship.isOverlapping)}
-                  style={{ padding: '15px 20px', fontSize: '1em' }}
-                >
-                  Save Placement
-                </button>
               </div>
             </div>
           )}
@@ -2529,37 +2615,40 @@ setPlacementSaved(false);
           {/* Playing Game Screen */}
           {gameState === 'playing' && socket && (
             <div className="playing-screen">
-              <h3
-                className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-              >
-                {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-              </h3>
-              <div className="message-container">
-                <p>{message}</p>
-              </div>
-              
-              {/* Fire Timer */}
-              <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
-              {isOpponentThinking && (
-                <div className="opponent-thinking">
-                  <div className="loading-spinner"></div>
-                  <p>Opponent is thinking...</p>
+              {ZoomControls}
+              <div style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center top', transition: 'transform 0.3s ease' }}>
+                <h3
+                  className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
+                >
+                  {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
+                </h3>
+                <div className="message-container">
+                  <p>{message}</p>
                 </div>
-              )}
-              <div className="game-boards" style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
-                <div>
-                  <h4>Your Fleet</h4>
-                  {renderGrid(myBoard, false)}
+                
+                {/* Fire Timer */}
+                <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
+                {isOpponentThinking && (
+                  <div className="opponent-thinking">
+                    <div className="loading-spinner"></div>
+                    <p>Opponent is thinking...</p>
+                  </div>
+                )}
+                <div className="game-boards" style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
+                  <div>
+                    <h4>Your Fleet</h4>
+                    {renderGrid(myBoard, false)}
+                  </div>
+                  <div>
+                    <h4>Enemy Waters</h4>
+                    {renderGrid(enemyBoard, true)}
+                  </div>
                 </div>
-                <div>
-                  <h4>Enemy Waters</h4>
-                  {renderGrid(enemyBoard, true)}
+                <div className="stats-container" style={{ marginTop: '10px', color: '#fff' }}>
+                  <p>Shots Fired: {gameStats.shotsFired}</p>
+                  <p>Hits: {gameStats.hits}</p>
+                  <p>Misses: {gameStats.misses}</p>
                 </div>
-              </div>
-              <div className="stats-container" style={{ marginTop: '10px', color: '#fff' }}>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
               </div>
             </div>
           )}
