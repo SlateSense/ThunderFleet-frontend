@@ -189,6 +189,8 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1.0); // New zoom level state
+  const [screenDimensions, setScreenDimensions] = useState({ width: window.innerWidth, height: window.innerHeight }); // Track screen size
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -1009,11 +1011,17 @@ setPlacementSaved(false);
       const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
       setCellSize(newCellSize);
     }
-  }, []);
+  }, [zoomLevel]);
 
   useEffect(() => {
     handleResize();
-    window.addEventListener('resize', handleResize);
+    const updateScreenDimensions = () => {
+      setScreenDimensions({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', () => {
+      handleResize();
+      updateScreenDimensions();
+    });
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
@@ -2563,8 +2571,15 @@ setPlacementSaved(false);
               </div>
             </div>
           )}
-
-          {/* Game Finished Screen */}
+      
+      {/* Zoom Controls */}
+      {gameState === 'playing' && (
+        <div className="zoom-controls" style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '10px' }}>
+          <button onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.1))} style={{ padding: '5px 10px' }}>-</button>
+          <button onClick={() => setZoomLevel(1.0)} style={{ padding: '5px 10px' }}>Reset</button>
+          <button onClick={() => setZoomLevel(prev => Math.min(2.0, prev + 0.1))} style={{ padding: '5px 10px' }}>+</button>
+        </div>
+      )}
           {gameState === 'finished' && (
             <div className="finished-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', color: '#fff', padding: '20px', borderRadius: '10px' }}>
               <h2>Game Over</h2>
