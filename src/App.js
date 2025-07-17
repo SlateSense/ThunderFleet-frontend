@@ -2212,7 +2212,7 @@ setPlacementSaved(false);
         </p>
         {paymentInfo && (
           <div className="conversion-info">
-            <p className="btc-price">BTC Price: ${paymentInfo.btcPriceUSD.toLocaleString()}</p>
+            <p className="btc-price">BTC Price: ${paymentInfo.btcPriceUSD?.toLocaleString() || 'N/A'}</p>
             <p className="usd-amount">{betAmount} SATS ≈ ${paymentInfo.amountUSD}</p>
           </div>
         )}
