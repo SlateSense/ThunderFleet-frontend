@@ -189,9 +189,6 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1.0); // New zoom level state
-  const [screenDimensions, setScreenDimensions] = useState({ width: window.innerWidth, height: window.innerHeight }); // Track screen size
-  const [gameStarted, setGameStarted] = useState(false); // Track if game has started to show zoom controls
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -202,11 +199,6 @@ const App = () => {
   const reconnectAttemptsRef = useRef(0);
   const touchStartRef = useRef(null);
   const fireTimerRef = useRef(null);
-  const isFirstRender = useRef(true);
-
-  // Zoom level limits
-  const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 2.0;
 
   // Sound effects for various game events
   const playHitSound = useSound('/sounds/explosion.mp3', isSoundEnabled);
@@ -220,67 +212,7 @@ const App = () => {
   // Log gameState changes for debugging
   useEffect(() => {
     console.log('Current gameState:', gameState);
-    // Update gameStarted state when game starts
-    if (gameState === 'playing' && !gameStarted) {
-      setGameStarted(true);
-    }
-  }, [gameState, gameStarted]);
-
-  // Auto-adjust zoom based on screen size
-  useEffect(() => {
-    const calculateOptimalZoom = () => {
-      const { width, height } = screenDimensions;
-      let optimalZoom = 1.0;
-      
-      // Base zoom calculation based on screen size
-      if (width <= 480) {
-        // Small mobile devices
-        optimalZoom = 0.7;
-      } else if (width <= 768) {
-        // Tablets and larger phones
-        optimalZoom = 0.8;
-      } else if (width <= 1024) {
-        // Small desktops/laptops
-        optimalZoom = 0.9;
-      } else if (width <= 1366) {
-        // Medium desktops
-        optimalZoom = 1.0;
-      } else {
-        // Large desktops
-        optimalZoom = 1.1;
-      }
-      
-      // Adjust based on height as well
-      if (height <= 600) {
-        optimalZoom *= 0.9;
-      } else if (height <= 800) {
-        optimalZoom *= 0.95;
-      }
-      
-      // Ensure zoom is within limits
-      optimalZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, optimalZoom));
-      
-      return optimalZoom;
-    };
-    
-    // Only auto-adjust on first render or when screen dimensions change significantly
-    if (isFirstRender.current || Math.abs(screenDimensions.width - window.innerWidth) > 100) {
-      const optimalZoom = calculateOptimalZoom();
-      setZoomLevel(optimalZoom);
-      console.log(`Auto-adjusted zoom to ${optimalZoom} for screen size ${screenDimensions.width}x${screenDimensions.height}`);
-      isFirstRender.current = false;
-    }
-  }, [screenDimensions, MIN_ZOOM, MAX_ZOOM]);
-
-  // Handle screen resize
-  useEffect(() => {
-    const handleResize = () => {
-      setScreenDimensions({ width: window.innerWidth, height: window.innerHeight });
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [gameState]);
 
   // Simulate app loading
   useEffect(() => {
@@ -413,7 +345,6 @@ const App = () => {
         setIsOpponentThinking(turn !== newSocket.id);
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
-        setGameStarted(true); // Enable zoom controls when game starts
         
         // Start fire timer if it's player's turn
         if (turn === newSocket.id) {
@@ -1066,52 +997,23 @@ setPlacementSaved(false);
     }, 500);
   }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
-  // Effect to adjust cell size and zoom level based on screen width for mobile optimization
+  // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    // Calculate available space for the grid (accounting for UI elements)
-    const availableWidth = screenWidth - 40; // 20px padding on each side
-    const availableHeight = screenHeight - 200; // Space for header, buttons, and messages
-    
-    // Calculate optimal cell size based on both width and height constraints
-    const maxCellSizeFromWidth = availableWidth / GRID_COLS;
-    const maxCellSizeFromHeight = availableHeight / GRID_ROWS;
-    const optimalCellSize = Math.min(maxCellSizeFromWidth, maxCellSizeFromHeight);
-    
-    // Set base cell size (without zoom)
-    const baseCellSize = Math.max(25, Math.min(50, optimalCellSize)); // Min 25px, max 50px
-    setCellSize(baseCellSize);
-    
-    // Calculate and set automatic zoom level
-    const totalGridWidth = GRID_COLS * baseCellSize;
-    const totalGridHeight = GRID_ROWS * baseCellSize;
-    
-    // Calculate zoom factor to fit within available space
-    const zoomFactorWidth = availableWidth / totalGridWidth;
-    const zoomFactorHeight = availableHeight / totalGridHeight;
-    const optimalZoom = Math.min(zoomFactorWidth, zoomFactorHeight);
-    
-    // Apply zoom constraints (0.5x to 2.0x)
-    const constrainedZoom = Math.max(0.5, Math.min(2.0, optimalZoom));
-    
-    // Only update zoom if it's significantly different to avoid jittering
-    if (Math.abs(constrainedZoom - zoomLevel) > 0.1) {
-      setZoomLevel(constrainedZoom);
-      console.log(`Auto-adjusted zoom to ${constrainedZoom.toFixed(2)}x for screen ${screenWidth}x${screenHeight}`);
+    if (gridRef.current) {
+      const { width } = gridRef.current.getBoundingClientRect();
+      const newCellSize = width / GRID_COLS;
+      setCellSize(newCellSize);
+    } else {
+      // Fallback
+      const width = window.innerWidth;
+      const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
+      setCellSize(newCellSize);
     }
-  }, [zoomLevel]);
+  }, []);
 
   useEffect(() => {
     handleResize();
-    const updateScreenDimensions = () => {
-      setScreenDimensions({ width: window.innerWidth, height: window.innerHeight });
-    };
-    window.addEventListener('resize', () => {
-      handleResize();
-      updateScreenDimensions();
-    });
+    window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
@@ -1661,19 +1563,6 @@ setPlacementSaved(false);
     };
   }, [isPlacementConfirmed]);
 
-  // Zoom control functions
-  const zoomIn = useCallback(() => {
-    setZoomLevel(prev => Math.min(MAX_ZOOM, prev + 0.1));
-  }, [MAX_ZOOM]);
-  
-  const zoomOut = useCallback(() => {
-    setZoomLevel(prev => Math.max(MIN_ZOOM, prev - 0.1));
-  }, [MIN_ZOOM]);
-  
-  const resetZoom = useCallback(() => {
-    setZoomLevel(1.0);
-  }, []);
-
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
     console.log(`Rendering ${isEnemy ? 'enemy' : 'player'} grid`);
@@ -1805,8 +1694,7 @@ setPlacementSaved(false);
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, zoomLevel]);
-
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -2445,8 +2333,6 @@ setPlacementSaved(false);
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        transform: `scale(${zoomLevel})`,
-        transformOrigin: 'top left',
       }}
     >
       {/* Show loading screen until app is fully loaded */}
@@ -2459,38 +2345,6 @@ setPlacementSaved(false);
       {/* Main App Content */}
       {isAppLoaded && (
         <>
-          {/* Zoom Controls at top - Show during placing and playing phases */}
-          {(gameState === 'placing' || gameState === 'playing') && (
-            <div className="zoom-controls-top">
-              <button 
-                className="zoom-button zoom-out" 
-                onClick={zoomOut}
-                disabled={zoomLevel <= MIN_ZOOM}
-                title="Zoom Out"
-              >
-                −
-              </button>
-              <div className="zoom-level-indicator">
-                {Math.round(zoomLevel * 100)}%
-              </div>
-              <button 
-                className="zoom-button zoom-reset" 
-                onClick={resetZoom}
-                title="Reset Zoom"
-              >
-                1x
-              </button>
-              <button 
-                className="zoom-button zoom-in" 
-                onClick={zoomIn}
-                disabled={zoomLevel >= MAX_ZOOM}
-                title="Zoom In"
-              >
-                +
-              </button>
-            </div>
-          )}
-          
           {/* Splash Screen */}
           {gameState === 'splash' && SplashScreen}
 
@@ -2709,7 +2563,8 @@ setPlacementSaved(false);
               </div>
             </div>
           )}
-      
+
+          {/* Game Finished Screen */}
           {gameState === 'finished' && (
             <div className="finished-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', color: '#fff', padding: '20px', borderRadius: '10px' }}>
               <h2>Game Over</h2>
