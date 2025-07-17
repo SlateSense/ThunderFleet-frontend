@@ -279,16 +279,21 @@ const App = () => {
         setGameState('waitingForOpponent');
         setMessage('Waiting for opponent...');
       },
-paymentRequest: ({ lightningInvoice, hostedInvoiceUrl, amountUSD, btcPriceUSD }) => {
-        console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl });
+      paymentRequest: ({ lightningInvoice, hostedInvoiceUrl, speedInterfaceUrl, amountSats, amountUSD, invoiceId }) => {
+        console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl, speedInterfaceUrl, amountSats, amountUSD });
         clearTimeout(joinGameTimeoutRef.current);
         setLightningInvoice(lightningInvoice);
         setHostedInvoiceUrl(hostedInvoiceUrl || null);
         setIsWaitingForPayment(true);
         setPayButtonLoading(false);
-        setPaymentInfo({ amountUSD, btcPriceUSD });
+        setPaymentInfo({ 
+          amountUSD, 
+          amountSats,
+          invoiceId,
+          speedInterfaceUrl: speedInterfaceUrl || hostedInvoiceUrl // Use speedInterfaceUrl or fallback to hostedInvoiceUrl
+        });
         setPaymentTimer(PAYMENT_TIMEOUT);
-        setMessage(`Scan to pay ${betAmount} SATS`);
+        setMessage(`Pay ${amountSats} SATS (~$${amountUSD})`);
         setIsLoading(false); // Reset loading after transition
       },
       paymentVerified: () => {
