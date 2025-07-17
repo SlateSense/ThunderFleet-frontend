@@ -1218,14 +1218,17 @@ setPlacementSaved(false);
 
   // Function to handle payment button click
   const handlePay = useCallback(() => {
-    if (hostedInvoiceUrl) {
+    // Use speedInterfaceUrl if available, otherwise fall back to hostedInvoiceUrl
+    const paymentUrl = paymentInfo?.speedInterfaceUrl || hostedInvoiceUrl;
+    
+    if (paymentUrl) {
       setPayButtonLoading(true);
-      console.log('Opening hosted invoice URL:', hostedInvoiceUrl);
-      window.open(hostedInvoiceUrl, '_blank');
+      console.log('Opening payment URL:', paymentUrl);
+      window.open(paymentUrl, '_blank');
     } else {
       setMessage('No payment URL available. Please scan the QR code to pay.');
     }
-  }, [hostedInvoiceUrl]);
+  }, [paymentInfo, hostedInvoiceUrl]);
 
   // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
@@ -2224,7 +2227,7 @@ setPlacementSaved(false);
           <button
             onClick={handlePay}
             className={`pay-button ${payButtonLoading ? 'loading' : ''}`}
-            disabled={!hostedInvoiceUrl || payButtonLoading || isLoading}
+            disabled={!(paymentInfo?.speedInterfaceUrl || hostedInvoiceUrl) || payButtonLoading || isLoading}
           >
             {payButtonLoading ? 'Loading...' : 'Pay Now'}
           </button>
