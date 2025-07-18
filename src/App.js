@@ -1658,10 +1658,6 @@ setPlacementSaved(false);
                   left: leftPosition,
                   width: ship.horizontal ? ship.size * cellSize : cellSize,
                   height: ship.horizontal ? cellSize : ship.size * cellSize,
-                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: "center",
-                  backgroundRepeat: 'no-repeat',
                   opacity: (gameState === 'playing' || isPlacementConfirmed) ? 1 : 0.8,
                   cursor: (!isPlacementConfirmed && gameState !== 'playing') ? 'grab' : 'default',
                   pointerEvents: (isPlacementConfirmed || gameState === 'playing') ? 'none' : 'auto',
@@ -1670,7 +1666,18 @@ setPlacementSaved(false);
                   border: '1px solid rgba(255, 255, 255, 0.3)',
                 }}
                 onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
-              />
+              >
+                <img
+                  src={ship.horizontal ? ship.horizontalImg : ship.verticalImg}
+                  alt={ship.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '2px',
+                  }}
+                />
+              </div>
             );
           })}
         {/* Dragging ship preview */}
@@ -1683,14 +1690,21 @@ setPlacementSaved(false);
               left: Math.floor(dragPosition.x / cellSize) * cellSize,
               width: ships[isDragging].horizontal ? ships[isDragging].size * cellSize : cellSize,
               height: ships[isDragging].horizontal ? cellSize : ships[isDragging].size * cellSize,
-              backgroundImage: `url(${ships[isDragging].horizontal ? ships[isDragging].horizontalImg : ships[isDragging].verticalImg})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
               opacity: 0.7,
               pointerEvents: 'none',
               zIndex: 10,
             }}
-          />
+          >
+            <img
+              src={ships[isDragging].horizontal ? ships[isDragging].horizontalImg : ships[isDragging].verticalImg}
+              alt={ships[isDragging].name}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
+          </div>
         )}
       </div>
     );
