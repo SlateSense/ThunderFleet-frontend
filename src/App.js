@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
+import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import './Cargo.css';
 
 // Ship images for horizontal and vertical orientations
@@ -207,6 +208,18 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
+
+  // Effect to control body scroll during placement/drag
+  useEffect(() => {
+    if (gameState === 'placing' || isDragging !== null) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [gameState, isDragging]);
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -1020,9 +1033,8 @@ setPlacementSaved(false);
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
     if (gridRef.current) {
-      const { width } = gridRef.current.getBoundingClientRect();
-      const newCellSize = width / GRID_COLS;
-      setCellSize(newCellSize);
+      const { cellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+      setCellSize(cellSize);
     } else {
       // Fallback
       const width = window.innerWidth;
@@ -1400,9 +1412,10 @@ setPlacementSaved(false);
   }, [isDragging, isPlacementConfirmed, setDragPosition]);
 
   // Function to handle touch move
-  const handleTouchMove = useCallback((e) => {
+const handleTouchMove = useCallback((e) => {
+    e.preventDefault(); // Prevent scrolling during touch move
+    
     if (!touchStartRef.current || isPlacementConfirmed) return;
-    e.preventDefault();
 
     const { x: startX, y: startY, shipIndex } = touchStartRef.current;
     const touch = e.touches[0];
@@ -1450,8 +1463,18 @@ setPlacementSaved(false);
     }
 
     const ship = ships[shipIndex];
-    const col = Math.floor(x / cellSize);
-    const row = Math.floor(y / cellSize);
+    
+    // Get grid metrics to calculate proper gridLeft position
+    const gridMetrics = getGridMetrics(gridRef.current);
+    const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+    
+    // Calculate gridLeft position (content area start, ignoring border)
+    const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
+    const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+    
+    // Use Math.floor to translate pointer coordinates to column/row
+    const col = Math.floor((x - gridLeft) / actualCellSize);
+    const row = Math.floor((y - gridTop) / actualCellSize);
     const position = row * GRID_COLS + col;
 
     if (row >= GRID_ROWS || col >= GRID_COLS || position >= GRID_SIZE) {
@@ -1531,7 +1554,7 @@ setPlacementSaved(false);
       placed: true,
     };
     updateServerBoard(updatedShipsForServer);
-  }, [isPlacementConfirmed, ships, cellSize, calculateShipPositions, playPlaceSound, updateServerBoard, checkShipOverlaps]);
+  }, [isPlacementConfirmed, ships, calculateShipPositions, playPlaceSound, updateServerBoard, checkShipOverlaps]);
 
   // Function to handle touch end
   const handleTouchEnd = useCallback((e) => {
@@ -1589,16 +1612,16 @@ setPlacementSaved(false);
     return (
       <div
         ref={isEnemy ? null : gridRef}
-        className="grid-container"
+        className={`grid-container ${isEnemy ? 'opponent-grid' : ''}`}
         data-grid-type={isEnemy ? "enemy" : "player"}
         style={{
           position: 'relative',
           margin: '0 auto',
           padding: 0,
         }}
-        onDragOver={handleGridDragOver}
+onDragOver={handleGridDragOver}
         onDrop={handleGridDrop}
-        onTouchMove={handleTouchMove}
+        onTouchMove={(e) => handleTouchMove(e)}
       >
         <div
           className="grid"
@@ -1612,8 +1635,21 @@ setPlacementSaved(false);
             const col = index % GRID_COLS;
             const isHit = cell === 'hit';
             const isHovered = isDragging !== null && !isPlacementConfirmed;
-            const hoverPos = Math.floor(dragPosition.y / cellSize) * GRID_COLS + Math.floor(dragPosition.x / cellSize);
-            const isUnderShip = isHovered && calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
+            // Use grid metrics for accurate position calculation instead of cellSize
+            let hoverPos = -1;
+            let isUnderShip = false;
+            if (isHovered && gridRef.current) {
+              const gridMetrics = getGridMetrics(gridRef.current);
+              const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+              const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
+              const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+              const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
+              const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
+              if (hoverRow >= 0 && hoverRow < GRID_ROWS && hoverCol >= 0 && hoverCol < GRID_COLS) {
+                hoverPos = hoverRow * GRID_COLS + hoverCol;
+                isUnderShip = calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
+              }
+            }
 
             return (
               <div
@@ -1666,10 +1702,10 @@ setPlacementSaved(false);
             const maxCol = Math.max(...shipCols);
             
             // Position the ship image to cover exactly the cells it occupies
-            const topPosition = minRow * cellSize;
-            const leftPosition = minCol * cellSize;
-            const width = (maxCol - minCol + 1) * cellSize;
-            const height = (maxRow - minRow + 1) * cellSize;
+const topPosition = Math.round(minRow * cellSize);
+const leftPosition = Math.round(minCol * cellSize);
+const width = Math.round((maxCol - minCol + 1) * cellSize);
+const height = Math.round((maxRow - minRow + 1) * cellSize);
             
             console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, width=${width}, height=${height}, damaged=${isDamaged}`);
             
@@ -1711,10 +1747,25 @@ setPlacementSaved(false);
             className="dragging-ship"
             style={{
               position: 'absolute',
-              top: Math.floor(dragPosition.y / cellSize) * cellSize,
-              left: Math.floor(dragPosition.x / cellSize) * cellSize,
-              width: ships[isDragging].horizontal ? ships[isDragging].size * cellSize : cellSize,
-              height: ships[isDragging].horizontal ? cellSize : ships[isDragging].size * cellSize,
+              // Use grid-aware positioning for dragging preview
+              top: (() => {
+                if (!gridRef.current) return Math.round(Math.floor(dragPosition.y / cellSize) * cellSize);
+                const gridMetrics = getGridMetrics(gridRef.current);
+                const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+                const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+                const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
+                return Math.round(Math.max(0, Math.min(GRID_ROWS - 1, hoverRow)) * actualCellSize);
+              })(),
+              left: (() => {
+                if (!gridRef.current) return Math.round(Math.floor(dragPosition.x / cellSize) * cellSize);
+                const gridMetrics = getGridMetrics(gridRef.current);
+                const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+                const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
+                const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
+                return Math.round(Math.max(0, Math.min(GRID_COLS - 1, hoverCol)) * actualCellSize);
+              })(),
+              width: Math.round(ships[isDragging].horizontal ? ships[isDragging].size * cellSize : cellSize),
+              height: Math.round(ships[isDragging].horizontal ? cellSize : ships[isDragging].size * cellSize),
               backgroundImage: `url(${ships[isDragging].horizontal ? ships[isDragging].horizontalImg : ships[isDragging].verticalImg})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
@@ -2583,7 +2634,7 @@ setPlacementSaved(false);
                   <h4>Your Fleet</h4>
                   {renderGrid(myBoard, false)}
                 </div>
-                <div>
+                <div className="opponent-wrapper">
                   <h4>Enemy Waters</h4>
                   {renderGrid(enemyBoard, true)}
                 </div>
