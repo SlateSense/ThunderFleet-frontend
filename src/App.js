@@ -1,4 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import io from 'socket.io-client';
+import { QRCodeSVG } from 'qrcode.react';
+import './Cargo.css';
+
+// Ship images for horizontal and vertical orientations
+import carrierHorizontal from './assets/ships/horizontal/carrier.png';
+import battleshipHorizontal from './assets/ships/horizontal/battleship.png';
+import submarineHorizontal from './assets/ships/horizontal/submarine.png';
+import cruiserHorizontal from './assets/ships/horizontal/cruiser.png';
+import patrolHorizontal from './assets/ships/horizontal/patrol.png';
+import carrierVertical from './assets/ships/vertical/carrier.png';
+import battleshipVertical from './assets/ships/vertical/battleship.png';
+import submarineVertical from './assets/ships/vertical/submarine.png';
+import cruiserVertical from './assets/ships/vertical/cruiser.png';
+import patrolVertical from './assets/ships/vertical/patrol.png';
 
 const enableSmoothScroll = () => {
   document.documentElement.classList.add('scroll-enabled');
@@ -17,21 +32,6 @@ const disableSmoothScroll = () => {
     appElement.classList.remove('scroll-enabled');
   }
 };
-import io from 'socket.io-client';
-import { QRCodeSVG } from 'qrcode.react';
-import './Cargo.css';
-
-// Ship images for horizontal and vertical orientations
-import carrierHorizontal from './assets/ships/horizontal/carrier.png';
-import battleshipHorizontal from './assets/ships/horizontal/battleship.png';
-import submarineHorizontal from './assets/ships/horizontal/submarine.png';
-import cruiserHorizontal from './assets/ships/horizontal/cruiser.png';
-import patrolHorizontal from './assets/ships/horizontal/patrol.png';
-import carrierVertical from './assets/ships/vertical/carrier.png';
-import battleshipVertical from './assets/ships/vertical/battleship.png';
-import submarineVertical from './assets/ships/vertical/submarine.png';
-import cruiserVertical from './assets/ships/vertical/cruiser.png';
-import patrolVertical from './assets/ships/vertical/patrol.png';
 
 // Game constants defining the grid size and timing constraints
 const GRID_COLS = 9;
