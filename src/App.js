@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import './Cargo.css';
@@ -997,25 +997,24 @@ setPlacementSaved(false);
     }, 500);
   }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
-  // Effect to adjust cell size based on screen width for mobile optimization
-  const handleResize = useCallback(() => {
-    if (gridRef.current) {
-      const { width } = gridRef.current.getBoundingClientRect();
-      const newCellSize = width / GRID_COLS;
-      setCellSize(newCellSize);
-    } else {
-      // Fallback
-      const width = window.innerWidth;
-      const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
-      setCellSize(newCellSize);
-    }
+  // Effect to adjust cell size based on actual rendered cell dimensions
+  // This is crucial for accurate grid measurement and ship alignment
+  const measureCell = useCallback(() => {
+    // Get the first grid cell to measure its actual rendered size
+    const firstCell = gridRef.current?.querySelector('.cell');
+    // Use getBoundingClientRect for precise measurement, fallback to 40px if not found
+    const size = firstCell ? firstCell.getBoundingClientRect().width : 40;
+    // Update state with measured size for ship positioning calculations
+    setCellSize(size);
+    // Set CSS custom property for consistent sizing across grid and ship elements
+    document.documentElement.style.setProperty('--cellSize', `${size}px`);
   }, []);
 
-  useEffect(() => {
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [handleResize]);
+  useLayoutEffect(() => {
+    measureCell();
+    window.addEventListener('resize', measureCell);
+    return () => window.removeEventListener('resize', measureCell);
+  }, [measureCell]);
 
   // Effect to initialize seeded random number generator based on playerId
   useEffect(() => {
@@ -1637,10 +1636,12 @@ setPlacementSaved(false);
             // Check if ship is damaged (any position is hit)
             const isDamaged = ship.positions.some(pos => myBoard[pos] === 'hit');
             
-            const topPosition = Math.floor(ship.positions[0] / GRID_COLS) * cellSize;
-            const leftPosition = (ship.positions[0] % GRID_COLS) * cellSize;
+            const row0 = Math.floor(ship.positions[0] / GRID_COLS);
+            const col0 = ship.positions[0] % GRID_COLS;
+            const top = row0 * cellSize;
+            const left = col0 * cellSize;
             
-            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, size=${ship.size}, damaged=${isDamaged}`);
+            console.log(`Rendering ship ${ship.name} at top=${top}, left=${left}, size=${ship.size}, damaged=${isDamaged}`);
             
             return (
               <div
@@ -1654,16 +1655,14 @@ setPlacementSaved(false);
                 onTouchEnd={handleTouchEnd}
                 style={{
                   position: 'absolute',
-                  top: topPosition,
-                  left: leftPosition,
+                  top,
+                  left,
                   width: ship.horizontal ? ship.size * cellSize : cellSize,
                   height: ship.horizontal ? cellSize : ship.size * cellSize,
                   opacity: (gameState === 'playing' || isPlacementConfirmed) ? 1 : 0.8,
                   cursor: (!isPlacementConfirmed && gameState !== 'playing') ? 'grab' : 'default',
                   pointerEvents: (isPlacementConfirmed || gameState === 'playing') ? 'none' : 'auto',
                   touchAction: 'none',
-                  // Add border for debugging visibility
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
                 }}
                 onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               >
@@ -1690,7 +1689,6 @@ setPlacementSaved(false);
               left: Math.floor(dragPosition.x / cellSize) * cellSize,
               width: ships[isDragging].horizontal ? ships[isDragging].size * cellSize : cellSize,
               height: ships[isDragging].horizontal ? cellSize : ships[isDragging].size * cellSize,
-              opacity: 0.7,
               pointerEvents: 'none',
               zIndex: 10,
             }}
@@ -1742,8 +1740,8 @@ setPlacementSaved(false);
                   backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  width: ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`,
-                  height: ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`,
+                  width: ship.horizontal ? `${ship.size * cellSize * 0.6}px` : `${cellSize * 0.6}px`,
+                  height: ship.horizontal ? `${cellSize * 0.6}px` : `${ship.size * cellSize * 0.6}px`,
                   opacity: 1,
                   cursor: isPlacementConfirmed ? 'default' : 'grab',
                   border: '2px solid #333',
@@ -1772,8 +1770,8 @@ setPlacementSaved(false);
                   backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  width: ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`,
-                  height: ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`,
+                  width: ship.horizontal ? `${ship.size * cellSize * 0.6}px` : `${cellSize * 0.6}px`,
+                  height: ship.horizontal ? `${cellSize * 0.6}px` : `${ship.size * cellSize * 0.6}px`,
                   opacity: 1,
                   cursor: isPlacementConfirmed ? 'default' : 'grab',
                   border: '2px solid #333',

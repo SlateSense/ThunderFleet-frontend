@@ -735,6 +735,17 @@
   }
 }
 
+.grid-container .grid {
+  display: grid;
+}
+
+.grid-container .cell {
+  width: var(--cellSize); /* Dynamically set by measureCell function in App.js for responsive grid layout */
+  height: var(--cellSize); /* Ensures uniform height across grid cells */
+  box-sizing: border-box;         /* Removes padding surprises */
+  padding: 0;
+}
+
 .grid {
   display: grid;
   position: relative;
@@ -1229,6 +1240,8 @@
   border-radius: 3px;
   box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
   pointer-events: none;
+  /* Remove opacity to prevent pointer misplacement */
+  opacity: 1;
 }
 
 /* Grid Coordinate Labels - Simplified for mobile */
