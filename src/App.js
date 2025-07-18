@@ -1032,21 +1032,42 @@ setPlacementSaved(false);
 
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
-    if (gridRef.current) {
-      const { cellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
-      setCellSize(cellSize);
-    } else {
-      // Fallback
-      const width = window.innerWidth;
-      const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
-      setCellSize(newCellSize);
-    }
+    // Use a more stable calculation that doesn't depend on the grid element
+    const width = window.innerWidth;
+    const padding = 40; // Total padding for the container
+    const availableWidth = width - padding;
+    const maxCellSize = 50; // Maximum cell size for larger screens
+    const minCellSize = 30; // Minimum cell size for small screens
+    
+    // Calculate cell size based on available width
+    let newCellSize = Math.floor(availableWidth / GRID_COLS);
+    newCellSize = Math.max(minCellSize, Math.min(maxCellSize, newCellSize));
+    
+    // Only update if the cell size actually changed to prevent unnecessary re-renders
+    setCellSize(prevSize => {
+      if (Math.abs(prevSize - newCellSize) > 2) { // Add threshold to prevent micro-adjustments
+        return newCellSize;
+      }
+      return prevSize;
+    });
   }, []);
 
   useEffect(() => {
+    // Initial calculation
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    
+    // Debounced resize handler to prevent excessive updates
+    let resizeTimeout;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(handleResize, 250);
+    };
+    
+    window.addEventListener('resize', debouncedResize);
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      clearTimeout(resizeTimeout);
+    };
   }, [handleResize]);
 
   // Effect to initialize seeded random number generator based on playerId
