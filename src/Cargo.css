@@ -1183,6 +1183,10 @@
   background-color: rgba(255, 255, 255, 0.3);
   opacity: 1;
   animation: shipBobbing 3s ease-in-out infinite, shipSlideIn 0.8s ease-out;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  overflow: hidden;
 }
 
 @keyframes shipBobbing {

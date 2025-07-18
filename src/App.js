@@ -2321,7 +2321,7 @@ setPlacementSaved(false);
   // Render the main app UI
   return (
     <div
-      className={`App ${gameState === 'placing' ? 'placement-mode' : ''}`}
+      className={`App ${gameState === 'placing' || gameState === 'playing' ? 'placement-mode' : ''}`}
       style={{
         backgroundImage: `url(./background.png)`,
         backgroundSize: 'cover',
