@@ -770,50 +770,12 @@ html {
   background: linear-gradient(135deg, #1e90ff 0%, #87ceeb 50%, #b8e6ff 100%);
   position: relative;
   overflow: hidden;
-  animation: gentleWaves 4s ease-in-out infinite;
 }
 
-.cell.water::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 200%;
-  height: 100%;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.1) 25%, 
-    rgba(255, 255, 255, 0.3) 50%, 
-    rgba(255, 255, 255, 0.1) 75%, 
-    transparent 100%);
-  animation: waterShimmer 3s linear infinite;
-}
 
 /* Removed sparkling stars to reduce distraction during gameplay */
 
-@keyframes gentleWaves {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  25% {
-    background-position: 25% 60%;
-  }
-  50% {
-    background-position: 50% 40%;
-  }
-  75% {
-    background-position: 75% 60%;
-  }
-}
 
-@keyframes waterShimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
 
 /* Sparkle animation removed */
 
@@ -939,7 +901,7 @@ html {
 
 /* Enhanced ship damage indicators */
 .ship-on-grid.damaged {
-  animation: shipBobbing 3s ease-in-out infinite, shipDamageShake 0.1s ease-in-out 3;
+  animation: shipBobbing 4s ease-in-out infinite, shipDamageShake 0.1s ease-in-out 3;
 }
 
 /* Overlapping ship styles */
@@ -1179,15 +1141,16 @@ html {
   transition: all 0.3s ease;
   background-color: rgba(255, 255, 255, 0.3);
   opacity: 1;
-  animation: shipBobbing 3s ease-in-out infinite, shipSlideIn 0.8s ease-out;
+  animation: shipBobbing 4s ease-in-out infinite, shipSlideIn 0.8s ease-out;
 }
+
 
 @keyframes shipBobbing {
   0%, 100% {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 }
 
