@@ -1618,8 +1618,12 @@ const handleTouchMove = useCallback((e) => {
           position: 'relative',
           margin: '0 auto',
           padding: 0,
+          '--cell-size': `${cellSize}px`,
+          width: `${cellSize * GRID_COLS}px`,
+          height: `${cellSize * GRID_ROWS}px`,
+          maxWidth: '100%',
         }}
-onDragOver={handleGridDragOver}
+        onDragOver={handleGridDragOver}
         onDrop={handleGridDrop}
         onTouchMove={(e) => handleTouchMove(e)}
       >
