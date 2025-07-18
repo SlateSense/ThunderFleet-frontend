@@ -389,8 +389,33 @@
   animation: slideIn 0.5s ease-out;
   padding: 10px;
   padding-top: 75px; /* Add space for fixed message container */
+  padding-bottom: 120px; /* Add space for action buttons */
   box-sizing: border-box;
   min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar styling for placing screen */
+.placing-screen::-webkit-scrollbar {
+  width: 8px;
+}
+
+.placing-screen::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+}
+
+.placing-screen::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 5px;
+}
+
+.placing-screen::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.6);
 }
 
 /* Message Container */
@@ -540,6 +565,16 @@
   justify-content: center;
   margin-top: 10px;
   width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10, 26, 43, 0.95);
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 40;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .action-button {
