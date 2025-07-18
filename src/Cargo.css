@@ -1,6 +1,11 @@
 /* Import Google Fonts for Professional Typography */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap');
 
+/* Smooth scrolling - Applied early to ensure it works regardless of phase */
+html {
+  scroll-behavior: smooth;
+}
+
 /* General Styles */
 .App {
   text-align: center;
@@ -2111,4 +2116,14 @@ body {
     font-size: 0.7rem;
     margin: 3px 0 0 0;
   }
+}
+
+
+/* Scroll-enabled utility class */
+.scroll-enabled, .scroll-enabled body {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  position: static !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }

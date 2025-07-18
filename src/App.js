@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+
+const enableSmoothScroll = () => {
+  document.documentElement.classList.add('scroll-enabled');
+};
+
+const disableSmoothScroll = () => {
+  document.documentElement.classList.remove('scroll-enabled');
+};
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import './Cargo.css';
@@ -306,7 +314,8 @@ const App = () => {
         setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
-        console.log('Starting ship placement phase');
+console.log('Starting ship placement phase');
+        enableSmoothScroll();
         setGameState('placing');
         setMessage('Place your ships! Tap to rotate, drag to position.');
         setIsPlacementConfirmed(false);
@@ -398,7 +407,8 @@ const App = () => {
         }
       },
       gameEnd: ({ message }) => {
-        console.log('Game ended:', message);
+console.log('Game ended:', message);
+        disableSmoothScroll();
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
