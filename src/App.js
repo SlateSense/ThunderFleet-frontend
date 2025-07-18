@@ -189,8 +189,6 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [baseZoom, setBaseZoom] = useState(1);
-  const [baseCellSize, setBaseCellSize] = useState(40);
 
   // References for managing timers and DOM elements
   const timerRef = useRef(null);
@@ -1001,46 +999,23 @@ setPlacementSaved(false);
 
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    
-    // Calculate optimal cell size based on screen size
-    // Reserve space for buttons and UI elements
-    const reservedHeight = 200; // Space for buttons, headers, etc.
-    const availableHeight = screenHeight - reservedHeight;
-    
-    // Calculate cell size based on both width and height constraints
-    const cellSizeByWidth = Math.floor((screenWidth - 40) / GRID_COLS);
-    const cellSizeByHeight = Math.floor(availableHeight / GRID_ROWS);
-    
-    // Use the smaller of the two to ensure everything fits
-    const optimalCellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
-    
-    // Apply minimum and maximum constraints
-    const constrainedCellSize = Math.max(20, Math.min(80, optimalCellSize));
-    
-    // Store the base cell size (without zoom)
-    setBaseCellSize(constrainedCellSize);
-    
-    // Apply zoom factor to get final cell size
-    const finalCellSize = constrainedCellSize * baseZoom;
-    setCellSize(finalCellSize);
-    
-    console.log(`Auto-resize: screen=${screenWidth}x${screenHeight}, base=${constrainedCellSize}, zoom=${baseZoom}, final=${finalCellSize}`);
-  }, [baseZoom]);
+    if (gridRef.current) {
+      const { width } = gridRef.current.getBoundingClientRect();
+      const newCellSize = width / GRID_COLS;
+      setCellSize(newCellSize);
+    } else {
+      // Fallback
+      const width = window.innerWidth;
+      const newCellSize = Math.min(40, Math.floor((width - 40) / GRID_COLS));
+      setCellSize(newCellSize);
+    }
+  }, []);
 
   useEffect(() => {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
-
-  // Effect to update cellSize when baseZoom or baseCellSize changes
-  useEffect(() => {
-    const newCellSize = baseCellSize * baseZoom;
-    setCellSize(newCellSize);
-    console.log(`Cell size updated: baseCellSize=${baseCellSize}, baseZoom=${baseZoom}, newCellSize=${newCellSize}`);
-  }, [baseZoom, baseCellSize]);
 
   // Effect to initialize seeded random number generator based on playerId
   useEffect(() => {
@@ -2561,12 +2536,6 @@ setPlacementSaved(false);
               </h3>
               <div className="message-container">
                 <p>{message}</p>
-              </div>
-              
-              {/* Zoom Controls */}
-              <div className="zoom-controls" style={{ display: 'flex', alignItems: 'center', position: 'fixed', top: 10, left: 10, zIndex: 2000 }}>
-                <button onClick={() => setBaseZoom(Math.min(baseZoom * 1.1, 3))}>+</button>
-                <button onClick={() => setBaseZoom(Math.max(baseZoom * 0.9, 0.3))}>-</button>
               </div>
               
               {/* Fire Timer */}
