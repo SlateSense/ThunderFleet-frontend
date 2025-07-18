@@ -22,12 +22,6 @@
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Allow scrolling for placement screen */
-.App.placement-mode {
-  overflow: auto !important;
-  touch-action: auto !important;
-}
-
 .App.fade-in {
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -545,9 +539,7 @@
   gap: 8px;
   justify-content: center;
   margin-top: 10px;
-  margin-bottom: 20px;
   width: 100%;
-  padding: 10px;
 }
 
 .action-button {
@@ -733,17 +725,6 @@
     opacity: 1;
     transform: scale(1);
   }
-}
-
-.grid-container .grid {
-  display: grid;
-}
-
-.grid-container .cell {
-  width: var(--cellSize); /* Dynamically set by measureCell function in App.js for responsive grid layout */
-  height: var(--cellSize); /* Ensures uniform height across grid cells */
-  box-sizing: border-box;         /* Removes padding surprises */
-  padding: 0;
 }
 
 .grid {
@@ -1194,10 +1175,6 @@
   background-color: rgba(255, 255, 255, 0.3);
   opacity: 1;
   animation: shipBobbing 3s ease-in-out infinite, shipSlideIn 0.8s ease-out;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  overflow: hidden;
 }
 
 @keyframes shipBobbing {
@@ -1240,8 +1217,6 @@
   border-radius: 3px;
   box-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
   pointer-events: none;
-  /* Remove opacity to prevent pointer misplacement */
-  opacity: 1;
 }
 
 /* Grid Coordinate Labels - Simplified for mobile */
