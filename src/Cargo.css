@@ -2127,3 +2127,32 @@ body {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
+
+/* App container with scroll enabled */
+.scroll-enabled .App {
+  overflow-y: auto !important;
+  position: static !important;
+  height: auto !important;
+  min-height: 100vh;
+  touch-action: pan-y;
+}
+
+/* Ensure placing screen scrolls properly */
+.scroll-enabled .placing-screen {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+  position: static !important;
+  padding-bottom: 50px; /* Add extra padding at bottom */
+  touch-action: pan-y;
+}
+
+/* Ensure playing screen scrolls properly */
+.scroll-enabled .playing-screen {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+  position: static !important;
+  padding-bottom: 50px; /* Add extra padding at bottom */
+  touch-action: pan-y;
+}

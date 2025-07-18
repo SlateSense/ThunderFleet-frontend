@@ -2,10 +2,20 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 const enableSmoothScroll = () => {
   document.documentElement.classList.add('scroll-enabled');
+  document.body.classList.add('scroll-enabled');
+  const appElement = document.querySelector('.App');
+  if (appElement) {
+    appElement.classList.add('scroll-enabled');
+  }
 };
 
 const disableSmoothScroll = () => {
   document.documentElement.classList.remove('scroll-enabled');
+  document.body.classList.remove('scroll-enabled');
+  const appElement = document.querySelector('.App');
+  if (appElement) {
+    appElement.classList.remove('scroll-enabled');
+  }
 };
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1647,10 +1657,21 @@ setPlacementSaved(false);
             // Check if ship is damaged (any position is hit)
             const isDamaged = ship.positions.some(pos => myBoard[pos] === 'hit');
             
-            const topPosition = Math.floor(ship.positions[0] / GRID_COLS) * cellSize;
-            const leftPosition = (ship.positions[0] % GRID_COLS) * cellSize;
+            // Calculate the actual bounds of the ship based on all its positions
+            const shipRows = ship.positions.map(pos => Math.floor(pos / GRID_COLS));
+            const shipCols = ship.positions.map(pos => pos % GRID_COLS);
+            const minRow = Math.min(...shipRows);
+            const maxRow = Math.max(...shipRows);
+            const minCol = Math.min(...shipCols);
+            const maxCol = Math.max(...shipCols);
             
-            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, size=${ship.size}, damaged=${isDamaged}`);
+            // Position the ship image to cover exactly the cells it occupies
+            const topPosition = minRow * cellSize;
+            const leftPosition = minCol * cellSize;
+            const width = (maxCol - minCol + 1) * cellSize;
+            const height = (maxRow - minRow + 1) * cellSize;
+            
+            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, width=${width}, height=${height}, damaged=${isDamaged}`);
             
             return (
               <div
@@ -1666,8 +1687,8 @@ setPlacementSaved(false);
                   position: 'absolute',
                   top: topPosition,
                   left: leftPosition,
-                  width: ship.horizontal ? ship.size * cellSize : cellSize,
-                  height: ship.horizontal ? cellSize : ship.size * cellSize,
+                  width: width,
+                  height: height,
                   backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
                   backgroundSize: 'cover',
                   backgroundPosition: "center",
@@ -1678,6 +1699,7 @@ setPlacementSaved(false);
                   touchAction: 'none',
                   // Add border for debugging visibility
                   border: '1px solid rgba(255, 255, 255, 0.3)',
+                  zIndex: 5, // Ensure ship appears above grid cells
                 }}
                 onClick={() => !isPlacementConfirmed && toggleOrientation(ship.id)}
               />
