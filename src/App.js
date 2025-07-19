@@ -429,7 +429,7 @@ fireResult: ({ player, position, hit }) => {
       setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
       setIsOpponentThinking(false);
     }
-  }
+  },
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
         setTurn(turn);
