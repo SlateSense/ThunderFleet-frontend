@@ -72,7 +72,7 @@ const mulberry32 = (a) => {
   };
 };
 
-// Sound effects hook to play audio files for game events
+// Sound effects hook to play audio files for game events with overlap prevention
 const useSound = (src, isSoundEnabled) => {
   const [audio] = useState(() => {
     const audio = new Audio(src);
@@ -81,11 +81,23 @@ const useSound = (src, isSoundEnabled) => {
     });
     return audio;
   });
+  const [isPlaying, setIsPlaying] = useState(false);
+  
   return useCallback(() => {
-    if (isSoundEnabled) {
-      audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
+    if (isSoundEnabled && !isPlaying) {
+      setIsPlaying(true);
+      audio.currentTime = 0; // Reset to beginning
+      audio.play()
+        .then(() => {
+          // Reset playing state when sound ends
+          audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
+        })
+        .catch(err => {
+          console.error(`Error playing audio ${src}:`, err.message);
+          setIsPlaying(false);
+        });
     }
-  }, [isSoundEnabled, audio, src]);
+  }, [isSoundEnabled, audio, src, isPlaying]);
 };
 
 // Fire Timer Component - Optimized with React.memo
@@ -370,51 +382,54 @@ console.log('Starting ship placement phase');
           setFireTimerActive(true);
         }
       },
-      fireResult: ({ player, position, hit }) => {
-        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
-        const row = Math.floor(position / GRID_COLS);
-        const col = position % GRID_COLS;
-        const cellState = hit ? 'hit' : 'miss';
-        
-        hit ? playHitSound() : playMissSound();
-        
-        setGameStats(prev => ({
-          ...prev,
-          shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
-          hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
-          misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
-        }));
-        
-        if (player === newSocket.id) {
-          setCannonFire({ row, col, hit });
-          setTimeout(() => setCannonFire(null), 1000);
-          
-          // Batch enemy board update to prevent flashing
-          setEnemyBoard(prev => {
-            if (prev[position] === cellState) {
-              return prev; // No change needed
-            }
-            const newBoard = [...prev];
-            newBoard[position] = cellState;
-            return newBoard;
-          });
-          
-          setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
-        } else {
-          // Batch my board update to prevent flashing
-          setMyBoard(prev => {
-            if (prev[position] === cellState) {
-              return prev; // No change needed
-            }
-            const newBoard = [...prev];
-            newBoard[position] = cellState;
-            return newBoard;
-          });
-          
-          setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-          setIsOpponentThinking(false);
+fireResult: ({ player, position, hit }) => {
+    console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
+    const row = Math.floor(position / GRID_COLS);
+    const col = position % GRID_COLS;
+    const cellState = hit ? 'hit' : 'miss';
+    
+    hit ? playHitSound() : playMissSound();
+    
+    setGameStats(prev => ({
+      ...prev,
+      shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
+      hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
+      misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
+    }));
+    
+    if (player === newSocket.id) {
+      setCannonFire({ row, col, hit });
+      if (fireTimerRef.current) {
+        clearTimeout(fireTimerRef.current);
+      }
+      fireTimerRef.current = setTimeout(() => setCannonFire(null), 1000);
+      
+      // Batch enemy board update to prevent flashing
+      setEnemyBoard(prev => {
+        if (prev[position] === cellState) {
+          return prev; // No change needed
         }
-      },
+        const newBoard = [...prev];
+        newBoard[position] = cellState;
+        return newBoard;
+      });
+      
+      setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
+    } else {
+      // Batch my board update to prevent flashing
+      setMyBoard(prev => {
+        if (prev[position] === cellState) {
+          return prev; // No change needed
+        }
+        const newBoard = [...prev];
+        newBoard[position] = cellState;
+        return newBoard;
+      });
+      
+      setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+      setIsOpponentThinking(false);
+    }
+  }
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
         setTurn(turn);
