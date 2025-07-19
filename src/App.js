@@ -1672,7 +1672,7 @@ const handleTouchMove = useCallback((e) => {
       cursor: isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
         ? 'crosshair' : 'default',
       touchAction: 'none',
-    }), [isEnemy, cell, gameState, turn, socket?.id]);
+    }), [isEnemy, cell]);
     
     const handleCellClick = React.useCallback(() => {
       if (isEnemy) handleFire(index);
@@ -1831,7 +1831,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         )}
       </div>
     );
-  }, [ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, gridStyle, gridLayoutStyle, hoverData]);
+  }, [ships, isDragging, dragPosition, gameState, cannonFire, isPlacementConfirmed, toggleOrientation, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, gridStyle, gridLayoutStyle, hoverData, cellSize]);
 
 
   // Filter unplaced ships - moved to component level
@@ -1926,7 +1926,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </div>
       </div>
     );
-  }, [isPlacementConfirmed, column1Ships, column2Ships, cellSize, ships, handleDragStart, setIsDragging, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [isPlacementConfirmed, column1Ships, column2Ships, cellSize, ships]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
