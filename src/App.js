@@ -2661,12 +2661,29 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               
               {/* Fire Timer */}
               <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
+              
+              {/* Opponent Thinking - Fixed position to avoid layout shift */}
               {isOpponentThinking && (
-                <div className="opponent-thinking">
-                  <div className="loading-spinner"></div>
-                  <p>Opponent is thinking...</p>
+                <div className="opponent-thinking" style={{
+                  position: 'fixed',
+                  top: '95px',
+                  left: '20px',
+                  background: 'rgba(0, 0, 0, 0.8)',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
+                  backdropFilter: 'blur(10px)',
+                  zIndex: 60,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <div className="loading-spinner" style={{ width: '20px', height: '20px' }}></div>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#fff' }}>Thinking...</p>
                 </div>
               )}
+              
               <div className="game-boards" style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
                 <div>
                   <h4>Your Fleet</h4>
