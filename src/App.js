@@ -1408,6 +1408,7 @@ setPlacementSaved(false);
       return;
     }
     console.log(`Firing at position ${position}`);
+    console.log('ScrollY before fire:', window.scrollY); // Check scroll position
     
     // Stop the fire timer when player fires manually
     setFireTimerActive(false);
@@ -1424,7 +1425,10 @@ setPlacementSaved(false);
     const row = Math.floor(position / GRID_COLS);
     const col = position % GRID_COLS;
     setCannonFire({ row, col, hit: false });
-    setTimeout(() => setCannonFire(null), 1000);
+    setTimeout(() => {
+      setCannonFire(null);
+      console.log('ScrollY after fire:', window.scrollY); // Check scroll position after animation
+    }, 1000);
   }, [gameState, turn, enemyBoard, socket, gameId, createCannonballTrajectory]);
 
   // Function to handle drag over events on the grid
