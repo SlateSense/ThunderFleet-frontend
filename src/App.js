@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
+import Cell from './Cell';
 import './Cargo.css';
 
 // Ship images for horizontal and vertical orientations
@@ -210,6 +211,12 @@ const App = () => {
   const [fireTimerActive, setFireTimerActive] = useState(false);
 
   // Effect to control body scroll during placement/drag
+  // VISUAL STABILITY FIX: These overflow controls combined with CSS fixed heights
+  // prevent layout jumping during game state transitions. The overflow: hidden
+  // during placing/dragging prevents unwanted scrolling, while overflow: auto
+  // allows normal scrolling when needed. This works in conjunction with the
+  // fixed min-height: 100vh and height: 100vh !important in Cargo.css .App class
+  // to ensure consistent viewport behavior across devices and game states.
   useEffect(() => {
     if (gameState === 'placing' || isDragging !== null) {
       document.body.style.overflow = 'hidden';
@@ -1643,6 +1650,9 @@ const handleTouchMove = useCallback((e) => {
           width: `${cellSize * GRID_COLS}px`,
           height: `${cellSize * GRID_ROWS}px`,
           maxWidth: '100%',
+          transition: 'none', // Prevent transition animations
+          backfaceVisibility: 'hidden', // Prevent flickering
+          transform: 'translateZ(0)', // Force GPU acceleration
         }}
         onDragOver={handleGridDragOver}
         onDrop={handleGridDrop}
@@ -1655,10 +1665,7 @@ const handleTouchMove = useCallback((e) => {
             gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
           }}
         >
-          {board.map((cell, index) => {
-            const row = Math.floor(index / GRID_COLS);
-            const col = index % GRID_COLS;
-            const isHit = cell === 'hit';
+          {board.map((cellValue, index) => {
             const isHovered = isDragging !== null && !isPlacementConfirmed;
             // Use grid metrics for accurate position calculation instead of cellSize
             let hoverPos = -1;
@@ -1677,29 +1684,19 @@ const handleTouchMove = useCallback((e) => {
             }
 
             return (
-              <div
+              <Cell
                 key={index}
-                className={`cell ${cell} ${isUnderShip ? 'hovered' : ''} ${isDragging !== null ? 'drag-active' : ''}`}
-                onClick={() => isEnemy && handleFire(index)}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  if (isEnemy) handleFire(index);
-                }}
-                style={{
-                  cursor:
-                    isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
-                      ? 'crosshair'
-                      : 'default',
-                  touchAction: 'none',
-                  backgroundColor: isHit ? '#ff4500' : cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : '#333',
-                }}
-                data-grid-index={index}
-                data-grid-type={isEnemy ? "enemy" : "player"}
-              >
-                {isEnemy && cannonFire && cannonFire.row === row && cannonFire.col === col && (
-                  <div className={`cannonball-effect ${cannonFire.hit ? 'hit' : 'miss'}`}></div>
-                )}
-              </div>
+                index={index}
+                cell={cellValue}
+                isUnderShip={isUnderShip}
+                isDragging={isDragging}
+                isEnemy={isEnemy}
+                gameState={gameState}
+                turn={turn}
+                socketId={socket?.id}
+                cannonFire={cannonFire}
+                onFire={handleFire}
+              />
             );
           })}
         </div>
@@ -2569,8 +2566,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
-              <div className="message-container">
-                <p>{message}</p>
+              <div className="message-bar">
+                {message}
               </div>
               <div className="timer-container">
                 <div className="timer-bar">
@@ -2637,13 +2634,15 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           {/* Playing Game Screen */}
           {gameState === 'playing' && socket && (
             <div className="playing-screen">
-              <h3
-                className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-              >
-                {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-              </h3>
-              <div className="message-container">
-                <p>{message}</p>
+              <div className="turn-status-container">
+                <h3
+                  className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
+                >
+                  {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
+                </h3>
+              </div>
+              <div className="message-bar">
+                {message}
               </div>
               
               {/* Fire Timer */}
