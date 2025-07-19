@@ -72,7 +72,7 @@ const mulberry32 = (a) => {
   };
 };
 
-// Sound effects hook to play audio files for game events with overlap prevention
+// Sound effects hook to play audio files for game events
 const useSound = (src, isSoundEnabled) => {
   const [audio] = useState(() => {
     const audio = new Audio(src);
@@ -81,28 +81,16 @@ const useSound = (src, isSoundEnabled) => {
     });
     return audio;
   });
-  const [isPlaying, setIsPlaying] = useState(false);
-  
   return useCallback(() => {
-    if (isSoundEnabled && !isPlaying) {
-      setIsPlaying(true);
-      audio.currentTime = 0; // Reset to beginning
-      audio.play()
-        .then(() => {
-          // Reset playing state when sound ends
-          audio.addEventListener('ended', () => setIsPlaying(false), { once: true });
-        })
-        .catch(err => {
-          console.error(`Error playing audio ${src}:`, err.message);
-          setIsPlaying(false);
-        });
+    if (isSoundEnabled) {
+      audio.play().catch(err => console.error(`Error playing audio ${src}:`, err.message));
     }
-  }, [isSoundEnabled, audio, src, isPlaying]);
+  }, [isSoundEnabled, audio, src]);
 };
 
-// Fire Timer Component - Optimized with React.memo
-const FireTimer = React.memo(({ timeLeft, isMyTurn }) => {
-  const timerDimensions = useMemo(() => {
+// Fire Timer Component
+const FireTimer = ({ timeLeft, isMyTurn }) => {
+  const [timerDimensions, setTimerDimensions] = useState(() => {
     const width = window.innerWidth;
     if (width <= 480) {
       return { size: 40, cx: 20, cy: 20, r: 16 };
@@ -111,16 +99,30 @@ const FireTimer = React.memo(({ timeLeft, isMyTurn }) => {
     } else {
       return { size: 60, cx: 30, cy: 30, r: 25 };
     }
-  }, []); // Only calculate once since we don't need dynamic resizing during game
+  });
   
-  const { size, cx, cy, r } = timerDimensions;
-  const circumference = useMemo(() => 2 * Math.PI * r, [r]);
-  const strokeDasharray = useMemo(() => 
-    `${(timeLeft / 15) * circumference} ${circumference}`, 
-    [timeLeft, circumference]
-  );
+  // Update dimensions on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width <= 480) {
+        setTimerDimensions({ size: 40, cx: 20, cy: 20, r: 16 });
+      } else if (width <= 768) {
+        setTimerDimensions({ size: 50, cx: 25, cy: 25, r: 20 });
+      } else {
+        setTimerDimensions({ size: 60, cx: 30, cy: 30, r: 25 });
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   if (!isMyTurn || timeLeft <= 0) return null;
+  
+  const { size, cx, cy, r } = timerDimensions;
+  const circumference = 2 * Math.PI * r;
+  const strokeDasharray = `${(timeLeft / 15) * circumference} ${circumference}`;
   
   return (
     <div className="fire-timer">
@@ -151,7 +153,7 @@ const FireTimer = React.memo(({ timeLeft, isMyTurn }) => {
       <p>Time to fire!</p>
     </div>
   );
-});
+};
 
 const App = () => {
   console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
@@ -382,54 +384,51 @@ console.log('Starting ship placement phase');
           setFireTimerActive(true);
         }
       },
-fireResult: ({ player, position, hit }) => {
-    console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
-    const row = Math.floor(position / GRID_COLS);
-    const col = position % GRID_COLS;
-    const cellState = hit ? 'hit' : 'miss';
-    
-    hit ? playHitSound() : playMissSound();
-    
-    setGameStats(prev => ({
-      ...prev,
-      shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
-      hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
-      misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
-    }));
-    
-    if (player === newSocket.id) {
-      setCannonFire({ row, col, hit });
-      if (fireTimerRef.current) {
-        clearTimeout(fireTimerRef.current);
-      }
-      fireTimerRef.current = setTimeout(() => setCannonFire(null), 1000);
-      
-      // Batch enemy board update to prevent flashing
-      setEnemyBoard(prev => {
-        if (prev[position] === cellState) {
-          return prev; // No change needed
+      fireResult: ({ player, position, hit }) => {
+        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
+        const row = Math.floor(position / GRID_COLS);
+        const col = position % GRID_COLS;
+        const cellState = hit ? 'hit' : 'miss';
+        
+        hit ? playHitSound() : playMissSound();
+        
+        setGameStats(prev => ({
+          ...prev,
+          shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
+          hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
+          misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
+        }));
+        
+        if (player === newSocket.id) {
+          setCannonFire({ row, col, hit });
+          setTimeout(() => setCannonFire(null), 1000);
+          
+          // Batch enemy board update to prevent flashing
+          setEnemyBoard(prev => {
+            if (prev[position] === cellState) {
+              return prev; // No change needed
+            }
+            const newBoard = [...prev];
+            newBoard[position] = cellState;
+            return newBoard;
+          });
+          
+          setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
+        } else {
+          // Batch my board update to prevent flashing
+          setMyBoard(prev => {
+            if (prev[position] === cellState) {
+              return prev; // No change needed
+            }
+            const newBoard = [...prev];
+            newBoard[position] = cellState;
+            return newBoard;
+          });
+          
+          setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
+          setIsOpponentThinking(false);
         }
-        const newBoard = [...prev];
-        newBoard[position] = cellState;
-        return newBoard;
-      });
-      
-      setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
-    } else {
-      // Batch my board update to prevent flashing
-      setMyBoard(prev => {
-        if (prev[position] === cellState) {
-          return prev; // No change needed
-        }
-        const newBoard = [...prev];
-        newBoard[position] = cellState;
-        return newBoard;
-      });
-      
-      setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-      setIsOpponentThinking(false);
-    }
-  },
+      },
       nextTurn: ({ turn }) => {
         console.log(`Next turn: ${turn}`);
         setTurn(turn);
@@ -1045,7 +1044,7 @@ setPlacementSaved(false);
     }, 500);
   }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
-  // Effect to adjust cell size based on screen width for mobile optimization - OPTIMIZED
+  // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
     // Use a more stable calculation that doesn't depend on the grid element
     const width = window.innerWidth;
@@ -1071,14 +1070,14 @@ setPlacementSaved(false);
     // Initial calculation
     handleResize();
     
-    // Heavily debounced resize handler to prevent excessive updates during gameplay
+    // Debounced resize handler to prevent excessive updates
     let resizeTimeout;
     const debouncedResize = () => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(handleResize, 500); // Increased from 250ms to 500ms
+      resizeTimeout = setTimeout(handleResize, 250);
     };
     
-    window.addEventListener('resize', debouncedResize, { passive: true });
+    window.addEventListener('resize', debouncedResize);
     return () => {
       window.removeEventListener('resize', debouncedResize);
       clearTimeout(resizeTimeout);
@@ -1642,108 +1641,78 @@ const handleTouchMove = useCallback((e) => {
     };
   }, [isPlacementConfirmed]);
 
-
-  // Pre-calculate hover state - moved to component level
-  const hoverData = useMemo(() => {
-    if (isDragging === null || isPlacementConfirmed || !gridRef.current) {
-      return { hoverPos: -1, dragPositions: new Set() };
-    }
-    
-    const gridMetrics = getGridMetrics(gridRef.current);
-    const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
-    const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
-    const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
-    const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
-    const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
-    
-    if (hoverRow >= 0 && hoverRow < GRID_ROWS && hoverCol >= 0 && hoverCol < GRID_COLS) {
-      const hoverPos = hoverRow * GRID_COLS + hoverCol;
-      const shipPositions = calculateShipPositions(ships[isDragging], hoverPos.toString()) || [];
-      return { hoverPos, dragPositions: new Set(shipPositions) };
-    }
-    
-    return { hoverPos: -1, dragPositions: new Set() };
-  }, [isDragging, isPlacementConfirmed, dragPosition, ships, calculateShipPositions]);
-
-  // Grid styles - moved to component level
-  const gridStyle = useMemo(() => ({
-    position: 'relative',
-    margin: '0 auto',
-    padding: 0,
-    '--cell-size': `${cellSize}px`,
-    width: `${cellSize * GRID_COLS}px`,
-    height: `${cellSize * GRID_ROWS}px`,
-    maxWidth: '100%',
-  }), [cellSize]);
-  
-  const gridLayoutStyle = useMemo(() => ({
-    gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-    gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
-  }), []);
-
-  // Optimized Grid Cell Component
-  const GridCell = React.memo(({ cell, index, isEnemy, isUnderShip, isDragActive, cannonEffect }) => {
-    const cellStyle = React.useMemo(() => ({
-      cursor: isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
-        ? 'crosshair' : 'default',
-      touchAction: 'none',
-    }), [isEnemy, cell]);
-    
-    const handleCellClick = React.useCallback(() => {
-      if (isEnemy) handleFire(index);
-    }, [isEnemy, index]);
-    
-    const handleCellTouch = React.useCallback((e) => {
-      e.preventDefault();
-      if (isEnemy) handleFire(index);
-    }, [isEnemy, index]);
-    
-    return (
-      <div
-        className={`cell ${cell} ${isUnderShip ? 'hovered' : ''} ${isDragActive ? 'drag-active' : ''}`}
-        onClick={handleCellClick}
-        onTouchStart={handleCellTouch}
-        style={cellStyle}
-        data-grid-index={index}
-        data-grid-type={isEnemy ? "enemy" : "player"}
-      >
-        {cannonEffect && (
-          <div className={`cannonball-effect ${cannonEffect.hit ? 'hit' : 'miss'}`}></div>
-        )}
-      </div>
-    );
-  });
-
-  // Function to render the game grid - Optimized
+  // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
-    
     return (
       <div
         ref={isEnemy ? null : gridRef}
         className={`grid-container ${isEnemy ? 'opponent-grid' : ''}`}
         data-grid-type={isEnemy ? "enemy" : "player"}
-        style={gridStyle}
+        style={{
+          position: 'relative',
+          margin: '0 auto',
+          padding: 0,
+          '--cell-size': `${cellSize}px`,
+          width: `${cellSize * GRID_COLS}px`,
+          height: `${cellSize * GRID_ROWS}px`,
+          maxWidth: '100%',
+        }}
         onDragOver={handleGridDragOver}
         onDrop={handleGridDrop}
-        onTouchMove={handleTouchMove}
+        onTouchMove={(e) => handleTouchMove(e)}
       >
-        <div className="grid" style={gridLayoutStyle}>
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
+          }}
+        >
           {board.map((cell, index) => {
             const row = Math.floor(index / GRID_COLS);
             const col = index % GRID_COLS;
-            const isUnderShip = hoverData.dragPositions.has(index);
-            const cannonEffect = isEnemy && cannonFire && cannonFire.row === row && cannonFire.col === col ? cannonFire : null;
-            
+            const isHit = cell === 'hit';
+            const isHovered = isDragging !== null && !isPlacementConfirmed;
+            // Use grid metrics for accurate position calculation instead of cellSize
+            let hoverPos = -1;
+            let isUnderShip = false;
+            if (isHovered && gridRef.current) {
+              const gridMetrics = getGridMetrics(gridRef.current);
+              const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+              const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
+              const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+              const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
+              const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
+              if (hoverRow >= 0 && hoverRow < GRID_ROWS && hoverCol >= 0 && hoverCol < GRID_COLS) {
+                hoverPos = hoverRow * GRID_COLS + hoverCol;
+                isUnderShip = calculateShipPositions(ships[isDragging], hoverPos.toString())?.includes(index);
+              }
+            }
+
             return (
-              <GridCell
+              <div
                 key={index}
-                cell={cell}
-                index={index}
-                isEnemy={isEnemy}
-                isUnderShip={isUnderShip}
-                isDragActive={isDragging !== null}
-                cannonEffect={cannonEffect}
-              />
+                className={`cell ${cell} ${isUnderShip ? 'hovered' : ''} ${isDragging !== null ? 'drag-active' : ''}`}
+                onClick={() => isEnemy && handleFire(index)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  if (isEnemy) handleFire(index);
+                }}
+                style={{
+                  cursor:
+                    isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
+                      ? 'crosshair'
+                      : 'default',
+                  touchAction: 'none',
+                  backgroundColor: isHit ? '#ff4500' : cell === 'water' ? '#1e90ff' : cell === 'ship' ? '#888' : '#333',
+                }}
+                data-grid-index={index}
+                data-grid-type={isEnemy ? "enemy" : "player"}
+              >
+                {isEnemy && cannonFire && cannonFire.row === row && cannonFire.col === col && (
+                  <div className={`cannonball-effect ${cannonFire.hit ? 'hit' : 'miss'}`}></div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -1846,102 +1815,88 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         )}
       </div>
     );
-  }, [ships, isDragging, dragPosition, gameState, cannonFire, isPlacementConfirmed, toggleOrientation, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, gridStyle, gridLayoutStyle, hoverData, cellSize]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard]);
 
-
-  // Filter unplaced ships - moved to component level
-  const unplacedShips = useMemo(() => 
-    ships.filter(ship => !ship.placed), 
-    [ships]
-  );
-
-  // Split into two columns: first two ships in column 1, next three in column 2
-  const [column1Ships, column2Ships] = useMemo(() => [
-    unplacedShips.slice(0, 2),
-    unplacedShips.slice(2, 5)
-  ], [unplacedShips]);
-
-  // Optimized Ship Component
-  const ShipItem = React.memo(({ ship, shipIndex, isPlacementConfirmed, cellSize }) => {
-    const shipStyle = React.useMemo(() => ({
-      backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      width: ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`,
-      height: ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`,
-      opacity: 1,
-      cursor: isPlacementConfirmed ? 'default' : 'grab',
-      border: '2px solid #333',
-      borderRadius: '4px',
-      marginBottom: '8px',
-      touchAction: 'none'
-    }), [ship.horizontal, ship.horizontalImg, ship.verticalImg, ship.size, cellSize, isPlacementConfirmed]);
-    
-    const handleDragStartShip = React.useCallback((e) => {
-      handleDragStart(e, shipIndex);
-    }, [shipIndex]);
-    
-    const handleTouchStartShip = React.useCallback((e) => {
-      handleTouchStart(e, shipIndex);
-    }, [shipIndex]);
-    
-    return (
-      <div className="ship-container">
-        <div
-          className="ship"
-          draggable={!isPlacementConfirmed}
-          onDragStart={handleDragStartShip}
-          onDragEnd={() => setIsDragging(null)}
-          onTouchStart={handleTouchStartShip}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={shipStyle}
-        >
-          <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
-        </div>
-      </div>
-    );
-  });
-
-  // Function to render the list of ships for placement - OPTIMIZED
+  // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
     if (isPlacementConfirmed) {
+      console.log('Not rendering ship list: Placement confirmed');
       return null;
     }
+    console.log('Rendering ship list for placement');
+
+    // Filter unplaced ships
+    const unplacedShips = ships.filter(ship => !ship.placed);
+
+    // Split into two columns: first two ships in column 1, next three in column 2
+    const column1Ships = unplacedShips.slice(0, 2);
+    const column2Ships = unplacedShips.slice(2, 5);
 
     return (
       <div className="unplaced-ships">
         <div className="ship-column">
-          {column1Ships.map((ship) => {
-            const shipIndex = ships.indexOf(ship);
-            return (
-              <ShipItem
-                key={ship.id}
-                ship={ship}
-                shipIndex={shipIndex}
-                isPlacementConfirmed={isPlacementConfirmed}
-                cellSize={cellSize}
-              />
-            );
-          })}
+          {column1Ships.map((ship, i) => (
+            <div key={i} className="ship-container">
+              <div
+                className="ship"
+                draggable={!isPlacementConfirmed}
+                onDragStart={(e) => handleDragStart(e, ships.indexOf(ship))}
+                onDragEnd={() => setIsDragging(null)}
+                onTouchStart={(e) => handleTouchStart(e, ships.indexOf(ship))}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  width: ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`,
+                  height: ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`,
+                  opacity: 1,
+                  cursor: isPlacementConfirmed ? 'default' : 'grab',
+                  border: '2px solid #333',
+                  borderRadius: '4px',
+                  marginBottom: '8px',
+                  touchAction: 'none'
+                }}
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
+            </div>
+          ))}
         </div>
         <div className="ship-column">
-          {column2Ships.map((ship) => {
-            const shipIndex = ships.indexOf(ship);
-            return (
-              <ShipItem
-                key={ship.id}
-                ship={ship}
-                shipIndex={shipIndex}
-                isPlacementConfirmed={isPlacementConfirmed}
-                cellSize={cellSize}
-              />
-            );
-          })}
+          {column2Ships.map((ship, i) => (
+            <div key={i} className="ship-container">
+              <div
+                className="ship"
+                draggable={!isPlacementConfirmed}
+                onDragStart={(e) => handleDragStart(e, ships.indexOf(ship))}
+                onDragEnd={() => setIsDragging(null)}
+                onTouchStart={(e) => handleTouchStart(e, ships.indexOf(ship))}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  width: ship.horizontal ? `${ship.size * (cellSize * 0.6)}px` : `${cellSize * 0.8}px`,
+                  height: ship.horizontal ? `${cellSize * 0.8}px` : `${ship.size * (cellSize * 0.6)}px`,
+                  opacity: 1,
+                  cursor: isPlacementConfirmed ? 'default' : 'grab',
+                  border: '2px solid #333',
+                  borderRadius: '4px',
+                  marginBottom: '8px',
+                  touchAction: 'none'
+                }}
+              >
+                <span className="ship-label" style={{ color: '#ffffff' }}>{ship.name}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
-  }, [isPlacementConfirmed, column1Ships, column2Ships, cellSize, ships]);
+  }, [isPlacementConfirmed, ships, cellSize, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
