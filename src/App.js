@@ -388,30 +388,44 @@ console.log('Starting ship placement phase');
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
+        const cellState = hit ? 'hit' : 'miss';
+        
         hit ? playHitSound() : playMissSound();
+        
         setGameStats(prev => ({
           ...prev,
           shotsFired: player === newSocket.id ? prev.shotsFired + 1 : prev.shotsFired,
           hits: player === newSocket.id && hit ? prev.hits + 1 : prev.hits,
           misses: player === newSocket.id && !hit ? prev.misses + 1 : prev.misses,
         }));
+        
         if (player === newSocket.id) {
           setCannonFire({ row, col, hit });
           setTimeout(() => setCannonFire(null), 1000);
+          
+          // Batch enemy board update to prevent flashing
           setEnemyBoard(prev => {
+            if (prev[position] === cellState) {
+              return prev; // No change needed
+            }
             const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
+            newBoard[position] = cellState;
             return newBoard;
           });
+          
           setMessage(hit ? 'Hit! You get another turn!' : 'Miss!');
         } else {
+          // Batch my board update to prevent flashing
           setMyBoard(prev => {
+            if (prev[position] === cellState) {
+              return prev; // No change needed
+            }
             const newBoard = [...prev];
-            newBoard[position] = hit ? 'hit' : 'miss';
+            newBoard[position] = cellState;
             return newBoard;
           });
+          
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
-          // Reset opponent thinking state for opponent moves
           setIsOpponentThinking(false);
         }
       },
@@ -1629,7 +1643,6 @@ const handleTouchMove = useCallback((e) => {
 
   // Function to render the game grid
   const renderGrid = useCallback((board, isEnemy) => {
-    console.log(`Rendering ${isEnemy ? 'enemy' : 'player'} grid`);
     return (
       <div
         ref={isEnemy ? null : gridRef}
