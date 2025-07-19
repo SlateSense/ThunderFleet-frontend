@@ -1627,23 +1627,58 @@ const handleTouchMove = useCallback((e) => {
     };
   }, [isPlacementConfirmed]);
 
+
+  // Pre-calculate hover state - moved to component level
+  const hoverData = useMemo(() => {
+    if (isDragging === null || isPlacementConfirmed || !gridRef.current) {
+      return { hoverPos: -1, dragPositions: new Set() };
+    }
+    
+    const gridMetrics = getGridMetrics(gridRef.current);
+    const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+    const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
+    const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+    const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
+    const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
+    
+    if (hoverRow >= 0 && hoverRow < GRID_ROWS && hoverCol >= 0 && hoverCol < GRID_COLS) {
+      const hoverPos = hoverRow * GRID_COLS + hoverCol;
+      const shipPositions = calculateShipPositions(ships[isDragging], hoverPos.toString()) || [];
+      return { hoverPos, dragPositions: new Set(shipPositions) };
+    }
+    
+    return { hoverPos: -1, dragPositions: new Set() };
+  }, [isDragging, isPlacementConfirmed, dragPosition, ships, calculateShipPositions]);
+
+  // Grid styles - moved to component level
+  const gridStyle = useMemo(() => ({
+    position: 'relative',
+    margin: '0 auto',
+    padding: 0,
+    '--cell-size': `${cellSize}px`,
+    width: `${cellSize * GRID_COLS}px`,
+    height: `${cellSize * GRID_ROWS}px`,
+    maxWidth: '100%',
+  }), [cellSize]);
+  
+  const gridLayoutStyle = useMemo(() => ({
+    gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+    gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
+  }), []);
+
   // Optimized Grid Cell Component
   const GridCell = React.memo(({ cell, index, isEnemy, isUnderShip, isDragActive, cannonEffect }) => {
-    const row = Math.floor(index / GRID_COLS);
-    const col = index % GRID_COLS;
-    const isHit = cell === 'hit';
-    
-    const cellStyle = useMemo(() => ({
+    const cellStyle = React.useMemo(() => ({
       cursor: isEnemy && cell === 'water' && gameState === 'playing' && turn === socket?.id
         ? 'crosshair' : 'default',
       touchAction: 'none',
     }), [isEnemy, cell, gameState, turn, socket?.id]);
     
-    const handleCellClick = useCallback(() => {
+    const handleCellClick = React.useCallback(() => {
       if (isEnemy) handleFire(index);
     }, [isEnemy, index]);
     
-    const handleCellTouch = useCallback((e) => {
+    const handleCellTouch = React.useCallback((e) => {
       e.preventDefault();
       if (isEnemy) handleFire(index);
     }, [isEnemy, index]);
@@ -1666,42 +1701,6 @@ const handleTouchMove = useCallback((e) => {
 
   // Function to render the game grid - Optimized
   const renderGrid = useCallback((board, isEnemy) => {
-    const gridStyle = useMemo(() => ({
-      position: 'relative',
-      margin: '0 auto',
-      padding: 0,
-      '--cell-size': `${cellSize}px`,
-      width: `${cellSize * GRID_COLS}px`,
-      height: `${cellSize * GRID_ROWS}px`,
-      maxWidth: '100%',
-    }), [cellSize]);
-    
-    const gridLayoutStyle = useMemo(() => ({
-      gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-      gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
-    }), []);
-    
-    // Pre-calculate hover state to avoid doing it in render
-    const hoverData = useMemo(() => {
-      if (isDragging === null || isPlacementConfirmed || !gridRef.current) {
-        return { hoverPos: -1, dragPositions: new Set() };
-      }
-      
-      const gridMetrics = getGridMetrics(gridRef.current);
-      const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
-      const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
-      const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
-      const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
-      const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
-      
-      if (hoverRow >= 0 && hoverRow < GRID_ROWS && hoverCol >= 0 && hoverCol < GRID_COLS) {
-        const hoverPos = hoverRow * GRID_COLS + hoverCol;
-        const shipPositions = calculateShipPositions(ships[isDragging], hoverPos.toString()) || [];
-        return { hoverPos, dragPositions: new Set(shipPositions) };
-      }
-      
-      return { hoverPos: -1, dragPositions: new Set() };
-    }, [isDragging, isPlacementConfirmed, dragPosition, ships]);
     
     return (
       <div
@@ -1832,11 +1831,24 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard]);
+  }, [ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, gridStyle, gridLayoutStyle, hoverData]);
+
+
+  // Filter unplaced ships - moved to component level
+  const unplacedShips = useMemo(() => 
+    ships.filter(ship => !ship.placed), 
+    [ships]
+  );
+
+  // Split into two columns: first two ships in column 1, next three in column 2
+  const [column1Ships, column2Ships] = useMemo(() => [
+    unplacedShips.slice(0, 2),
+    unplacedShips.slice(2, 5)
+  ], [unplacedShips]);
 
   // Optimized Ship Component
   const ShipItem = React.memo(({ ship, shipIndex, isPlacementConfirmed, cellSize }) => {
-    const shipStyle = useMemo(() => ({
+    const shipStyle = React.useMemo(() => ({
       backgroundImage: `url(${ship.horizontal ? ship.horizontalImg : ship.verticalImg})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
@@ -1850,11 +1862,11 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
       touchAction: 'none'
     }), [ship.horizontal, ship.horizontalImg, ship.verticalImg, ship.size, cellSize, isPlacementConfirmed]);
     
-    const handleDragStartShip = useCallback((e) => {
+    const handleDragStartShip = React.useCallback((e) => {
       handleDragStart(e, shipIndex);
     }, [shipIndex]);
     
-    const handleTouchStartShip = useCallback((e) => {
+    const handleTouchStartShip = React.useCallback((e) => {
       handleTouchStart(e, shipIndex);
     }, [shipIndex]);
     
@@ -1881,18 +1893,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     if (isPlacementConfirmed) {
       return null;
     }
-
-    // Filter unplaced ships - memoized to prevent recalculation
-    const unplacedShips = useMemo(() => 
-      ships.filter(ship => !ship.placed), 
-      [ships]
-    );
-
-    // Split into two columns: first two ships in column 1, next three in column 2
-    const [column1Ships, column2Ships] = useMemo(() => [
-      unplacedShips.slice(0, 2),
-      unplacedShips.slice(2, 5)
-    ], [unplacedShips]);
 
     return (
       <div className="unplaced-ships">
@@ -1926,7 +1926,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </div>
       </div>
     );
-  }, [isPlacementConfirmed, ships, cellSize]);
+  }, [isPlacementConfirmed, column1Ships, column2Ships, cellSize, ships, handleDragStart, setIsDragging, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Component to render the splash screen
   const SplashScreen = useMemo(() => {
