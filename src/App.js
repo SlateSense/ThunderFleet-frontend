@@ -3,6 +3,8 @@ import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import Cell from './Cell';
+import PlayerGrid from './components/PlayerGrid';
+import EnemyGrid from './components/EnemyGrid';
 import './Cargo.css';
 
 // Ship images for horizontal and vertical orientations
@@ -2595,7 +2597,22 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   onTouchEnd={handleTouchEnd}
                   style={{ margin: '0 auto', padding: 0 }}
                 >
-                  {renderGrid(myBoard, false)}
+                  <PlayerGrid 
+                    board={myBoard}
+                    ships={ships}
+                    isDragging={isDragging}
+                    dragPosition={dragPosition}
+                    isPlacementConfirmed={isPlacementConfirmed}
+                    gridRef={gridRef}
+                    cellSize={cellSize}
+                    handleGridDragOver={handleGridDragOver}
+                    handleGridDrop={handleGridDrop}
+                    handleTouchMove={handleTouchMove}
+                    handleDragStart={handleDragStart}
+                    handleTouchStart={handleTouchStart}
+                    handleTouchEnd={handleTouchEnd}
+                    gameState={gameState}
+                  />
                 </div>
               </div>
               <div className="action-buttons" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -2660,11 +2677,34 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               <div className="game-boards" style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
                 <div>
                   <h4>Your Fleet</h4>
-                  {renderGrid(myBoard, false)}
+                  <PlayerGrid 
+                    board={myBoard}
+                    ships={ships}
+                    isDragging={isDragging}
+                    dragPosition={dragPosition}
+                    isPlacementConfirmed={isPlacementConfirmed}
+                    gridRef={gridRef}
+                    cellSize={cellSize}
+                    handleGridDragOver={handleGridDragOver}
+                    handleGridDrop={handleGridDrop}
+                    handleTouchMove={handleTouchMove}
+                    handleDragStart={handleDragStart}
+                    handleTouchStart={handleTouchStart}
+                    handleTouchEnd={handleTouchEnd}
+                    gameState={gameState}
+                  />
                 </div>
                 <div className="opponent-wrapper">
                   <h4>Enemy Waters</h4>
-                  {renderGrid(enemyBoard, true)}
+                  <EnemyGrid 
+                    board={enemyBoard}
+                    gameState={gameState}
+                    turn={turn}
+                    socketId={socket?.id}
+                    cannonFire={cannonFire}
+                    onFire={handleFire}
+                    cellSize={cellSize}
+                  />
                 </div>
               </div>
               <div className="stats-container" style={{ marginTop: '10px', color: '#fff' }}>
