@@ -1370,12 +1370,24 @@ setPlacementSaved(false);
       return;
     }
     console.log('Clearing the board');
+    
+    // Reset the board and ships state
     setMyBoard(Array(GRID_SIZE).fill('water'));
-    setShips(prev => prev.map(ship => ({ ...ship, positions: [], placed: false })));
+    setShips(prev => prev.map(ship => ({ 
+      ...ship, 
+      positions: [], 
+      placed: false,
+      horizontal: true // Reset orientation
+    })));
     setShipCount(0);
+    setPlacementSaved(false);
     setMessage('Board cleared. Place your ships!');
-    updateServerBoard();
-  }, [isPlacementConfirmed, updateServerBoard]);
+
+    // Notify server about board clear
+    if (socket && gameId) {
+      socket.emit('clearBoard', { gameId });
+    }
+  }, [isPlacementConfirmed, socket, gameId]);
 
   // Function to create cannonball trajectory animation
   const createCannonballTrajectory = useCallback((startElement, endElement) => {
@@ -2663,7 +2675,9 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               alignItems: 'center'
             }}>
               <div style={{ 
-                height: '90px', 
+                height: '70px', 
+                minHeight: '70px',
+                maxHeight: '70px',
                 position: 'fixed', 
                 top: '0', 
                 left: '0', 
@@ -2673,7 +2687,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center', 
-                padding: '8px',
+                justifyContent: 'center',
+                padding: '5px',
                 transform: 'translate3d(0,0,0)',
                 WebkitTransform: 'translate3d(0,0,0)',
                 backfaceVisibility: 'hidden',
@@ -2681,36 +2696,42 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 willChange: 'transform',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }}>
-                <h3
-                  className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-                  style={{ 
-                    margin: '0 0 5px 0',
+                <>
+                  <h3
+                    className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
+                    style={{ 
+                      margin: '0 0 5px 0',
+                      transform: 'translate3d(0,0,0)',
+                      WebkitTransform: 'translate3d(0,0,0)'
+                    }}
+                  >
+                    {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
+                  </h3>
+                  <div className="message-container" style={{ 
+                    height: '20px',
+                    minHeight: '20px',
+                    maxHeight: '20px', 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '3px 0',
+                    overflow: 'hidden',
                     transform: 'translate3d(0,0,0)',
                     WebkitTransform: 'translate3d(0,0,0)'
-                  }}
-                >
-                  {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-                </h3>
-                <div className="message-container" style={{ 
-                  height: '25px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  margin: '5px 0',
-                  transform: 'translate3d(0,0,0)',
-                  WebkitTransform: 'translate3d(0,0,0)'
-                }}>
-                  <p style={{ margin: 0 }}>{message}</p>
-                </div>
-                
-                {/* Fire Timer */}
-                <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
+                  }}>
+                    <p style={{ margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontSize: '0.9rem', lineHeight: '1.2' }}>{message}</p>
+                  </div>
+                  
+                  {/* Fire Timer */}
+                  <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
+                </>
               </div>
               
               {/* Opponent Thinking - Fixed position to avoid layout shift */}
               {isOpponentThinking && (
                 <div className="opponent-thinking" style={{
                   position: 'fixed',
-                  top: '95px',
+                  top: '75px',
                   left: '20px',
                   background: 'rgba(0, 0, 0, 0.8)',
                   padding: '8px 12px',
@@ -2732,8 +2753,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 display: 'flex', 
                 justifyContent: 'space-around', 
                 width: '100%',
-                marginTop: '40px',
-                padding: '0 20px 60px 20px',
+                marginTop: '10px',
+                padding: '0 10px 40px 10px',
                 position: 'relative',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
@@ -2748,7 +2769,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   backfaceVisibility: 'hidden',
                   WebkitBackfaceVisibility: 'hidden'
                 }}>
-                  <h4 style={{ margin: '0 0 10px 0' }}>Your Fleet</h4>
+                  <h4 style={{ margin: '0 0 5px 0' }}>Your Fleet</h4>
                   {renderGrid(myBoard, false)}
                 </div>
                 <div className="opponent-wrapper" style={{
@@ -2757,7 +2778,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   backfaceVisibility: 'hidden',
                   WebkitBackfaceVisibility: 'hidden'
                 }}>
-                  <h4 style={{ margin: '0 0 10px 0' }}>Enemy Waters</h4>
+                  <h4 style={{ margin: '0 0 5px 0' }}>Enemy Waters</h4>
                   {renderGrid(enemyBoard, true)}
                 </div>
               </div>

@@ -388,28 +388,28 @@ html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   max-width: 100%;
   width: 100%;
   animation: slideIn 0.5s ease-out;
-  padding: 10px;
-  padding-top: 95px; /* Add space for fixed message container */
+  padding: 5px;
+  padding-top: 70px; /* Add space for fixed message container */
   box-sizing: border-box;
   min-height: 100vh;
 }
 
 /* Message Container - Fixed height for stability */
 .message-container {
-  height: 80px;
-  min-height: 80px;
-  max-height: 80px;
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   width: 100%;
   margin: 0;
-  padding: 15px 10px;
+  padding: 10px;
   box-sizing: border-box;
   flex-shrink: 0;
   position: fixed;
@@ -426,8 +426,8 @@ html {
   margin: 0;
   text-align: center;
   font-size: 1rem;
-  line-height: 1.4;
-  height: 50px;
+  line-height: 1.2;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -435,6 +435,7 @@ html {
   word-wrap: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .placing-screen h3, .playing-screen h3, .finished-screen h2, .join-screen h2, .waiting-screen h2 {
@@ -588,12 +589,12 @@ html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   max-width: 100%;
   width: 100%;
   animation: slideIn 0.5s ease-out;
   padding: 5px;
-  padding-top: 95px; /* Add space for fixed message container */
+  padding-top: 70px; /* Add space for fixed message container */
   box-sizing: border-box;
   min-height: 100vh;
   position: fixed;
@@ -608,9 +609,9 @@ html {
 .playing-screen .message-container,
 .placing-screen .message-container {
   position: fixed;
-  height: 80px;
-  min-height: 80px;
-  max-height: 80px;
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
   flex-shrink: 0;
 }
 
@@ -629,7 +630,7 @@ html {
 .game-boards {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px;
   align-items: center;
   width: 100%;
   position: relative;
@@ -659,7 +660,7 @@ html {
 @media (orientation: portrait) {
   .game-boards {
     flex-direction: column;
-    gap: 15px;
+    gap: 8px;
     align-items: center;
   }
 }
@@ -1752,7 +1753,7 @@ html {
   }
 
   .game-boards {
-    gap: 10px;
+    gap: 5px;
   }
 
   .game-stats {
@@ -1762,9 +1763,9 @@ html {
 
   .placing-screen,
   .playing-screen {
-    gap: 8px;
-    padding: 5px;
-    padding-top: 70px; /* Space for fixed message container */
+    gap: 5px;
+    padding: 3px;
+    padding-top: 65px; /* Space for fixed message container */
   }
 }
 
@@ -2067,18 +2068,18 @@ body {
 /* Fire Timer Styles - Fixed position to avoid layout shifts */
 .fire-timer {
   position: fixed;
-  top: 95px;
+  top: 70px;
   right: 20px;
   text-align: center;
   z-index: 60;
   background: rgba(0, 0, 0, 0.8);
-  padding: 8px;
-  border-radius: 10px;
+  padding: 6px;
+  border-radius: 8px;
   border: 2px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2110,11 +2111,11 @@ body {
 /* Mobile adjustments for fire timer and opponent thinking */
 @media (max-width: 768px) {
   .fire-timer {
-    top: 95px;
+    top: 70px;
     right: 15px;
-    padding: 6px;
-    width: 70px;
-    height: 70px;
+    padding: 5px;
+    width: 60px;
+    height: 60px;
   }
   
   .fire-timer .timer-text {
@@ -2127,12 +2128,12 @@ body {
   
   .placing-screen,
   .playing-screen {
-    padding-top: 95px; /* Space for fixed message container */
+    padding-top: 70px; /* Space for fixed message container */
   }
   
   /* Mobile position for opponent thinking indicator */
   .opponent-thinking {
-    top: 95px !important;
+    top: 70px !important;
     left: 15px !important;
     padding: 6px 10px !important;
     font-size: 0.75rem !important;
@@ -2150,11 +2151,11 @@ body {
 
 @media (max-width: 480px) {
   .fire-timer {
-    top: 95px;
+    top: 70px;
     right: 10px;
-    padding: 4px;
-    width: 60px;
-    height: 60px;
+    padding: 3px;
+    width: 50px;
+    height: 50px;
   }
   
   .fire-timer .timer-text {
@@ -2168,12 +2169,12 @@ body {
   
   .placing-screen,
   .playing-screen {
-    padding-top: 95px; /* Space for fixed message container */
+    padding-top: 70px; /* Space for fixed message container */
   }
   
   /* Mobile position for opponent thinking indicator */
   .opponent-thinking {
-    top: 95px !important;
+    top: 70px !important;
     left: 10px !important;
     padding: 4px 8px !important;
     font-size: 0.7rem !important;
