@@ -2656,11 +2656,11 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           {gameState === 'playing' && socket && (
             <div className="playing-screen" style={{ 
               height: '100vh',
-              overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch',
+              overflow: 'hidden',
               position: 'relative',
-              scrollBehavior: 'smooth',
-              overscrollBehavior: 'none'
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
             }}>
               <div style={{ 
                 height: '90px', 
@@ -2732,9 +2732,9 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 display: 'flex', 
                 justifyContent: 'space-around', 
                 width: '100%',
-                padding: '95px 20px 60px 20px',
-                position: 'sticky',
-                top: '90px',
+                marginTop: '90px',
+                padding: '10px 20px 60px 20px',
+                position: 'relative',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
