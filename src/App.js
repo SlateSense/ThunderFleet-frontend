@@ -2654,7 +2654,13 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
           {/* Playing Game Screen */}
           {gameState === 'playing' && socket && (
-            <div className="playing-screen" style={{ paddingTop: '20px', position: 'relative', height: '100vh' }}>
+            <div className="playing-screen" style={{ 
+              height: '100vh',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              position: 'relative',
+              willChange: 'scroll-position'
+            }}>
               <div style={{ 
                 height: '90px', 
                 position: 'fixed', 
@@ -2726,11 +2732,13 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 justifyContent: 'space-around', 
                 width: '100%',
                 padding: '100px 20px 80px 20px',
+                position: 'relative',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
                 perspective: 1000,
-                WebkitPerspective: 1000
+                WebkitPerspective: 1000,
+                transform: 'translateZ(0)'
               }}>
                 <div style={{
                   transform: 'translate3d(0,0,0)',
