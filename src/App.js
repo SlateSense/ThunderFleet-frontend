@@ -2697,29 +2697,32 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }}>
                 <>
-                  <h3
-                    className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-                    style={{ 
-                      margin: '0 0 5px 0',
-                      transform: 'translate3d(0,0,0)',
-                      WebkitTransform: 'translate3d(0,0,0)'
-                    }}
-                  >
-                    {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-                  </h3>
                   <div className="message-container" style={{ 
-                    height: '20px',
-                    minHeight: '20px',
-                    maxHeight: '20px', 
+                    height: '40px',
+                    minHeight: '40px',
+                    maxHeight: '40px', 
                     display: 'flex', 
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '3px 0',
+                    margin: '10px 0',
                     overflow: 'hidden',
                     transform: 'translate3d(0,0,0)',
                     WebkitTransform: 'translate3d(0,0,0)'
                   }}>
-                    <p style={{ margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontSize: '0.9rem', lineHeight: '1.2' }}>{message}</p>
+                    <p 
+                      className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
+                      style={{ 
+                        margin: 0, 
+                        whiteSpace: 'nowrap', 
+                        textOverflow: 'ellipsis', 
+                        overflow: 'hidden', 
+                        fontSize: '1.1rem', 
+                        lineHeight: '1.2',
+                        fontWeight: '600'
+                      }}
+                    >
+                      {message}
+                    </p>
                   </div>
                   
                   {/* Fire Timer */}
