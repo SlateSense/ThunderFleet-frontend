@@ -23,8 +23,7 @@
     "test": "react-scripts test",
     "test:alignment": "cd .. && npm run test:alignment",
     "eject": "react-scripts eject",
-    "postbuild": "npm run test:alignment || echo 'Alignment tests failed but build continues'",
-    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js"
+    "postbuild": "npm run test:alignment || echo 'Alignment tests failed but build continues'"
   },
   "eslintConfig": {
     "extends": [
@@ -43,8 +42,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "webpack-bundle-analyzer": "^4.10.2"
   }
 }
