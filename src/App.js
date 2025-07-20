@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { FixedSizeGrid } from 'react-window';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
+import { debounce, throttle, PerformanceMonitor } from './utils/performance';
 import './Cargo.css';
 import carrierHorizontal from './assets/ships/horizontal/carrier.png';
 import battleshipHorizontal from './assets/ships/horizontal/battleship.png';
@@ -741,6 +741,9 @@ setPlacementSaved(false);
     }, 500);
   }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
+  // Performance monitor instance
+  const performanceMonitor = useRef(new PerformanceMonitor());
+
   // Effect to adjust cell size based on screen width for mobile optimization
   const handleResize = useCallback(() => {
     // Use a more stable calculation that doesn't depend on the grid element
@@ -1155,8 +1158,17 @@ setPlacementSaved(false);
     }
   }, [isDragging, isPlacementConfirmed, setDragPosition]);
 
-  // Function to handle touch move
-const handleTouchMove = useCallback((e) => {
+  // Create throttled handlers with performance monitoring
+  const throttledDragPosition = useMemo(() => {
+    return throttle((position) => {
+      performanceMonitor.current.startMeasurement('dragPositionUpdate');
+      setDragPosition(position);
+      performanceMonitor.current.endMeasurement('dragPositionUpdate');
+    }, 16); // ~60fps
+  }, []);
+
+  // Function to handle touch move with throttling
+  const handleTouchMove = useCallback((e) => {
     e.preventDefault(); // Prevent scrolling during touch move
     
     if (!touchStartRef.current || isPlacementConfirmed) return;
@@ -1172,13 +1184,15 @@ const handleTouchMove = useCallback((e) => {
       setIsDragging(shipIndex);
     }
 
-    if (touchStartRef.current.isDragging) {
+    if (touchStartRef.current.isDragging && gridRef.current) {
       const gridRect = gridRef.current.getBoundingClientRect();
       const dragX = touch.clientX - gridRect.left;
       const dragY = touch.clientY - gridRect.top;
-      setDragPosition({ x: dragX, y: dragY });
+      
+      // Use throttled drag position update
+      throttledDragPosition({ x: dragX, y: dragY });
     }
-  }, [isPlacementConfirmed, gridRef, setIsDragging, setDragPosition]);
+  }, [isPlacementConfirmed, gridRef, setIsDragging, throttledDragPosition]);
 
   // Function to handle dropping a ship on the grid
   const handleGridDrop = useCallback((e) => {
@@ -2314,7 +2328,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   onTouchEnd={handleTouchEnd}
                   style={{ margin: '0 auto', padding: 0 }}
                 >
-                  {VirtualGrid(myBoard, false)}
+                  {renderGrid(myBoard, false)}
                 </div>
               </div>
               <div className="action-buttons" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -2469,7 +2483,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   WebkitBackfaceVisibility: 'hidden'
                 }}>
                   <h4 style={{ margin: '0 0 5px 0' }}>Enemy Waters</h4>
-                  {VirtualGrid(enemyBoard, true)}
+                  {renderGrid(enemyBoard, true)}
                 </div>
               </div>
               <div className="stats-container" style={{ 
