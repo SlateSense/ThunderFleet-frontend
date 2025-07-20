@@ -2578,7 +2578,12 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
           {/* Ship Placement Screen */}
           {gameState === 'placing' && (
-            <div className="placing-screen">
+            <div className="placing-screen" style={{ 
+              height: '100vh',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              padding: '20px 0'
+            }}>
               <h3>
                 Place Your Ships ({shipCount}/5)
               </h3>
@@ -2651,24 +2656,23 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           {gameState === 'playing' && socket && (
             <div className="playing-screen" style={{ paddingTop: '20px', position: 'relative', height: '100vh' }}>
               <div style={{ 
-                height: '120px', 
+                height: '90px', 
                 position: 'fixed', 
                 top: '0', 
                 left: '0', 
                 right: '0', 
-                background: 'rgba(0, 0, 0, 0.8)', 
+                background: 'rgba(0, 0, 0, 0.95)', 
                 zIndex: 50, 
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center', 
-                padding: '10px',
+                padding: '8px',
                 transform: 'translate3d(0,0,0)',
                 WebkitTransform: 'translate3d(0,0,0)',
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
                 willChange: 'transform',
-                perspective: 1000,
-                WebkitPerspective: 1000
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }}>
                 <h3
                   className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
@@ -2721,11 +2725,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 display: 'flex', 
                 justifyContent: 'space-around', 
                 width: '100%',
-                position: 'fixed',
-                left: '0',
-                right: '0',
-                padding: '0 20px',
-                transform: 'translateY(120px)',
+                padding: '100px 20px 80px 20px',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
@@ -2753,38 +2753,24 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               </div>
               <div className="stats-container" style={{ 
                 position: 'fixed', 
-                bottom: '20px', 
+                bottom: '0', 
                 left: '0', 
                 right: '0', 
                 color: '#fff',
                 display: 'flex',
                 justifyContent: 'center',
                 gap: '20px',
-                background: 'rgba(0, 0, 0, 0.8)',
-                padding: '10px',
+                background: 'rgba(0, 0, 0, 0.95)',
+                padding: '5px',
+                fontSize: '0.9em',
                 transform: 'translate3d(0,0,0)',
                 WebkitTransform: 'translate3d(0,0,0)',
                 backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                willChange: 'transform',
-                perspective: 1000,
-                WebkitPerspective: 1000
+                WebkitBackfaceVisibility: 'hidden'
               }}>
-                <p style={{ 
-                  margin: 0,
-                  transform: 'translate3d(0,0,0)',
-                  WebkitTransform: 'translate3d(0,0,0)'
-                }}>Shots Fired: {gameStats.shotsFired}</p>
-                <p style={{ 
-                  margin: 0,
-                  transform: 'translate3d(0,0,0)',
-                  WebkitTransform: 'translate3d(0,0,0)'
-                }}>Hits: {gameStats.hits}</p>
-                <p style={{ 
-                  margin: 0,
-                  transform: 'translate3d(0,0,0)',
-                  WebkitTransform: 'translate3d(0,0,0)'
-                }}>Misses: {gameStats.misses}</p>
+                <p style={{ margin: 0 }}>
+                  {gameStats.shotsFired}🎯 {gameStats.hits}✅ {gameStats.misses}❌
+                </p>
               </div>
             </div>
           )}
