@@ -2659,7 +2659,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               overflowY: 'auto',
               WebkitOverflowScrolling: 'touch',
               position: 'relative',
-              willChange: 'scroll-position'
+              scrollBehavior: 'smooth',
+              overscrollBehavior: 'none'
             }}>
               <div style={{ 
                 height: '90px', 
@@ -2731,8 +2732,9 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 display: 'flex', 
                 justifyContent: 'space-around', 
                 width: '100%',
-                padding: '100px 20px 80px 20px',
-                position: 'relative',
+                padding: '95px 20px 60px 20px',
+                position: 'sticky',
+                top: '90px',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
