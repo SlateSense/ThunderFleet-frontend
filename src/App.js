@@ -2649,18 +2649,51 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
           {/* Playing Game Screen */}
           {gameState === 'playing' && socket && (
-            <div className="playing-screen">
-              <h3
-                className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
-              >
-                {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
-              </h3>
-              <div className="message-container">
-                <p>{message}</p>
+            <div className="playing-screen" style={{ paddingTop: '20px', position: 'relative', height: '100vh' }}>
+              <div style={{ 
+                height: '120px', 
+                position: 'fixed', 
+                top: '0', 
+                left: '0', 
+                right: '0', 
+                background: 'rgba(0, 0, 0, 0.8)', 
+                zIndex: 50, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                padding: '10px',
+                transform: 'translate3d(0,0,0)',
+                WebkitTransform: 'translate3d(0,0,0)',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                willChange: 'transform',
+                perspective: 1000,
+                WebkitPerspective: 1000
+              }}>
+                <h3
+                  className={turn === socket.id ? 'your-turn' : 'opponent-turn'}
+                  style={{ 
+                    margin: '0 0 5px 0',
+                    transform: 'translate3d(0,0,0)',
+                    WebkitTransform: 'translate3d(0,0,0)'
+                  }}
+                >
+                  {turn === socket.id ? 'Your Turn to Fire!' : "Opponent's Turn"}
+                </h3>
+                <div className="message-container" style={{ 
+                  height: '25px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  margin: '5px 0',
+                  transform: 'translate3d(0,0,0)',
+                  WebkitTransform: 'translate3d(0,0,0)'
+                }}>
+                  <p style={{ margin: 0 }}>{message}</p>
+                </div>
+                
+                {/* Fire Timer */}
+                <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
               </div>
-              
-              {/* Fire Timer */}
-              <FireTimer timeLeft={fireTimeLeft} isMyTurn={turn === socket.id} />
               
               {/* Opponent Thinking - Fixed position to avoid layout shift */}
               {isOpponentThinking && (
@@ -2684,20 +2717,74 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 </div>
               )}
               
-              <div className="game-boards" style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
-                <div>
-                  <h4>Your Fleet</h4>
+              <div className="game-boards" style={{ 
+                display: 'flex', 
+                justifyContent: 'space-around', 
+                width: '100%',
+                position: 'fixed',
+                left: '0',
+                right: '0',
+                padding: '0 20px',
+                transform: 'translateY(120px)',
+                willChange: 'transform',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                perspective: 1000,
+                WebkitPerspective: 1000
+              }}>
+                <div style={{
+                  transform: 'translate3d(0,0,0)',
+                  WebkitTransform: 'translate3d(0,0,0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden'
+                }}>
+                  <h4 style={{ margin: '0 0 10px 0' }}>Your Fleet</h4>
                   {renderGrid(myBoard, false)}
                 </div>
-                <div className="opponent-wrapper">
-                  <h4>Enemy Waters</h4>
+                <div className="opponent-wrapper" style={{
+                  transform: 'translate3d(0,0,0)',
+                  WebkitTransform: 'translate3d(0,0,0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden'
+                }}>
+                  <h4 style={{ margin: '0 0 10px 0' }}>Enemy Waters</h4>
                   {renderGrid(enemyBoard, true)}
                 </div>
               </div>
-              <div className="stats-container" style={{ marginTop: '10px', color: '#fff' }}>
-                <p>Shots Fired: {gameStats.shotsFired}</p>
-                <p>Hits: {gameStats.hits}</p>
-                <p>Misses: {gameStats.misses}</p>
+              <div className="stats-container" style={{ 
+                position: 'fixed', 
+                bottom: '20px', 
+                left: '0', 
+                right: '0', 
+                color: '#fff',
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '20px',
+                background: 'rgba(0, 0, 0, 0.8)',
+                padding: '10px',
+                transform: 'translate3d(0,0,0)',
+                WebkitTransform: 'translate3d(0,0,0)',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                willChange: 'transform',
+                perspective: 1000,
+                WebkitPerspective: 1000
+              }}>
+                <p style={{ 
+                  margin: 0,
+                  transform: 'translate3d(0,0,0)',
+                  WebkitTransform: 'translate3d(0,0,0)'
+                }}>Shots Fired: {gameStats.shotsFired}</p>
+                <p style={{ 
+                  margin: 0,
+                  transform: 'translate3d(0,0,0)',
+                  WebkitTransform: 'translate3d(0,0,0)'
+                }}>Hits: {gameStats.hits}</p>
+                <p style={{ 
+                  margin: 0,
+                  transform: 'translate3d(0,0,0)',
+                  WebkitTransform: 'translate3d(0,0,0)'
+                }}>Misses: {gameStats.misses}</p>
               </div>
             </div>
           )}
