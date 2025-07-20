@@ -1234,21 +1234,19 @@ setPlacementSaved(false);
   }, []);
 
   // Function to handle joining the game
-    const handleJoinGame = useCallback(() => {
+  const handleJoinGame = useCallback(() => {
     if (!socket) {
       setMessage('Cannot join game: No socket connection.');
       return;
     }
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Attempting to join game:', { lightningAddress, betAmount, socketId: socket.id });
-    }
+    console.log('Attempting to join game:', { lightningAddress, betAmount, socketId: socket.id });
     if (!lightningAddress) {
       setMessage('Please enter a Lightning address');
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Validation failed: No Lightning address');
-      }
+      console.log('Validation failed: No Lightning address');
       return;
-    }    if (!betAmount) {
+    }
+
+    if (!betAmount) {
       setMessage('Please select a bet amount');
       console.log('Validation failed: No bet amount selected');
       return;
@@ -1447,7 +1445,6 @@ setPlacementSaved(false);
     setCannonFire({ row, col, hit: false });
     setTimeout(() => setCannonFire(null), 1000);
   }, [gameState, turn, enemyBoard, socket, gameId, createCannonballTrajectory]);
-
 
   // Function to handle drag over events on the grid
   const handleGridDragOver = useCallback((e) => {
