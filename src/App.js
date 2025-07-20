@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { FixedSizeGrid } from 'react-window';
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import './Cargo.css';
-
-// Ship images for horizontal and vertical orientations
 import carrierHorizontal from './assets/ships/horizontal/carrier.png';
 import battleshipHorizontal from './assets/ships/horizontal/battleship.png';
 import submarineHorizontal from './assets/ships/horizontal/submarine.png';
@@ -15,6 +15,31 @@ import battleshipVertical from './assets/ships/vertical/battleship.png';
 import submarineVertical from './assets/ships/vertical/submarine.png';
 import cruiserVertical from './assets/ships/vertical/cruiser.png';
 import patrolVertical from './assets/ships/vertical/patrol.png';
+
+// Memoized cell renderer for react-window grid
+const renderGridCell = (board, isEnemy) => ({ columnIndex, rowIndex, style }) => {
+  const idx = rowIndex * GRID_ROWS + columnIndex;
+  return (
+    <div style={{ ...style, boxSizing: 'border-box', border: '1px solid #333', background: board[idx] === 'water' ? '#0af' : board[idx] === 'hit' ? '#f00' : board[idx] === 'miss' ? '#fff' : '#ff0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2em', cursor: isEnemy ? 'pointer' : 'default' }}>
+      {board[idx] === 'hit' ? 'X' : board[idx] === 'miss' ? 'O' : ''}
+    </div>
+  );
+};
+
+// Memoized grid renderer using react-window
+const VirtualGrid = (board, isEnemy) => (
+  <FixedSizeGrid
+    columnCount={GRID_ROWS}
+    rowCount={GRID_COLS}
+    columnWidth={40}
+    rowHeight={40}
+    height={360}
+    width={280}
+    style={{ border: '2px solid #333', borderRadius: '8px', background: '#001f3f' }}
+  >
+    {renderGridCell(board, isEnemy)}
+  </FixedSizeGrid>
+);
 
 const enableSmoothScroll = () => {
   document.documentElement.classList.add('scroll-enabled');
@@ -2115,7 +2140,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
   // Component to render the privacy policy modal
   const PrivacyModal = useMemo(() => {
-    console.log('Rendering PrivacyModal');
     return (
       <div className="modal">
         <div className="modal-content">
@@ -2275,7 +2299,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
   // Component to render the how-to-play modal
   const HowToPlayModal = useMemo(() => {
-    console.log('Rendering HowToPlayModal');
     return (
       <div className="modal">
         <div className="modal-content">
@@ -2331,7 +2354,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
   // Component to render the payment modal
   const PaymentModal = useMemo(() => {
-    console.log('Rendering PaymentModal');
     return (
       <div className="payment-modal">
         <h3>⚡ Pay {betAmount} SATS to join ⚡</h3>
@@ -2389,7 +2411,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
   // Component to render confetti for winning
   const Confetti = useMemo(() => {
     if (!showConfetti) return null;
-    console.log('Rendering Confetti');
     const confettiPieces = Array.from({ length: CONFETTI_COUNT }).map((_, i) => {
       const left = Math.random() * 100;
       const animationDelay = Math.random() * 2;
@@ -2412,7 +2433,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
   // Component to render the default fallback UI when disconnected
   const DefaultFallbackUI = useMemo(() => {
-    console.log('Rendering DefaultFallbackUI');
     return (
       <div className="fallback-ui" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <h2>
@@ -2438,7 +2458,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
   // Error handling function
   const handleError = useCallback((error) => {
-    console.error('Game error:', error);
     setMessage(error.message || 'An error occurred. Please try again.');
     playErrorSound();
   }, [playErrorSound]);
@@ -2498,7 +2517,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   value={lightningAddress}
                   onChange={(e) => {
                     setLightningAddress(e.target.value.toLowerCase()); // Convert to lowercase
-                    console.log('Lightning address updated:', e.target.value.toLowerCase());
                   }}
                   style={{ flex: 1, padding: '10px', fontSize: '1em', marginRight: '5px' }}
                 />
@@ -2624,7 +2642,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   onTouchEnd={handleTouchEnd}
                   style={{ margin: '0 auto', padding: 0 }}
                 >
-                  {renderGrid(myBoard, false)}
+                  {VirtualGrid(myBoard, false)}
                 </div>
               </div>
               <div className="action-buttons" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -2779,7 +2797,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   WebkitBackfaceVisibility: 'hidden'
                 }}>
                   <h4 style={{ margin: '0 0 5px 0' }}>Enemy Waters</h4>
-                  {renderGrid(enemyBoard, true)}
+                  {VirtualGrid(enemyBoard, true)}
                 </div>
               </div>
               <div className="stats-container" style={{ 
@@ -2814,7 +2832,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               {showConfetti && Confetti}
               <button
                 onClick={() => {
-                  console.log('Returning to splash screen');
                   setGameState('splash');
                   setGameId(null);
                   setPlayerId(null);
