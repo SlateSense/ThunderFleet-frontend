@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, startTransition } from 'react';
 import io from 'socket.io-client';
-import { QRCodeSVG } from 'qrcode.react';
-import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
-import './Cargo.css';
+import confetti from 'canvas-confetti';
+import './App.css';
+import { debounce, throttle, PerformanceMonitor } from './utils/performance';
 
 // Ship images for horizontal and vertical orientations
 import carrierHorizontal from './assets/ships/horizontal/carrier.png';
