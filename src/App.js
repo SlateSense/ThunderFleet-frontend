@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import { debounce, throttle, PerformanceMonitor } from './utils/performance';
+import { io } from 'socket.io-client';
 import './Cargo.css';
 import carrierHorizontal from './assets/ships/horizontal/carrier.png';
 import battleshipHorizontal from './assets/ships/horizontal/battleship.png';
@@ -240,8 +241,39 @@ const App = React.memo(() => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    // Socket initialization would go here
-    // For now, this is a placeholder
+    const socketConnection = io('ws://localhost:3001', {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true
+    });
+
+    socketConnection.on('connect', () => {
+      console.log('Connected to server with ID:', socketConnection.id);
+      setSocket(socketConnection);
+      setIsSocketConnected(true);
+      setMessage('Connected to server');
+      reconnectAttemptsRef.current = 0;
+    });
+
+    socketConnection.on('disconnect', () => {
+      console.log('Disconnected from server');
+      setIsSocketConnected(false);
+      setSocket(null);
+      setMessage('Disconnected from server');
+    });
+
+    socketConnection.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setMessage('Failed to connect to server');
+      reconnectAttemptsRef.current++;
+      if (reconnectAttemptsRef.current >= 3) {
+        setMessage('Unable to connect to game server. Please check your connection.');
+      }
+    });
+
+    return () => {
+      socketConnection.disconnect();
+    };
   }, []);
 
   // Function to check if ships are overlapping
