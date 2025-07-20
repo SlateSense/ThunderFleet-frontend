@@ -915,7 +915,7 @@ setPlacementSaved(false);
 
     setPlacementSaved(true);
     setIsPlacementConfirmed(true);
-    setMessage('Placement saved! Waiting for opponent... You can still reposition your ships until the game starts.');
+    setMessage('Placement saved! Waiting for opponent...');
 
     const placements = ships.map(ship => ({
       name: ship.name,
@@ -2732,8 +2732,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 display: 'flex', 
                 justifyContent: 'space-around', 
                 width: '100%',
-                marginTop: '90px',
-                padding: '10px 20px 60px 20px',
+                marginTop: '40px',
+                padding: '0 20px 60px 20px',
                 position: 'relative',
                 willChange: 'transform',
                 backfaceVisibility: 'hidden',
