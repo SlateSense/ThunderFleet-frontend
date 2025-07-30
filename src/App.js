@@ -3,6 +3,7 @@ import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import './Cargo.css';
+import './HowToPlay.css';
 
 // Ship images for horizontal and vertical orientations
 import carrierHorizontal from './assets/ships/horizontal/carrier.png';
@@ -162,6 +163,7 @@ const App = () => {
   const [gameState, setGameState] = useState('splash');
   const [gameId, setGameId] = useState(null);
   const [playerId, setPlayerId] = useState(null);
+  const [acctId, setAcctId] = useState(null); // Added for acct_id
   const [lightningAddress, setLightningAddress] = useState('');
   const [betAmount, setBetAmount] = useState('300');
   const [payoutAmount, setPayoutAmount] = useState('500');
@@ -203,6 +205,7 @@ const App = () => {
   const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
   const [showConfetti, setShowConfetti] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [payoutInfo, setPayoutInfo] = useState(null); // Added for payout info
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
@@ -2277,50 +2280,53 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
   const HowToPlayModal = useMemo(() => {
     console.log('Rendering HowToPlayModal');
     return (
-      <div className="modal">
-        <div className="modal-content">
-          <h2>How to Play Thunderfleet</h2>
-          <div className="how-to-play-sections">
-            <section>
-              <h3>1: Getting Started</h3>
-              <p>
-                Welcome to Thunderfleet, a strategic sea battle game! Each player starts with a 9x7 grid (63 cells total). Your mission is to place 5 ships: Aircraft Carrier (5 cells), Battleship (4 cells), Submarine (3 cells), Destroyer (3 cells), and Patrol Boat (2 cells). Position them horizontally or vertically on your grid, ensuring no overlaps or edges hang off. You have 45 seconds to place all ships. If you only place some ships before time runs out, those ships will stay exactly where you placed them, and only the unplaced ships will be positioned automatically. Keep your ship placements secret from your opponent!
-              </p>
-            </section>
-            <section>
-              <h3>2: Taking Turns</h3>
-              <p>
-                Thunderfleet is a turn-based game with time pressure! On your turn, you have 15 seconds to select a coordinate (e.g., A1 to I7) on your opponent's grid to launch an attack. A circular timer will show your remaining time. If you don't fire within 15 seconds, an automatic shot will be fired for you with reduced accuracy (only 20% chance to hit a ship). After you call your shot, your opponent will respond: "Hit" if you strike a ship, "Miss" if you hit water, or "Sunk" if you've destroyed an entire ship. Mark your tracking grid accordingly—"X" for hits, "O" for misses. If you score a hit, you get another turn immediately. Act fast and keep the pressure on!
-              </p>
-            </section>
-            <section>
-              <h3>3: Attacking and Sinking</h3>
-              <p>
-                When attacking, focus on uncovering your opponent’s fleet. Each successful hit reveals part of a ship, so track your progress. A ship sinks when all its cells are hit—listen for the "Sunk" call to know you’ve taken one down. With 17 cells across all 5 ships, you’ll need to land multiple hits. Use your tracking grid to spot patterns, but beware—random shots can throw off your opponent’s strategy too!
-              </p>
-            </section>
-            <section>
-              <h3>4: Game Strategy</h3>
-              <p>
-                Mastering Thunderfleet takes skill! Start by targeting edges or corners to limit possible ship locations. If you hit a ship, try adjacent cells to find its length and orientation—horizontal or vertical. Mix up your shots to avoid predictability. Pay attention to sunk ships to narrow down remaining targets. The player who balances aggression and cunning will come out on top!
-              </p>
-            </section>
-            <section>
-              <h3>5: Technical Features</h3>
-              <p>
-                Thunderfleet includes several technical features for smooth gameplay: When facing a bot opponent, they take 3 seconds to place their ships (just like a real player would). If you disconnect during a game, you have 10 seconds to reconnect before your opponent is awarded the win—this protects against unfair losses due to network issues. Need help? Click the Telegram support button in the top-right corner to reach our support team instantly!
-              </p>
-            </section>
-            <section>
-              <h3>6: Winning the Game</h3>
-              <p>
-                The game ends when you sink all your opponent's ships— 17 hits total! Once you've cleared their fleet, shout "You sank my fleet!" to claim victory. Your opponent will do the same if they sink yours first. Win fast to maximize your Lightning Network SATS rewards! Celebrate your tactical triumph or learn from the battle to improve next time. Ready to dominate the seas? Let's finish this, bro!
-              </p>
-            </section>
+      <div className="modal" onClick={() => setShowHowToPlayModal(false)}>
+        <div className="how-to-play-content" onClick={(e) => e.stopPropagation()}>
+          <h2 className="how-to-play-title">How to Play Thunder Fleet</h2>
+
+          <div className="tutorial-step">
+            <p className="step-description">
+              1. <strong>Getting Started:</strong> Enter your Speed Wallet username and select your bet amount to join a game.
+            </p>
+            <img src="/tutorial/interface.jpg" alt="Game Interface" className="step-image" />
           </div>
+
+          <div className="tutorial-step">
+            <p className="step-description">
+              2. <strong>Payment:</strong> Scan the QR code or use the button to pay the invoice and start the game.
+            </p>
+            <img src="/tutorial/payment.jpg" alt="Payment Screen" className="step-image" />
+          </div>
+
+          <div className="tutorial-step">
+            <p className="step-description">
+              3. <strong>Ship Placement:</strong> You have 45 seconds to place your 5 ships on the grid. Drag to move, and tap to rotate. Use the buttons to help you place your ships quickly.
+            </p>
+            <img src="/tutorial/placement.jpg" alt="Ship Placement" className="step-image" />
+            <div className="step-arrow">↓</div>
+            <img src="/tutorial/placement2.jpg" alt="Ships Placed" className="step-image" />
+          </div>
+
+          <div className="tutorial-step">
+            <p className="step-description">
+              4. <strong>Gameplay:</strong> Take turns firing at your opponent's grid. You have 15 seconds to make your move, or a random shot will be fired for you. A hit lets you fire again!
+            </p>
+            <div className="tutorial-key-info">
+              You only have 15 seconds to hit the other player's ship!
+            </div>
+            <img src="/tutorial/game.jpg" alt="Gameplay" className="step-image" />
+          </div>
+
+          <div className="tutorial-step">
+            <p className-="step-description">
+              5. <strong>Winning:</strong> Sink all 5 of your opponent's ships to win the game and receive your payout!
+            </p>
+            <img src="/tutorial/payout.jpg" alt="Payout" className="step-image" />
+          </div>
+
           <button
             onClick={() => setShowHowToPlayModal(false)}
-            className="join-button"
+            className="close-tutorial-btn"
           >
             Close
           </button>

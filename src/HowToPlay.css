@@ -1,0 +1,235 @@
+
+/* How to Play Modal Styles */
+.how-to-play-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 15px;
+  padding: 25px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.how-to-play-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.how-to-play-content::-webkit-scrollbar-track {
+  background: #1a1a2e;
+  border-radius: 10px;
+}
+
+.how-to-play-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #4a69bd, #718096);
+  border-radius: 10px;
+  border: 2px solid #1a1a2e;
+}
+
+.how-to-play-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a79cd, #829ab6);
+}
+
+.how-to-play-title {
+  color: #ffffff;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 255, 0.3);
+  background: linear-gradient(45deg, #00ffff, #ffffff, #00ffff);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleShimmer 3s ease-in-out infinite;
+}
+
+@keyframes titleShimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.tutorial-step {
+  margin-bottom: 35px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.tutorial-step:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.step-description {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  text-align: left;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+.step-image {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.step-image:hover {
+  transform: scale(1.02);
+  border-color: rgba(0, 255, 255, 0.4);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+}
+
+.step-arrow {
+  font-size: 3rem;
+  color: #00ffff;
+  margin: 20px 0;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  animation: arrowPulse 2s ease-in-out infinite;
+}
+
+@keyframes arrowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.close-tutorial-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 25px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.close-tutorial-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.close-tutorial-btn:hover::before {
+  left: 100%;
+}
+
+.close-tutorial-btn:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.5);
+}
+
+.tutorial-key-info {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .how-to-play-content {
+    padding: 20px;
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+  
+  .how-to-play-title {
+    font-size: 1.6rem;
+    margin-bottom: 25px;
+  }
+  
+  .tutorial-step {
+    padding: 15px;
+    margin-bottom: 25px;
+  }
+  
+  .step-description {
+    font-size: 1rem;
+    padding: 0 5px;
+  }
+  
+  .step-arrow {
+    font-size: 2.5rem;
+    margin: 15px 0;
+  }
+  
+  .close-tutorial-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .how-to-play-content {
+    padding: 15px;
+  }
+  
+  .how-to-play-title {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+  }
+  
+  .tutorial-step {
+    padding: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .step-description {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  
+  .step-arrow {
+    font-size: 2rem;
+    margin: 10px 0;
+  }
+  
+  .close-tutorial-btn {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+  }
+}
+
