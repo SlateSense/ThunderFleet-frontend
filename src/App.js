@@ -2371,8 +2371,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </p>
         {paymentInfo && (
           <div className="conversion-info">
-            <p className="btc-price">BTC Price: ${paymentInfo.btcPriceUSD?.toLocaleString() || 'N/A'}</p>
-            <p className="usd-amount">{betAmount} SATS ≈ ${paymentInfo.amountUSD}</p>
+            <p className="usd-amount">{betAmount} SATS ≈ ${paymentInfo.amountUSD ? paymentInfo.amountUSD.toFixed(2) : '0.00'}</p>
           </div>
         )}
         {lightningInvoice ? (
