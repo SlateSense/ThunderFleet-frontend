@@ -165,6 +165,7 @@ const App = () => {
   const [playerId, setPlayerId] = useState(null);
   const [acctId, setAcctId] = useState(null); // Added for acct_id
   const [lightningAddress, setLightningAddress] = useState('');
+  const [isAddressFromUrl, setIsAddressFromUrl] = useState(false);
   const [betAmount, setBetAmount] = useState('300');
   const [payoutAmount, setPayoutAmount] = useState('500');
   const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water'));
@@ -255,6 +256,30 @@ const App = () => {
       setIsAppLoaded(true);
       console.log('App loaded, setting isAppLoaded to true');
     }, 1000);
+
+    // Try to get data from URL fragment first (e.g., #p_add=user@speed.app&acct=123)
+    const hash = window.location.hash.substring(1); // Remove the # symbol
+    const hashParams = new URLSearchParams(hash);
+    
+    // Fallback to query parameters if not found in hash
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    const p_add = hashParams.get('p_add') || urlParams.get('p_add') || localStorage.getItem('lightningAddress');
+    const acct = hashParams.get('acct') || urlParams.get('acct') || localStorage.getItem('acctId');
+
+    if (p_add) {
+      // Extract username from "username@domain.com"
+      const username = p_add.split('@')[0];
+      setLightningAddress(username);
+      setIsAddressFromUrl(true);
+      localStorage.setItem('lightningAddress', username);
+    }
+
+    if (acct) {
+      setAcctId(acct);
+      localStorage.setItem('acctId', acct);
+    }
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -1274,7 +1299,7 @@ setPlacementSaved(false);
 
     setIsLoading(true); // Start loading to disable button
     // Send only the username part - backend will add @speed.app
-    socket.emit('joinGame', { lightningAddress: cleanedAddress, betAmount: parseInt(betAmount) }, () => {
+    socket.emit('joinGame', { lightningAddress: cleanedAddress, betAmount: parseInt(betAmount), acctId }, () => {
       console.log('Join game callback triggered');
     });
 
@@ -2503,9 +2528,12 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   placeholder="Enter username (e.g., user123)"
                   value={lightningAddress}
                   onChange={(e) => {
-                    setLightningAddress(e.target.value.toLowerCase()); // Convert to lowercase
-                    console.log('Lightning address updated:', e.target.value.toLowerCase());
+                    if (!isAddressFromUrl) {
+                      setLightningAddress(e.target.value.toLowerCase()); // Convert to lowercase
+                      console.log('Lightning address updated:', e.target.value.toLowerCase());
+                    }
                   }}
+                  readOnly={isAddressFromUrl}
                   style={{ flex: 1, padding: '10px', fontSize: '1em', marginRight: '5px' }}
                 />
                 <span style={{ marginLeft: '5px', color: '#fff', fontWeight: 'bold' }}>
