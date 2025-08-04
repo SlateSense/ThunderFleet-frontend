@@ -213,7 +213,7 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [gameHistory] = useState([]);
+  const [gameHistory, setGameHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('Menu');
 
   // Effect to control body scroll during placement/drag
@@ -1114,6 +1114,23 @@ setPlacementSaved(false);
       clearTimeout(resizeTimeout);
     };
   }, [handleResize]);
+
+  // Effect to fetch player history from backend
+  useEffect(() => {
+    if (lightningAddress) {
+      fetch(`/api/history/${lightningAddress}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data && data.history) {
+            setGameHistory(data.history);
+            console.log('Fetched game history:', data.history);
+          }
+        })
+        .catch(error => {
+          console.error('Failed to fetch game history:', error);
+        });
+    }
+  }, [lightningAddress]);
 
   // Effect to initialize seeded random number generator based on playerId
   useEffect(() => {
@@ -2032,7 +2049,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           <Tab name="Menu">
             {menuContent}
           </Tab>
-          <Tab name="History">
+          <Tab name="History(coming soon)">
             {historyContent}
           </Tab>
         </TabContainer>
