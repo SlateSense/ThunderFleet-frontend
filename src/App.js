@@ -2012,7 +2012,13 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     );
     
     const historyContent = (
-      <div className="history-tab-content" style={{ height: '100vh', overflow: 'auto', padding: '20px' }}>
+      <div className="history-tab-content" style={{ 
+        height: '100vh', 
+        overflow: 'auto', 
+        padding: '20px',
+        WebkitOverflowScrolling: 'touch',
+        overflowY: 'scroll'
+      }}>
         <PlayerHistory 
           gameHistory={gameHistory}
           onClose={() => setActiveTab('Menu')}

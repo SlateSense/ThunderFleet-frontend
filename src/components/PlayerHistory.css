@@ -8,9 +8,13 @@
   color: #fff;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
   background: transparent;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 255, 0.5) transparent;
 }
 
 @keyframes fadeInUp {
@@ -164,7 +168,9 @@
 .history-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0 10px;
+  overflow-x: hidden;
+  padding: 0 5px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .item-header {
@@ -274,8 +280,8 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 400px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 255, 255, 0.5) transparent;
@@ -405,19 +411,41 @@
 
 /* Mobile Responsive Design */
 @media (max-width: 768px) {
-  .player-history {
-    padding: 15px;
-    margin: 10px;
-    border-radius: 12px;
+  .player-history-free {
+    padding: 10px;
   }
 
-  .player-history h2 {
+  .history-header h2 {
     font-size: 1.5rem;
     margin-bottom: 15px;
   }
 
-  .history-list {
-    max-height: 350px;
+  .stats-panel {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 10px;
+  }
+
+  .stat-value {
+    font-size: 1.2rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .filter-buttons {
+    justify-content: center;
+  }
+
+  .sort-select {
+    width: 100%;
   }
 
   .history-item {
@@ -436,19 +464,42 @@
 }
 
 @media (max-width: 480px) {
-  .player-history {
-    padding: 12px;
-    margin: 8px;
-    border-radius: 10px;
+  .player-history-free {
+    padding: 5px;
   }
 
-  .player-history h2 {
+  .history-header h2 {
     font-size: 1.3rem;
     margin-bottom: 12px;
   }
 
-  .history-list {
-    max-height: 300px;
+  .stats-panel {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .stat-card {
+    padding: 8px;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    margin-bottom: 3px;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .filter-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .sort-select {
+    padding: 6px 8px;
+    font-size: 0.8rem;
   }
 
   .history-item {
@@ -457,21 +508,44 @@
     gap: 5px;
   }
 
-  .history-item span {
+  .game-number {
+    font-size: 0.9rem;
+  }
+
+  .game-date {
+    font-size: 0.7rem;
+  }
+
+  .outcome-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+
+  .detail-row {
     font-size: 0.85rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
   }
 
   .amount {
     font-size: 0.95rem !important;
-    align-self: flex-end;
   }
 
   .empty-history {
     padding: 30px 15px;
     font-size: 1rem;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+  }
+
+  .empty-title {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .empty-message {
+    font-size: 0.9rem;
   }
 }
 
