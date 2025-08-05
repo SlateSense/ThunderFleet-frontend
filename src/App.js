@@ -217,8 +217,6 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('Menu');
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState(null);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historyError, setHistoryError] = useState(null);
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -504,9 +502,16 @@ console.log('Starting ship placement phase');
           setFireTimerActive(false);
         }
       },
-      gameEnd: ({ message }) => {
-console.log('Game ended:', message);
+      gameEnd: ({ message, remainingPlayerShips }) => {
+        console.log('Game ended:', message);
         disableSmoothScroll();
+
+        if (remainingPlayerShips !== undefined && remainingPlayerShips.length > 0) {
+          setMessage('Game Over: Opponent still has ships remaining!');
+          console.warn('Game ended with ships still intact:', remainingPlayerShips);
+          return;
+        }
+
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
@@ -2051,6 +2056,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
       }}>
         <PlayerHistory 
           gameHistory={gameHistory}
+          isLoading={isLoadingHistory}
+          error={historyError}
           onClose={() => setActiveTab('Menu')}
         />
       </div>
@@ -2068,7 +2075,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </TabContainer>
       </div>
     );
-  }, [isSoundEnabled, activeTab, gameHistory]);
+  }, [isSoundEnabled, activeTab, gameHistory, isLoadingHistory, historyError]);
 
   // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {
