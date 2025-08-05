@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
-import PlayerHistory from './components/PlayerHistory';
 import './Cargo.css';
-import TabContainer, { Tab } from './components/TabContainer';
 import './HowToPlay.css';
 
 // Ship images for horizontal and vertical orientations
@@ -208,15 +206,12 @@ const App = () => {
   const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
   const [showConfetti, setShowConfetti] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [payoutInfo, setPayoutInfo] = useState(null); // Added for payout info
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [gameHistory, setGameHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState('Menu');
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historyError, setHistoryError] = useState(null);
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -287,32 +282,6 @@ const App = () => {
 
     return () => clearTimeout(timer);
   }, []);
-
-  // Effect to fetch game history when Lightning address and History tab are active
-  useEffect(() => {
-    if (lightningAddress && activeTab === 'History') {
-      setIsLoadingHistory(true);
-      setHistoryError(null);
-
-      fetch(`https://thunderfleet-backend.onrender.com/api/history/${lightningAddress}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to fetch history');
-          }
-          return response.json();
-        })
-        .then(data => {
-          setGameHistory(data);
-        })
-        .catch(error => {
-          console.error('Error fetching history:', error);
-          setHistoryError(error.message);
-        })
-        .finally(() => {
-          setIsLoadingHistory(false);
-        });
-    }
-  }, [lightningAddress, activeTab]);
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -502,16 +471,9 @@ console.log('Starting ship placement phase');
           setFireTimerActive(false);
         }
       },
-      gameEnd: ({ message, remainingPlayerShips }) => {
-        console.log('Game ended:', message);
+      gameEnd: ({ message }) => {
+console.log('Game ended:', message);
         disableSmoothScroll();
-
-        if (remainingPlayerShips !== undefined && remainingPlayerShips.length > 0) {
-          setMessage('Game Over: Opponent still has ships remaining!');
-          console.warn('Game ended with ships still intact:', remainingPlayerShips);
-          return;
-        }
-
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
@@ -1350,7 +1312,7 @@ setPlacementSaved(false);
     setGameState('waiting');
     setMessage("Joining game...");
     console.log('Emitted joinGame event to server with username:', cleanedAddress);
-  }, [socket, lightningAddress, betAmount, acctId]);
+  }, [socket, lightningAddress, betAmount]);
 
   // Function to handle payment button click
   const handlePay = useCallback(() => {
@@ -1976,12 +1938,11 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     );
   }, [isPlacementConfirmed, ships, cellSize, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  // Component to render the splash screen with tabs
+  // Component to render the splash screen
   const SplashScreen = useMemo(() => {
-    console.log('Rendering SplashScreen with TabContainer and tabs');
-    
-    const menuContent = (
-      <div className="menu-tab-content" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+    console.log('Rendering SplashScreen with logo path: ./logo.png');
+    return (
+      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {/* Sound Toggle in top right corner */}
         <button
           onClick={() => {
@@ -2045,37 +2006,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </div>
       </div>
     );
-    
-    const historyContent = (
-      <div className="history-tab-content" style={{ 
-        height: '100vh', 
-        overflow: 'auto', 
-        padding: '20px',
-        WebkitOverflowScrolling: 'touch',
-        overflowY: 'scroll'
-      }}>
-        <PlayerHistory 
-          gameHistory={gameHistory}
-          isLoading={isLoadingHistory}
-          error={historyError}
-          onClose={() => setActiveTab('Menu')}
-        />
-      </div>
-    );
-    
-    return (
-      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', position: 'relative' }}>
-        <TabContainer activeTab={activeTab} onTabChange={setActiveTab}>
-          <Tab name="Menu">
-            {menuContent}
-          </Tab>
-          <Tab name="History">
-            {historyContent}
-          </Tab>
-        </TabContainer>
-      </div>
-    );
-  }, [isSoundEnabled, activeTab, gameHistory, isLoadingHistory, historyError]);
+  }, [isSoundEnabled]);
 
   // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {

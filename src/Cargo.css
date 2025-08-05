@@ -584,18 +584,6 @@ html {
   background: #28a745;
 }
 
-/* App Container for Main Content and Sidebar */
-.app-container {
-  display: flex;
-  height: 100vh;
-  width: 100%;
-}
-
-.player-history-sidebar {
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
-}
-
 /* Playing Screen */
 .playing-screen {
   display: flex;
