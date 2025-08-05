@@ -213,8 +213,12 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [gameHistory] = useState([]);
+  const [gameHistory, setGameHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('Menu');
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -285,6 +289,32 @@ const App = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Effect to fetch game history when Lightning address and History tab are active
+  useEffect(() => {
+    if (lightningAddress && activeTab === 'History') {
+      setIsLoadingHistory(true);
+      setHistoryError(null);
+
+      fetch(`https://api.example.com/history?user=${lightningAddress}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch history');
+          }
+          return response.json();
+        })
+        .then(data => {
+          setGameHistory(data);
+        })
+        .catch(error => {
+          console.error('Error fetching history:', error);
+          setHistoryError(error.message);
+        })
+        .finally(() => {
+          setIsLoadingHistory(false);
+        });
+    }
+  }, [lightningAddress, activeTab]);
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -2032,7 +2062,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           <Tab name="Menu">
             {menuContent}
           </Tab>
-          <Tab name="History(coming soon)">
+          <Tab name="History">
             {historyContent}
           </Tab>
         </TabContainer>
