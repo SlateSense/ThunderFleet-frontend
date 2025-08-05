@@ -1,0 +1,30 @@
+.history-tab {
+  padding: 20px;
+  background: #001f3f;
+  color: #fff;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.history-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #0074D9;
+  border-radius: 5px;
+}
+
+.bet-amount {
+  font-weight: bold;
+}
+
+.game-result {
+  color: #FFDC00;
+}
+
+.profit-loss {
+  color: #2ECC40;
+}

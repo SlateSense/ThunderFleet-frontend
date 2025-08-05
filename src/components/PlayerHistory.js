@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import './PlayerHistory.css';
 
-const PlayerHistory = ({ history = [], onClose }) => {
+const PlayerHistory = ({ history = [], onClose, speedApiKey }) => {
   const [filter, setFilter] = useState('all'); // all, wins, losses
   const [sortBy, setSortBy] = useState('recent'); // recent, oldest, amount
 

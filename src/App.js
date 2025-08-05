@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
+import PlayerHistory from './components/PlayerHistory';
 import './Cargo.css';
+import TabContainer, { Tab } from './components/TabContainer';
 import './HowToPlay.css';
 
 // Ship images for horizontal and vertical orientations
@@ -206,12 +208,13 @@ const App = () => {
   const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
   const [showConfetti, setShowConfetti] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
-  const [payoutInfo, setPayoutInfo] = useState(null); // Added for payout info
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
+  const [gameHistory] = useState([]);
+  const [activeTab, setActiveTab] = useState('Menu');
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -1312,7 +1315,7 @@ setPlacementSaved(false);
     setGameState('waiting');
     setMessage("Joining game...");
     console.log('Emitted joinGame event to server with username:', cleanedAddress);
-  }, [socket, lightningAddress, betAmount]);
+  }, [socket, lightningAddress, betAmount, acctId]);
 
   // Function to handle payment button click
   const handlePay = useCallback(() => {
@@ -1938,11 +1941,12 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     );
   }, [isPlacementConfirmed, ships, cellSize, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  // Component to render the splash screen
+  // Component to render the splash screen with tabs
   const SplashScreen = useMemo(() => {
-    console.log('Rendering SplashScreen with logo path: ./logo.png');
-    return (
-      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+    console.log('Rendering SplashScreen with TabContainer and tabs');
+    
+    const menuContent = (
+      <div className="menu-tab-content" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {/* Sound Toggle in top right corner */}
         <button
           onClick={() => {
@@ -2006,7 +2010,35 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </div>
       </div>
     );
-  }, [isSoundEnabled]);
+    
+    const historyContent = (
+      <div className="history-tab-content" style={{ 
+        height: '100vh', 
+        overflow: 'auto', 
+        padding: '20px',
+        WebkitOverflowScrolling: 'touch',
+        overflowY: 'scroll'
+      }}>
+        <PlayerHistory 
+          gameHistory={gameHistory}
+          onClose={() => setActiveTab('Menu')}
+        />
+      </div>
+    );
+    
+    return (
+      <div className="splash-screen" style={{ height: '100vh', overflow: 'hidden', position: 'relative' }}>
+        <TabContainer activeTab={activeTab} onTabChange={setActiveTab}>
+          <Tab name="Menu">
+            {menuContent}
+          </Tab>
+          <Tab name="History(coming soon)">
+            {historyContent}
+          </Tab>
+        </TabContainer>
+      </div>
+    );
+  }, [isSoundEnabled, activeTab, gameHistory]);
 
   // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {
@@ -2715,7 +2747,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 top: '0', 
                 left: '0', 
                 right: '0', 
-                background: 'rgba(0, 0, 0, 0.95)', 
+                background: 'transparent', 
                 zIndex: 50, 
                 display: 'flex', 
                 flexDirection: 'column', 
@@ -2726,8 +2758,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 WebkitTransform: 'translate3d(0,0,0)',
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
-                willChange: 'transform',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                willChange: 'transform'
               }}>
                 <>
                   <div className="message-container" style={{ 
