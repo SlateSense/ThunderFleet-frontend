@@ -294,7 +294,7 @@ const App = () => {
       setIsLoadingHistory(true);
       setHistoryError(null);
 
-      fetch(`https://thunderfleet-backend.onrender.com/api/history?user=${lightningAddress}`)
+      fetch(`https://thunderfleet-backend.onrender.com/api/history/${lightningAddress}`)
         .then(response => {
           if (!response.ok) {
             throw new Error('Failed to fetch history');
