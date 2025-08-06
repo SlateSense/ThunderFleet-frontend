@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import io from 'socket.io-client';
+import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import PlayerHistory from './components/PlayerHistory';
+import HistoryTab from './components/HistoryTab';
 import './Cargo.css';
 import TabContainer, { Tab } from './components/TabContainer';
 import './HowToPlay.css';
@@ -213,8 +215,9 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [gameHistory] = useState([]);
+  const [gameHistory, setGameHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('Menu');
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -1254,6 +1257,34 @@ setPlacementSaved(false);
     socket?.connect();
     setMessage('Attempting to reconnect...');
   }, [socket]);
+
+  // Function to fetch game history
+  const fetchGameHistory = useCallback(async () => {
+    if (!acctId) {
+      console.log('No acctId available, skipping history fetch');
+      return;
+    }
+    
+    console.log(`Fetching game history for acctId: ${acctId}`);
+    setHistoryLoading(true);
+    
+    try {
+      const response = await axios.get(`https://thunderfleet-backend.onrender.com/api/history/account/${acctId}`);
+      
+      if (response.data.success) {
+        console.log('Game history fetched successfully:', response.data.history);
+        setGameHistory(response.data.history || []);
+      } else {
+        console.error('Failed to fetch game history:', response.data.error);
+        setGameHistory([]);
+      }
+    } catch (error) {
+      console.error('Error fetching game history:', error);
+      setGameHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [acctId]);
 
   // Function to select a bet amount and update payout
   const selectBet = useCallback((event) => {
