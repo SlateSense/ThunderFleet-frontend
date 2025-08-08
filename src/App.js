@@ -272,6 +272,23 @@ const App = () => {
         setGameHistory([]);
         console.log(`No game history found for ${lightningAddress}`);
       }
+    } else {
+      // Try to load from the default/last used address
+      const lastAddress = localStorage.getItem('lastLightningAddress');
+      if (lastAddress) {
+        const storageKey = `gameHistory_${lastAddress}`;
+        const savedHistory = localStorage.getItem(storageKey);
+        if (savedHistory) {
+          try {
+            const history = JSON.parse(savedHistory);
+            setGameHistory(history);
+            console.log(`Loaded ${history.length} games from history for last address: ${lastAddress}`);
+          } catch (error) {
+            console.error('Failed to parse game history:', error);
+            setGameHistory([]);
+          }
+        }
+      }
     }
   }, [lightningAddress]);
 
@@ -299,6 +316,7 @@ const App = () => {
       setLightningAddress(username);
       setIsAddressFromUrl(true);
       localStorage.setItem('lightningAddress', username);
+      localStorage.setItem('lastLightningAddress', username); // Store as last used address
       
       // Load game history for this user
       const storageKey = `gameHistory_${username}`;
@@ -311,6 +329,27 @@ const App = () => {
         } catch (error) {
           console.error('Failed to parse game history:', error);
           setGameHistory([]);
+        }
+      }
+    } else {
+      // Try to restore from last used lightning address
+      const lastAddress = localStorage.getItem('lastLightningAddress');
+      if (lastAddress) {
+        setLightningAddress(lastAddress);
+        localStorage.setItem('lightningAddress', lastAddress);
+        
+        // Load game history for this user
+        const storageKey = `gameHistory_${lastAddress}`;
+        const savedHistory = localStorage.getItem(storageKey);
+        if (savedHistory) {
+          try {
+            const history = JSON.parse(savedHistory);
+            setGameHistory(history);
+            console.log(`Restored ${history.length} games from history for ${lastAddress}`);
+          } catch (error) {
+            console.error('Failed to parse game history:', error);
+            setGameHistory([]);
+          }
         }
       }
     }
@@ -570,13 +609,19 @@ console.log('Starting ship placement phase');
         };
         
         // Save to localStorage
-        const storageKey = `gameHistory_${lightningAddress || 'anonymous'}`;
+        const addressToUse = lightningAddress || localStorage.getItem('lastLightningAddress') || 'anonymous';
+        const storageKey = `gameHistory_${addressToUse}`;
         const existingHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
         existingHistory.unshift(gameData); // Add new game at beginning
         
         // Keep only last 100 games
         const trimmedHistory = existingHistory.slice(0, 100);
         localStorage.setItem(storageKey, JSON.stringify(trimmedHistory));
+        
+        // Also update the last used address if we have one
+        if (lightningAddress) {
+          localStorage.setItem('lastLightningAddress', lightningAddress);
+        }
         
         // Update gameHistory state
         setGameHistory(trimmedHistory);
