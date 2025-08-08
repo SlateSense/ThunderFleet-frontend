@@ -213,8 +213,9 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
-  const [gameHistory] = useState([]);
+  const [gameHistory, setGameHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('Menu');
+  const [gameStartTime, setGameStartTime] = useState(null);
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -252,7 +253,29 @@ const App = () => {
     console.log('Current gameState:', gameState);
   }, [gameState]);
 
-  // Simulate app loading
+  // Load game history whenever lightning address changes
+  useEffect(() => {
+    if (lightningAddress && lightningAddress.trim()) {
+      const storageKey = `gameHistory_${lightningAddress}`;
+      const savedHistory = localStorage.getItem(storageKey);
+      if (savedHistory) {
+        try {
+          const history = JSON.parse(savedHistory);
+          setGameHistory(history);
+          console.log(`Loaded ${history.length} games from history for ${lightningAddress}`);
+        } catch (error) {
+          console.error('Failed to parse game history:', error);
+          setGameHistory([]);
+        }
+      } else {
+        // No history found for this user
+        setGameHistory([]);
+        console.log(`No game history found for ${lightningAddress}`);
+      }
+    }
+  }, [lightningAddress]);
+
+  // Simulate app loading and initialize history
   useEffect(() => {
     console.log('App useEffect: Simulating app loading');
     const timer = setTimeout(() => {
@@ -276,6 +299,20 @@ const App = () => {
       setLightningAddress(username);
       setIsAddressFromUrl(true);
       localStorage.setItem('lightningAddress', username);
+      
+      // Load game history for this user
+      const storageKey = `gameHistory_${username}`;
+      const savedHistory = localStorage.getItem(storageKey);
+      if (savedHistory) {
+        try {
+          const history = JSON.parse(savedHistory);
+          setGameHistory(history);
+          console.log(`Loaded ${history.length} games from history for ${username}`);
+        } catch (error) {
+          console.error('Failed to parse game history:', error);
+          setGameHistory([]);
+        }
+      }
     }
 
     if (acct) {
@@ -409,6 +446,10 @@ console.log('Starting ship placement phase');
         setPlacementSaved(false);
         setEnemyBoard(Array(GRID_SIZE).fill('water'));
         
+        // Set game start time for history tracking
+        setGameStartTime(Date.now());
+        console.log('Game start time set:', new Date().toISOString());
+        
         // Start fire timer if it's player's turn
         if (turn === newSocket.id) {
           setFireTimeLeft(FIRE_TIMEOUT);
@@ -475,12 +516,72 @@ console.log('Starting ship placement phase');
         }
       },
       gameEnd: ({ message }) => {
-console.log('Game ended:', message);
+        console.log('Game ended:', message);
         disableSmoothScroll();
         setGameState('finished');
         setIsOpponentThinking(false);
         setMessage(message);
-        playLoseSound(); // Bot always wins, so player always loses
+        
+        // Determine if player won or lost based on message
+        const isWin = message.includes('You won');
+        const result = isWin ? 'won' : 'lost';
+        
+        // Play appropriate sound
+        if (isWin) {
+          playWinSound();
+        } else {
+          playLoseSound();
+        }
+        
+        // Calculate game duration in seconds
+        const gameDurationMs = gameStartTime ? Date.now() - gameStartTime : 0;
+        const gameDurationSeconds = Math.floor(gameDurationMs / 1000);
+        const minutes = Math.floor(gameDurationSeconds / 60);
+        const seconds = gameDurationSeconds % 60;
+        const durationFormatted = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Calculate profit/loss
+        const winnings = isWin ? 
+          (betAmount == 300 ? 500 : 
+           betAmount == 500 ? 800 : 
+           betAmount == 1000 ? 1700 : 
+           betAmount == 5000 ? 8000 : 17000) : 0;
+        const profit = isWin ? (winnings - betAmount) : -betAmount;
+        
+        // Save game to history with proper structure for PlayerHistory component
+        const gameData = {
+          gameId: gameId || `game_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          bet: parseInt(betAmount), // PlayerHistory expects 'bet' field
+          betAmount: parseInt(betAmount), // Keep for backward compatibility
+          outcome: isWin ? 'win' : 'loss', // PlayerHistory expects 'outcome' field
+          result: result, // Keep for backward compatibility
+          amount: Math.abs(profit), // PlayerHistory expects 'amount' field for profit/loss
+          winnings: winnings,
+          profit: profit,
+          shotsFired: gameStats.shotsFired,
+          hits: gameStats.hits,
+          misses: gameStats.misses,
+          accuracy: gameStats.shotsFired > 0 ? Math.round((gameStats.hits / gameStats.shotsFired) * 100) : 0,
+          opponent: 'bot', // Since we're always playing against bot
+          duration: durationFormatted,
+          durationMs: gameDurationMs,
+          enemyShipsSunk: 0, // TODO: Track enemy ships sunk
+        };
+        
+        // Save to localStorage
+        const storageKey = `gameHistory_${lightningAddress || 'anonymous'}`;
+        const existingHistory = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        existingHistory.unshift(gameData); // Add new game at beginning
+        
+        // Keep only last 100 games
+        const trimmedHistory = existingHistory.slice(0, 100);
+        localStorage.setItem(storageKey, JSON.stringify(trimmedHistory));
+        
+        // Update gameHistory state
+        setGameHistory(trimmedHistory);
+        
+        console.log('Game saved to history:', gameData);
       },
       transaction: ({ message }) => {
         console.log('Transaction message:', message);
@@ -2032,7 +2133,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           <Tab name="Menu">
             {menuContent}
           </Tab>
-          <Tab name="History(coming soon)">
+          <Tab name="History">
             {historyContent}
           </Tab>
         </TabContainer>
