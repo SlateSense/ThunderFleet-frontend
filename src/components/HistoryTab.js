@@ -155,7 +155,6 @@ const HistoryTab = ({ acctId }) => {
                 <th>💰 Bet Amount</th>
                 <th>🎯 Result</th>
                 <th>📈 Profit/Loss</th>
-                <th>🤖 Opponent</th>
                 <th>⏱️ Duration</th>
                 <th>🎯 Accuracy</th>
               </tr>
@@ -171,7 +170,6 @@ const HistoryTab = ({ acctId }) => {
                   <td className={`profit-loss ${entry.profitOrLoss >= 0 ? 'profit' : 'loss'}`}>
                     {entry.profitOrLoss >= 0 ? '+' : ''}{formatSats(entry.profitOrLoss)} SATS
                   </td>
-                  <td>{entry.opponent === 'bot' ? '🤖 Bot' : '👤 Human'}</td>
                   <td>{entry.duration || 'N/A'}</td>
                   <td>{entry.accuracy}% ({entry.hits}/{entry.shotsFired})</td>
                 </tr>

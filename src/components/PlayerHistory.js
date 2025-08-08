@@ -174,12 +174,6 @@ const PlayerHistory = ({ gameHistory = [], onClose, speedApiKey }) => {
                           {entry.outcome === 'win' ? '+' : '-'}{entry.amount || 0} SATS
                         </span>
                       </div>
-                      {entry.opponent && (
-                        <div className="detail-row">
-                          <span className="detail-label">Opponent:</span>
-                          <span className="opponent">{entry.opponent}</span>
-                        </div>
-                      )}
                     </div>
                   </li>
                 );
