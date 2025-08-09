@@ -49,7 +49,6 @@ const FIRE_TIMEOUT = 15;
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
-  { amount: 50, winnings: 80 },
   { amount: 300, winnings: 500 },
   { amount: 500, winnings: 800 },
   { amount: 1000, winnings: 1700 },
@@ -169,8 +168,8 @@ const App = () => {
   const [acctId, setAcctId] = useState(null); // Added for acct_id
   const [lightningAddress, setLightningAddress] = useState('');
   const [isAddressFromUrl, setIsAddressFromUrl] = useState(false);
-  const [betAmount, setBetAmount] = useState('50');
-  const [payoutAmount, setPayoutAmount] = useState('80');
+  const [betAmount, setBetAmount] = useState('300');
+  const [payoutAmount, setPayoutAmount] = useState('500');
   const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [enemyBoard, setEnemyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [ships, setShips] = useState(() =>
@@ -198,9 +197,6 @@ const App = () => {
   const [hostedInvoiceUrl, setHostedInvoiceUrl] = useState(null);
   const [placementSaved, setPlacementSaved] = useState(false);
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
-  const [waitingTimer, setWaitingTimer] = useState(null);
-  const [estimatedWaitTime, setEstimatedWaitTime] = useState(null);
-  const [isCountingDown, setIsCountingDown] = useState(false);
   const [isOpponentThinking, setIsOpponentThinking] = useState(false);
   const [paymentTimer, setPaymentTimer] = useState(PAYMENT_TIMEOUT);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -468,34 +464,17 @@ console.log('Starting ship placement phase');
         setTimerActive(true);
         setTimeLeft(PLACEMENT_TIME);
       },
-      waitingForOpponent: ({ message, countdown, timeLeft, estimatedWait }) => {
-        console.log('Received waitingForOpponent event:', { message, countdown, timeLeft, estimatedWait });
+      waitingForOpponent: ({ message, countdown, timeLeft }) => {
+        console.log('Received waitingForOpponent event:', { message, countdown, timeLeft });
         setGameState('waitingForOpponent');
         setMessage(message);
-        
         if (countdown && timeLeft !== undefined) {
           console.log(`Countdown update: ${timeLeft} seconds remaining`);
-          setIsCountingDown(true);
-          setWaitingTimer(timeLeft);
-        } else {
-          setIsCountingDown(false);
-        }
-        
-        if (estimatedWait) {
-          setEstimatedWaitTime(estimatedWait);
         }
       },
-      matchmakingTimer: ({ message, timeRemaining, estimatedWait }) => {
-        console.log('Received matchmaking timer update:', { message, timeRemaining, estimatedWait });
+      matchmakingTimer: ({ message }) => {
+        console.log('Received matchmaking timer update:', message);
         setMessage(message);
-        
-        if (timeRemaining !== undefined) {
-          setWaitingTimer(timeRemaining);
-        }
-        
-        if (estimatedWait) {
-          setEstimatedWaitTime(estimatedWait);
-        }
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
@@ -602,11 +581,10 @@ console.log('Starting ship placement phase');
         
         // Calculate profit/loss
         const winnings = isWin ? 
-          (betAmount === 50 ? 80 :
-           betAmount === 300 ? 500 : 
-           betAmount === 500 ? 800 : 
-           betAmount === 1000 ? 1700 : 
-           betAmount === 5000 ? 8000 : 17000) : 0;
+          (betAmount == 300 ? 500 : 
+           betAmount == 500 ? 800 : 
+           betAmount == 1000 ? 1700 : 
+           betAmount == 5000 ? 8000 : 17000) : 0;
         const profit = isWin ? (winnings - betAmount) : -betAmount;
         
         // Save game to history with proper structure for PlayerHistory component
@@ -744,7 +722,7 @@ console.log('Starting ship placement phase');
       });
       newSocket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameId, gameStartTime, gameStats.hits, gameStats.misses, gameStats.shotsFired, lightningAddress]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
 
   // Function to check if ships are overlapping
   const checkShipOverlaps = useCallback((shipsArray) => {
@@ -2814,53 +2792,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
             <div className="waiting-screen" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, padding: '20px', borderRadius: '10px' }}>
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
-              
-              {/* Display timer or estimated wait time */}
-              {(waitingTimer !== null || estimatedWaitTime !== null) && (
-                <div className="timer-container" style={{ marginTop: '20px', marginBottom: '20px', minWidth: '300px' }}>
-                  {isCountingDown && waitingTimer !== null ? (
-                    // Show countdown timer when game is about to start
-                    <>
-                      <div className="timer-bar">
-                        <div
-                          className="timer-progress"
-                          style={{ width: `${(waitingTimer / 10) * 100}%` }}
-                        ></div>
-                      </div>
-                      <div className="timer-text" style={{ marginTop: '10px', fontSize: '1.2em', color: '#fff' }}>
-                        Game starting in: <span className={waitingTimer <= 5 ? 'time-warning' : ''}>
-                          {waitingTimer} seconds
-                        </span>
-                      </div>
-                    </>
-                  ) : waitingTimer !== null ? (
-                    // Show estimated wait time countdown during matchmaking
-                    <>
-                      <div className="timer-bar">
-                        <div
-                          className="timer-progress"
-                          style={{ width: `${((estimatedWaitTime - waitingTimer) / estimatedWaitTime) * 100}%` }}
-                        ></div>
-                      </div>
-                      <div className="timer-text" style={{ marginTop: '10px', fontSize: '1.1em', color: '#fff' }}>
-                        Estimated wait: <span style={{ fontWeight: 'bold' }}>
-                          {waitingTimer} seconds
-                        </span>
-                      </div>
-                    </>
-                  ) : estimatedWaitTime !== null ? (
-                    // Show initial estimated wait time
-                    <div className="timer-text" style={{ fontSize: '1.1em', color: '#fff' }}>
-                      Estimated wait time: <span style={{ fontWeight: 'bold' }}>
-                        {estimatedWaitTime} seconds
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-              
               <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading} style={{ padding: '15px 30px', fontSize: '1.2em', marginTop: '20px' }}>
+              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading} style={{ padding: '15px 30px', fontSize: '1.2em' }}>
                 Cancel
               </button>
             </div>
@@ -3099,8 +3032,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   setGameId(null);
                   setPlayerId(null);
                   setLightningAddress('');
-                  setBetAmount('50');
-                  setPayoutAmount('80');
+                  setBetAmount('300');
+                  setPayoutAmount('500');
                   setMyBoard(Array(GRID_SIZE).fill('water'));
                   setEnemyBoard(Array(GRID_SIZE).fill('water'));
                   setShips(prev =>
