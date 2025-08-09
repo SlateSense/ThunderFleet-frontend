@@ -49,6 +49,7 @@ const FIRE_TIMEOUT = 15;
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
+  { amount: 50, winnings: 80 },
   { amount: 300, winnings: 500 },
   { amount: 500, winnings: 800 },
   { amount: 1000, winnings: 1700 },
@@ -168,8 +169,8 @@ const App = () => {
   const [acctId, setAcctId] = useState(null); // Added for acct_id
   const [lightningAddress, setLightningAddress] = useState('');
   const [isAddressFromUrl, setIsAddressFromUrl] = useState(false);
-  const [betAmount, setBetAmount] = useState('300');
-  const [payoutAmount, setPayoutAmount] = useState('500');
+  const [betAmount, setBetAmount] = useState('50');
+  const [payoutAmount, setPayoutAmount] = useState('80');
   const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [enemyBoard, setEnemyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [ships, setShips] = useState(() =>
@@ -581,10 +582,11 @@ console.log('Starting ship placement phase');
         
         // Calculate profit/loss
         const winnings = isWin ? 
-          (betAmount == 300 ? 500 : 
-           betAmount == 500 ? 800 : 
-           betAmount == 1000 ? 1700 : 
-           betAmount == 5000 ? 8000 : 17000) : 0;
+          (betAmount === 50 ? 80 :
+           betAmount === 300 ? 500 : 
+           betAmount === 500 ? 800 : 
+           betAmount === 1000 ? 1700 : 
+           betAmount === 5000 ? 8000 : 17000) : 0;
         const profit = isWin ? (winnings - betAmount) : -betAmount;
         
         // Save game to history with proper structure for PlayerHistory component
@@ -722,7 +724,7 @@ console.log('Starting ship placement phase');
       });
       newSocket.disconnect();
     };
-  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount]);
+  }, [playHitSound, playMissSound, playPlaceSound, playWinSound, playLoseSound, betAmount, gameId, gameStartTime, gameStats.hits, gameStats.misses, gameStats.shotsFired, lightningAddress]);
 
   // Function to check if ships are overlapping
   const checkShipOverlaps = useCallback((shipsArray) => {
@@ -3032,8 +3034,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   setGameId(null);
                   setPlayerId(null);
                   setLightningAddress('');
-                  setBetAmount('300');
-                  setPayoutAmount('500');
+                  setBetAmount('50');
+                  setPayoutAmount('80');
                   setMyBoard(Array(GRID_SIZE).fill('water'));
                   setEnemyBoard(Array(GRID_SIZE).fill('water'));
                   setShips(prev =>
