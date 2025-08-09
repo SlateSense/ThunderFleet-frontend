@@ -198,6 +198,9 @@ const App = () => {
   const [hostedInvoiceUrl, setHostedInvoiceUrl] = useState(null);
   const [placementSaved, setPlacementSaved] = useState(false);
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
+  const [waitingTimer, setWaitingTimer] = useState(null);
+  const [estimatedWaitTime, setEstimatedWaitTime] = useState(null);
+  const [isCountingDown, setIsCountingDown] = useState(false);
   const [isOpponentThinking, setIsOpponentThinking] = useState(false);
   const [paymentTimer, setPaymentTimer] = useState(PAYMENT_TIMEOUT);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -465,17 +468,34 @@ console.log('Starting ship placement phase');
         setTimerActive(true);
         setTimeLeft(PLACEMENT_TIME);
       },
-      waitingForOpponent: ({ message, countdown, timeLeft }) => {
-        console.log('Received waitingForOpponent event:', { message, countdown, timeLeft });
+      waitingForOpponent: ({ message, countdown, timeLeft, estimatedWait }) => {
+        console.log('Received waitingForOpponent event:', { message, countdown, timeLeft, estimatedWait });
         setGameState('waitingForOpponent');
         setMessage(message);
+        
         if (countdown && timeLeft !== undefined) {
           console.log(`Countdown update: ${timeLeft} seconds remaining`);
+          setIsCountingDown(true);
+          setWaitingTimer(timeLeft);
+        } else {
+          setIsCountingDown(false);
+        }
+        
+        if (estimatedWait) {
+          setEstimatedWaitTime(estimatedWait);
         }
       },
-      matchmakingTimer: ({ message }) => {
-        console.log('Received matchmaking timer update:', message);
+      matchmakingTimer: ({ message, timeRemaining, estimatedWait }) => {
+        console.log('Received matchmaking timer update:', { message, timeRemaining, estimatedWait });
         setMessage(message);
+        
+        if (timeRemaining !== undefined) {
+          setWaitingTimer(timeRemaining);
+        }
+        
+        if (estimatedWait) {
+          setEstimatedWaitTime(estimatedWait);
+        }
       },
       startGame: ({ turn, message }) => {
         console.log(`Starting game, turn: ${turn}, message: ${message}`);
