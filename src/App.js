@@ -2814,8 +2814,53 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
             <div className="waiting-screen" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, padding: '20px', borderRadius: '10px' }}>
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
+              
+              {/* Display timer or estimated wait time */}
+              {(waitingTimer !== null || estimatedWaitTime !== null) && (
+                <div className="timer-container" style={{ marginTop: '20px', marginBottom: '20px', minWidth: '300px' }}>
+                  {isCountingDown && waitingTimer !== null ? (
+                    // Show countdown timer when game is about to start
+                    <>
+                      <div className="timer-bar">
+                        <div
+                          className="timer-progress"
+                          style={{ width: `${(waitingTimer / 10) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="timer-text" style={{ marginTop: '10px', fontSize: '1.2em', color: '#fff' }}>
+                        Game starting in: <span className={waitingTimer <= 5 ? 'time-warning' : ''}>
+                          {waitingTimer} seconds
+                        </span>
+                      </div>
+                    </>
+                  ) : waitingTimer !== null ? (
+                    // Show estimated wait time countdown during matchmaking
+                    <>
+                      <div className="timer-bar">
+                        <div
+                          className="timer-progress"
+                          style={{ width: `${((estimatedWaitTime - waitingTimer) / estimatedWaitTime) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="timer-text" style={{ marginTop: '10px', fontSize: '1.1em', color: '#fff' }}>
+                        Estimated wait: <span style={{ fontWeight: 'bold' }}>
+                          {waitingTimer} seconds
+                        </span>
+                      </div>
+                    </>
+                  ) : estimatedWaitTime !== null ? (
+                    // Show initial estimated wait time
+                    <div className="timer-text" style={{ fontSize: '1.1em', color: '#fff' }}>
+                      Estimated wait time: <span style={{ fontWeight: 'bold' }}>
+                        {estimatedWaitTime} seconds
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+              
               <div className="loading-spinner"></div>
-              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading} style={{ padding: '15px 30px', fontSize: '1.2em' }}>
+              <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading} style={{ padding: '15px 30px', fontSize: '1.2em', marginTop: '20px' }}>
                 Cancel
               </button>
             </div>
