@@ -8,6 +8,9 @@ const TabContainer = ({ children, onTabChange, activeTab = 0 }) => {
   const [translateX, setTranslateX] = useState(0);
   const containerRef = useRef(null);
   const tabsRef = useRef([]);
+  const headersContainerRef = useRef(null);
+  const headersRef = useRef([]);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 
   const tabs = React.Children.toArray(children);
   const totalTabs = tabs.length;
@@ -21,6 +24,30 @@ const TabContainer = ({ children, onTabChange, activeTab = 0 }) => {
       setCurrentTab(activeTab);
     }
   }, [activeTab, tabs]);
+
+  // Update blue indicator position and size to match the active tab exactly
+  useEffect(() => {
+    const updateIndicator = () => {
+      const headerEl = headersRef.current[currentTab];
+      const headersEl = headersContainerRef.current;
+      const totalTabs = tabs.length;
+
+      if (headerEl && headersEl) {
+        const left = headerEl.offsetLeft;
+        const width = headerEl.offsetWidth;
+        setIndicator({ left, width });
+      } else if (headersEl && totalTabs > 0) {
+        // Fallback to equal division if refs not ready
+        const width = headersEl.clientWidth / totalTabs;
+        const left = width * currentTab;
+        setIndicator({ left, width });
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [currentTab, tabs]);
 
   // Handle touch/mouse events for swiping
   const handleStart = (clientX) => {
@@ -115,24 +142,22 @@ const TabContainer = ({ children, onTabChange, activeTab = 0 }) => {
   return (
     <div className="tab-container">
       {/* Tab Headers */}
-      <div className="tab-headers">
+      <div className="tab-headers" ref={headersContainerRef}>
         {tabs.map((tab, index) => (
           <button
             key={index}
             className={`tab-header ${currentTab === index ? 'active' : ''}`}
             onClick={() => changeTab(index)}
             aria-selected={currentTab === index}
+            ref={el => (headersRef.current[index] = el)}
           >
             {tab.props.icon && <span className="tab-icon">{tab.props.icon}</span>}
             <span className="tab-title">{tab.props.name || tab.props.title || `Tab ${index + 1}`}</span>
           </button>
         ))}
-        <div 
+        <div
           className="tab-indicator"
-          style={{
-            transform: `translateX(${currentTab * 100}%)`,
-            width: `${100 / totalTabs}%`
-          }}
+          style={{ left: `${indicator.left}px`, width: `${indicator.width}px` }}
         />
       </div>
 

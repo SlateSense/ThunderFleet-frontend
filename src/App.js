@@ -49,6 +49,7 @@ const FIRE_TIMEOUT = 15;
 
 // Bet options aligned with server.js for consistency
 const BET_OPTIONS = [
+  { amount: 50, winnings: 80 },
   { amount: 300, winnings: 500 },
   { amount: 500, winnings: 800 },
   { amount: 1000, winnings: 1700 },
@@ -168,8 +169,16 @@ const App = () => {
   const [acctId, setAcctId] = useState(null); // Added for acct_id
   const [lightningAddress, setLightningAddress] = useState('');
   const [isAddressFromUrl, setIsAddressFromUrl] = useState(false);
-  const [betAmount, setBetAmount] = useState('300');
-  const [payoutAmount, setPayoutAmount] = useState('500');
+  const [betAmount, setBetAmount] = useState(() => {
+    const saved = localStorage.getItem('lastBetAmount');
+    if (saved && BET_OPTIONS.some(o => o.amount === parseInt(saved))) return saved;
+    return '50';
+  });
+  const [payoutAmount, setPayoutAmount] = useState(() => {
+    const saved = localStorage.getItem('lastBetAmount');
+    const opt = BET_OPTIONS.find(o => o.amount === parseInt(saved || '50'));
+    return opt ? String(opt.winnings) : '80';
+  });
   const [myBoard, setMyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [enemyBoard, setEnemyBoard] = useState(Array(GRID_SIZE).fill('water'));
   const [ships, setShips] = useState(() =>
@@ -581,10 +590,12 @@ console.log('Starting ship placement phase');
         
         // Calculate profit/loss
         const winnings = isWin ? 
-          (betAmount == 300 ? 500 : 
+          (betAmount == 50 ? 80 :
+           betAmount == 300 ? 500 : 
            betAmount == 500 ? 800 : 
            betAmount == 1000 ? 1700 : 
-           betAmount == 5000 ? 8000 : 17000) : 0;
+           betAmount == 5000 ? 8000 : 
+           betAmount == 10000 ? 17000 : 0) : 0;
         const profit = isWin ? (winnings - betAmount) : -betAmount;
         
         // Save game to history with proper structure for PlayerHistory component
@@ -1310,6 +1321,7 @@ setPlacementSaved(false);
       setMessage('Payment timed out after 5 minutes. Click Retry to try again.');
       setLightningInvoice(null);
       setHostedInvoiceUrl(null);
+      setPaymentInfo(null);
       socket?.emit('cancelGame', { gameId, playerId });
       console.log('Emitted cancelGame due to payment timeout');
     }
@@ -1406,8 +1418,9 @@ setPlacementSaved(false);
     const selectedAmount = event.target.value;
     console.log('Selecting bet:', selectedAmount);
     setBetAmount(selectedAmount);
+    localStorage.setItem('lastBetAmount', selectedAmount);
     const selectedOption = BET_OPTIONS.find(option => option.amount === parseInt(selectedAmount));
-    setPayoutAmount(selectedOption ? selectedOption.winnings : null);
+    setPayoutAmount(selectedOption ? String(selectedOption.winnings) : null);
   }, []);
 
   // Function to handle joining the game
@@ -1479,9 +1492,24 @@ setPlacementSaved(false);
 
   // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
-    if (!socket || !gameId || !playerId) return;
     console.log('Cancelling game:', { gameId, playerId });
-    socket.emit('cancelGame', { gameId, playerId });
+    
+    // Notify backend if possible
+    if (socket && gameId && playerId) {
+      socket.emit('cancelGame', { gameId, playerId });
+    }
+    
+    // Clear any pending join/payment timers immediately
+    if (joinGameTimeoutRef.current) {
+      clearTimeout(joinGameTimeoutRef.current);
+      joinGameTimeoutRef.current = null;
+    }
+    if (paymentTimerRef.current) {
+      clearTimeout(paymentTimerRef.current);
+      paymentTimerRef.current = null;
+    }
+    
+    // Reset payment-related UI state
     setGameState('join');
     setMessage('Game canceled.');
     setLightningInvoice(null);
@@ -1490,8 +1518,9 @@ setPlacementSaved(false);
     setPayButtonLoading(false);
     setIsLoading(false);
     setPaymentTimer(PAYMENT_TIMEOUT);
+    setPaymentInfo(null);
   }, [socket, gameId, playerId]);
-
+  
   // Function to toggle ship orientation
   const toggleOrientation = useCallback((shipIndex) => {
     if (isPlacementConfirmed) return;
@@ -2694,7 +2723,15 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
 
           {/* Join Game Screen */}
           {gameState === 'join' && socket && (
-            <div className="join-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div className="join-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+              <button
+                onClick={() => { setGameState('splash'); setMessage(''); }}
+                className="back-button"
+                aria-label="Back to Menu"
+                style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.5)', color: '#fff', border: '1px solid #555', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer' }}
+              >
+                ← Back
+              </button>
               <h2>Join the Battle ⚡</h2>
               <p>
                 Enter your Lightning address and select a bet to start.
@@ -2738,33 +2775,53 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               >
                 {isLoading ? 'Joining...' : 'Join Game'}
               </button>
-              <div className="legal-notice" style={{ marginTop: '10px', fontSize: '0.9em' }}>
-                By playing game you agree to our 
-                <button
-                  onClick={() => setShowTermsModal(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#00f',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Terms and Conditions
-                </button>
-                and 
-                <button
-                  onClick={() => setShowPrivacyModal(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#00f',
-                    textDecoration: 'underline',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Privacy Policy
-                </button>.
+              <div
+                className="legal-notice"
+                style={{
+                  marginTop: '14px',
+                  fontSize: '0.9em',
+                  color: '#ccc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span>By playing you agree to our</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => setShowTermsModal(true)}
+                    className="legal-link"
+                    aria-label="View Terms and Conditions"
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      color: '#ddd',
+                      borderRadius: '9999px',
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Terms & Conditions
+                  </button>
+                  <span style={{ opacity: 0.6 }}>&amp;</span>
+                  <button
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="legal-link"
+                    aria-label="View Privacy Policy"
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      color: '#ddd',
+                      borderRadius: '9999px',
+                      padding: '4px 10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Privacy Policy
+                  </button>
+                </div>
               </div>
               <p style={{ marginTop: '10px' }}>{message}</p>
             </div>
@@ -3032,8 +3089,10 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   setGameId(null);
                   setPlayerId(null);
                   setLightningAddress('');
-                  setBetAmount('300');
-                  setPayoutAmount('500');
+                  const savedBet = localStorage.getItem('lastBetAmount') || '50';
+                  const savedOpt = BET_OPTIONS.find(o => o.amount === parseInt(savedBet));
+                  setBetAmount(savedBet);
+                  setPayoutAmount(savedOpt ? String(savedOpt.winnings) : '80');
                   setMyBoard(Array(GRID_SIZE).fill('water'));
                   setEnemyBoard(Array(GRID_SIZE).fill('water'));
                   setShips(prev =>
