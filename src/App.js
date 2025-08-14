@@ -3088,7 +3088,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   setGameState('splash');
                   setGameId(null);
                   setPlayerId(null);
-                  setLightningAddress('');
                   const savedBet = localStorage.getItem('lastBetAmount') || '50';
                   const savedOpt = BET_OPTIONS.find(o => o.amount === parseInt(savedBet));
                   setBetAmount(savedBet);
