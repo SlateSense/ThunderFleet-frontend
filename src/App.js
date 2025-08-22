@@ -373,7 +373,9 @@ const App = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io('https://thunderfleet-backend.onrender.com', {
+    const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://thunderfleet-backend.onrender.com';
+    console.log('[Frontend] Connecting to backend:', BACKEND_URL);
+    const newSocket = io(BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -503,6 +505,12 @@ console.log('Starting ship placement phase');
           setFireTimeLeft(FIRE_TIMEOUT);
           setFireTimerActive(true);
         }
+      },
+      // Sync timer start from server (server emits once at the beginning of a human turn)
+      fireTimer: ({ timeLeft }) => {
+        console.log('Received fireTimer event from server with timeLeft:', timeLeft);
+        setFireTimeLeft(typeof timeLeft === 'number' ? timeLeft : FIRE_TIMEOUT);
+        setFireTimerActive(true);
       },
       fireResult: ({ player, position, hit }) => {
         console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
@@ -1494,9 +1502,9 @@ setPlacementSaved(false);
   const handleCancelGame = useCallback(() => {
     console.log('Cancelling game:', { gameId, playerId });
     
-    // Notify backend if possible
-    if (socket && gameId && playerId) {
-      socket.emit('cancelGame', { gameId, playerId });
+    // Notify backend to clear payment timeout or cancel game even if IDs aren't set yet
+    if (socket) {
+      socket.emit('cancelGame', { gameId: gameId || null, playerId: playerId || null });
     }
     
     // Clear any pending join/payment timers immediately
