@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
@@ -81,7 +81,7 @@ const useSound = (src, isSoundEnabled) => {
   const [audio] = useState(() => {
     const audio = new Audio(src);
     audio.addEventListener('loadedmetadata', () => {
-      console.log(`Audio file ${src} loaded with duration: ${audio.duration} seconds`);
+      // Audio loaded - removed console.log for performance
     });
     return audio;
   });
@@ -92,8 +92,8 @@ const useSound = (src, isSoundEnabled) => {
   }, [isSoundEnabled, audio, src]);
 };
 
-// Fire Timer Component
-const FireTimer = ({ timeLeft, isMyTurn }) => {
+// Fire Timer Component - Memoized for performance
+const FireTimer = memo(({ timeLeft, isMyTurn }) => {
   const [timerDimensions, setTimerDimensions] = useState(() => {
     const width = window.innerWidth;
     if (width <= 480) {
@@ -157,10 +157,14 @@ const FireTimer = ({ timeLeft, isMyTurn }) => {
       <p>Time to fire!</p>
     </div>
   );
-};
+});
+
+// Memoize FireTimer to prevent unnecessary re-renders
+FireTimer.displayName = 'FireTimer';
 
 const App = () => {
-  console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
+  // Remove expensive console.log from render cycle for performance
+  // console.log(`App component rendered at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })}`);
 
   // State variables for managing game state and UI
   const [gameState, setGameState] = useState('splash');
@@ -257,9 +261,12 @@ const App = () => {
   const playTimerSound = useSound('/sounds/timer.mp3', isSoundEnabled);
   const playErrorSound = useSound('/sounds/error.mp3', isSoundEnabled);
 
-  // Log gameState changes for debugging
+  // Log gameState changes for debugging - optimized to reduce console spam
   useEffect(() => {
-    console.log('Current gameState:', gameState);
+    // Only log in development mode to reduce performance impact
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Current gameState:', gameState);
+    }
   }, [gameState]);
 
   // Load game history whenever lightning address changes
@@ -271,7 +278,7 @@ const App = () => {
         try {
           const history = JSON.parse(savedHistory);
           setGameHistory(history);
-          console.log(`Loaded ${history.length} games from history for ${lightningAddress}`);
+          // Game history loaded - removed console.log for performance
         } catch (error) {
           console.error('Failed to parse game history:', error);
           setGameHistory([]);
@@ -279,7 +286,7 @@ const App = () => {
       } else {
         // No history found for this user
         setGameHistory([]);
-        console.log(`No game history found for ${lightningAddress}`);
+        // No game history found - removed console.log for performance
       }
     } else {
       // Try to load from the default/last used address
@@ -291,7 +298,7 @@ const App = () => {
           try {
             const history = JSON.parse(savedHistory);
             setGameHistory(history);
-            console.log(`Loaded ${history.length} games from history for last address: ${lastAddress}`);
+            // Game history loaded for last address - removed console.log for performance
           } catch (error) {
             console.error('Failed to parse game history:', error);
             setGameHistory([]);
@@ -303,11 +310,11 @@ const App = () => {
 
   // Simulate app loading and initialize history
   useEffect(() => {
-    console.log('App useEffect: Simulating app loading');
+    // App loading simulation - removed console.log for performance
     const timer = setTimeout(() => {
       setIsAppLoaded(true);
-      console.log('App loaded, setting isAppLoaded to true');
-    }, 1000);
+      // App loaded - removed console.log for performance
+    }, 100); // Reduced from 1000ms to 100ms for faster startup
 
     // Try to get data from URL fragment first (e.g., #p_add=user@speed.app&acct=123)
     const hash = window.location.hash.substring(1); // Remove the # symbol
@@ -334,7 +341,7 @@ const App = () => {
         try {
           const history = JSON.parse(savedHistory);
           setGameHistory(history);
-          console.log(`Loaded ${history.length} games from history for ${username}`);
+          // Game history loaded for username - removed console.log for performance
         } catch (error) {
           console.error('Failed to parse game history:', error);
           setGameHistory([]);
@@ -354,7 +361,7 @@ const App = () => {
           try {
             const history = JSON.parse(savedHistory);
             setGameHistory(history);
-            console.log(`Restored ${history.length} games from history for ${lastAddress}`);
+            // Game history restored - removed console.log for performance
           } catch (error) {
             console.error('Failed to parse game history:', error);
             setGameHistory([]);
@@ -374,7 +381,7 @@ const App = () => {
   // Initialize Socket.IO connection
   useEffect(() => {
     const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://thunderfleet-backend.onrender.com';
-    console.log('[Frontend] Connecting to backend:', BACKEND_URL);
+    // Connecting to backend - removed console.log for performance
     const newSocket = io(BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
@@ -382,7 +389,7 @@ const App = () => {
     });
     setSocket(newSocket);
 
-    console.log('Setting up socket listeners');
+    // Setting up socket listeners - removed console.log for performance
     const timeout = setTimeout(() => {
       if (!newSocket.connected) {
         setIsSocketConnected(false);
@@ -394,14 +401,14 @@ const App = () => {
       connect: () => {
         clearTimeout(timeout);
         reconnectAttemptsRef.current = 0;
-        console.log('[Frontend] Connected:', newSocket.id);
+        // Socket connected - removed console.log for performance
         setIsSocketConnected(true);
         setPlayerId(newSocket.id);
         setMessage('');
       },
       connect_error: (error) => {
         clearTimeout(timeout);
-        console.log('[Frontend] Socket connection error:', error.message);
+        // Socket connection error - removed console.log for performance
         setIsSocketConnected(false);
         setMessage(`Failed to connect to server: ${error.message}. Click Retry to try again.`);
         setIsWaitingForPayment(false);
@@ -412,7 +419,7 @@ const App = () => {
       },
       disconnect: () => {
         clearTimeout(timeout);
-        console.log('[Frontend] Disconnected from server');
+        // Socket disconnected - removed console.log for performance
         setIsSocketConnected(false);
         setMessage('Disconnected from server. Click Retry to try again.');
         setIsWaitingForPayment(false);
@@ -422,14 +429,14 @@ const App = () => {
         setHostedInvoiceUrl(null);
       },
       joined: ({ gameId, playerId }) => {
-        console.log(`Joined game ${gameId} as player ${playerId}`);
+        // Joined game - removed console.log for performance
         setGameId(gameId);
         setPlayerId(playerId);
         setGameState('waitingForOpponent');
         setMessage('Waiting for opponent...');
       },
       paymentRequest: ({ lightningInvoice, hostedInvoiceUrl, speedInterfaceUrl, amountSats, amountUSD, invoiceId }) => {
-        console.log('Received payment request:', { lightningInvoice, hostedInvoiceUrl, speedInterfaceUrl, amountSats, amountUSD });
+        // Payment request received - removed console.log for performance
         clearTimeout(joinGameTimeoutRef.current);
         setLightningInvoice(lightningInvoice);
         setHostedInvoiceUrl(hostedInvoiceUrl || null);
@@ -446,7 +453,7 @@ const App = () => {
         setIsLoading(false); // Reset loading after transition
       },
       paymentVerified: () => {
-        console.log('Payment verified successfully');
+        // Payment verified - removed console.log for performance
         setIsWaitingForPayment(false);
         setPayButtonLoading(false);
         setPaymentTimer(PAYMENT_TIMEOUT);
@@ -455,7 +462,7 @@ const App = () => {
         setMessage('Payment verified! Preparing game...');
       },
       startPlacing: () => {
-console.log('Starting ship placement phase');
+        // Starting ship placement - removed console.log for performance
         enableSmoothScroll();
         setGameState('placing');
         setMessage('Place your ships! Tap to rotate, drag to position.');
@@ -476,19 +483,19 @@ console.log('Starting ship placement phase');
         setTimeLeft(PLACEMENT_TIME);
       },
       waitingForOpponent: ({ message, countdown, timeLeft }) => {
-        console.log('Received waitingForOpponent event:', { message, countdown, timeLeft });
+        // Waiting for opponent - removed console.log for performance
         setGameState('waitingForOpponent');
         setMessage(message);
         if (countdown && timeLeft !== undefined) {
-          console.log(`Countdown update: ${timeLeft} seconds remaining`);
+          // Countdown update - removed console.log for performance
         }
       },
       matchmakingTimer: ({ message }) => {
-        console.log('Received matchmaking timer update:', message);
+        // Matchmaking timer update - removed console.log for performance
         setMessage(message);
       },
       startGame: ({ turn, message }) => {
-        console.log(`Starting game, turn: ${turn}, message: ${message}`);
+        // Starting game - removed console.log for performance
         setGameState('playing');
         setTurn(turn);
         setMessage(message);
@@ -498,7 +505,7 @@ console.log('Starting ship placement phase');
         
         // Set game start time for history tracking
         setGameStartTime(Date.now());
-        console.log('Game start time set:', new Date().toISOString());
+        // Game start time set - removed console.log for performance
         
         // Start fire timer if it's player's turn
         if (turn === newSocket.id) {
@@ -508,12 +515,12 @@ console.log('Starting ship placement phase');
       },
       // Sync timer start from server (server emits once at the beginning of a human turn)
       fireTimer: ({ timeLeft }) => {
-        console.log('Received fireTimer event from server with timeLeft:', timeLeft);
+        // Fire timer event received - removed console.log for performance
         setFireTimeLeft(typeof timeLeft === 'number' ? timeLeft : FIRE_TIMEOUT);
         setFireTimerActive(true);
       },
       fireResult: ({ player, position, hit }) => {
-        console.log(`Fire result: player=${player}, position=${position}, hit=${hit}`);
+        // Fire result - removed console.log for performance
         const row = Math.floor(position / GRID_COLS);
         const col = position % GRID_COLS;
         const cellState = hit ? 'hit' : 'miss';
@@ -558,7 +565,7 @@ console.log('Starting ship placement phase');
         }
       },
       nextTurn: ({ turn }) => {
-        console.log(`Next turn: ${turn}`);
+        // Next turn - removed console.log for performance
         setTurn(turn);
         setMessage(turn === newSocket.id ? 'Your turn to fire!' : 'Opponent\'s turn');
         setIsOpponentThinking(turn !== newSocket.id);
@@ -572,7 +579,7 @@ console.log('Starting ship placement phase');
         }
       },
       gameEnd: ({ message }) => {
-        console.log('Game ended:', message);
+        // Game ended - removed console.log for performance
         disableSmoothScroll();
         setGameState('finished');
         setIsOpponentThinking(false);
@@ -645,30 +652,30 @@ console.log('Starting ship placement phase');
         // Update gameHistory state
         setGameHistory(trimmedHistory);
         
-        console.log('Game saved to history:', gameData);
+        // Game saved to history - removed console.log for performance
       },
       transaction: ({ message }) => {
-        console.log('Transaction message:', message);
+        // Transaction message - removed console.log for performance
         setTransactionMessage(message);
       },
       updateBoard: ({ success }) => {
         if (success) {
-          console.log('Board update confirmed by server');
+          // Board update confirmed - removed console.log for performance
         } else {
           setMessage('Failed to save board changes. Reverting to previous state.');
-          console.log('Server failed to update board, reverting state');
+          // Server failed to update board - removed console.log for performance
           setMyBoard(prev => [...prev]); // Revert board
           setShips(prev => [...prev]);   // Revert ships
         }
       },
       placementAutoSaved: () => {
-        console.log('Received placementAutoSaved event');
+        // Placement auto-saved - removed console.log for performance
         setMessage('Ships auto-placed due to time limit. Starting game...');
         setPlacementSaved(true);
         setIsPlacementConfirmed(true);
       },
       shipsAutoPlaced: ({ newShips, allShips, grid }) => {
-        console.log('Received shipsAutoPlaced event:', { newShips, allShips });
+        // Ships auto-placed - removed console.log for performance
         // Update the board with auto-placed ships
         setMyBoard(grid);
         // Update ships state with all ships including auto-placed ones
@@ -767,7 +774,7 @@ console.log('Starting ship placement phase');
 
   // Function to calculate ship positions based on drop location
   const calculateShipPositions = useCallback((ship, destinationId) => {
-    console.log(`Calculating positions for ship ${ship.name} at destination ${destinationId}`);
+    // Calculating ship positions - removed console.log for performance
     const position = parseInt(destinationId);
     let row = Math.floor(position / GRID_COLS);
     let col = position % GRID_COLS;
@@ -775,13 +782,13 @@ console.log('Starting ship placement phase');
     if (!ship.horizontal) {
       const maxRow = GRID_ROWS - ship.size;
       if (row > maxRow) {
-        console.log(`Adjusting row from ${row} to ${maxRow} for vertical ship`);
+        // Adjusting row position - removed console.log for performance
         row = maxRow;
       }
     } else {
       const maxCol = GRID_COLS - ship.size;
       if (col > maxCol) {
-        console.log(`Adjusting col from ${col} to ${maxCol} for horizontal ship`);
+        // Adjusting column position - removed console.log for performance
         col = maxCol;
       }
     }
@@ -790,44 +797,44 @@ console.log('Starting ship placement phase');
     for (let i = 0; i < ship.size; i++) {
       const pos = ship.horizontal ? row * GRID_COLS + col + i : (row + i) * GRID_COLS + col;
       if (pos >= GRID_SIZE) {
-        console.log(`Position ${pos} exceeds grid size ${GRID_SIZE}`);
+        // Position exceeds grid - removed console.log for performance
         return null;
       }
       if (ship.horizontal && col + i >= GRID_COLS) {
-        console.log(`Horizontal ship exceeds column boundary at col ${col + i}`);
+        // Ship exceeds boundary - removed console.log for performance
         return null;
       }
       if (!ship.horizontal && row + i >= GRID_ROWS) {
-        console.log(`Vertical ship exceeds row boundary at row ${row + i}`);
+        // Ship exceeds row boundary - removed console.log for performance
         return null;
       }
       // Allow overlapping during placement - overlap detection will be handled separately
       positions.push(pos);
     }
-    console.log(`Calculated positions for ${ship.name}:`, positions);
+    // Calculated positions - removed console.log for performance
     return positions;
   }, []);
 
   // Function to update the server with the current board state
   const updateServerBoard = useCallback((updatedShips) => {
     if (gameState !== 'placing' || isPlacementConfirmed || !socket) {
-      console.log('Cannot update server board: Invalid game state, placement confirmed, or no socket');
+      // Cannot update server board - removed console.log for performance
       return;
     }
-    console.log('Updating server with current board state');
+    // Updating server board - removed console.log for performance
     const placements = (updatedShips || ships).map(ship => ({
       name: ship.name,
-positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(ship, ship.positions[0]),
+      positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(ship, ship.positions[0]),
       horizontal: ship.horizontal,
     }));
     socket.emit('updateBoard', { gameId, playerId: socket?.id, placements }, (response) => {
       if (!response || !response.success) {
         setMessage('Failed to save board changes. Reverting to previous state.');
-        console.log('Server failed to update board, reverting state');
+        // Server failed to update board - removed console.log for performance
         setMyBoard(prev => [...prev]); // Revert board
         setShips(prev => [...prev]);   // Revert ships
       } else {
-        console.log('Board update confirmed by server');
+        // Board update confirmed - removed console.log for performance
       }
     });
   }, [gameState, isPlacementConfirmed, ships, socket, gameId, calculateShipPositions]);
@@ -842,14 +849,14 @@ positions: ship.positions.length > 0 ? ship.positions : calculateShipPositions(s
 
     const unplacedShips = ships.filter(ship => !ship.placed);
     if (unplacedShips.length === 0) {
-      console.log('No unplaced ships to randomize');
+      // No unplaced ships - removed console.log for performance
       if (callback) callback(true);
       return;
     }
 
     // Create a fresh random generator for this placement session
     const freshSeed = Date.now() + Math.random() * 1000;
-    console.log(`Randomizing ${unplacedShips.length} unplaced ships with fresh seed: ${freshSeed}`);
+    // Randomizing unplaced ships - removed console.log for performance
     
     const newBoard = [...myBoard];
     const newShips = [...ships];
@@ -1240,22 +1247,32 @@ setPlacementSaved(false);
     }, 500);
   }, [ships, fixOverlappingShips, randomizeUnplacedShips, saveShipPlacement]);
 
-  // Effect to adjust cell size based on screen width for mobile optimization
-  const handleResize = useCallback(() => {
-    // Use a more stable calculation that doesn't depend on the grid element
+  // Memoized cell size calculation to prevent expensive recalculations
+  const calculateCellSize = useMemo(() => {
     const width = window.innerWidth;
-    const padding = 40; // Total padding for the container
+    const padding = 40;
     const availableWidth = width - padding;
-    const maxCellSize = 50; // Maximum cell size for larger screens
-    const minCellSize = 30; // Minimum cell size for small screens
+    const maxCellSize = 50;
+    const minCellSize = 30;
     
-    // Calculate cell size based on available width
+    let newCellSize = Math.floor(availableWidth / GRID_COLS);
+    return Math.max(minCellSize, Math.min(maxCellSize, newCellSize));
+  }, []);
+
+  // Optimized resize handler with better debouncing
+  const handleResize = useCallback(() => {
+    const width = window.innerWidth;
+    const padding = 40;
+    const availableWidth = width - padding;
+    const maxCellSize = 50;
+    const minCellSize = 30;
+    
     let newCellSize = Math.floor(availableWidth / GRID_COLS);
     newCellSize = Math.max(minCellSize, Math.min(maxCellSize, newCellSize));
     
-    // Only update if the cell size actually changed to prevent unnecessary re-renders
+    // Only update if the cell size actually changed significantly
     setCellSize(prevSize => {
-      if (Math.abs(prevSize - newCellSize) > 2) { // Add threshold to prevent micro-adjustments
+      if (Math.abs(prevSize - newCellSize) > 3) { // Increased threshold to reduce updates
         return newCellSize;
       }
       return prevSize;
@@ -1266,11 +1283,11 @@ setPlacementSaved(false);
     // Initial calculation
     handleResize();
     
-    // Debounced resize handler to prevent excessive updates
+    // Improved debounced resize handler with longer delay
     let resizeTimeout;
     const debouncedResize = () => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(handleResize, 250);
+      resizeTimeout = setTimeout(handleResize, 500); // Increased delay to reduce frequency
     };
     
     window.addEventListener('resize', debouncedResize);
@@ -1668,7 +1685,7 @@ setPlacementSaved(false);
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       setDragPosition({ x, y });
-      console.log(`Drag over at x:${x}, y:${y}`);
+      // Removed console.log for performance
     }
   }, [isDragging, isPlacementConfirmed, setDragPosition]);
 
@@ -1684,7 +1701,7 @@ const handleTouchMove = useCallback((e) => {
     const deltaY = Math.abs(touch.clientY - startY);
 
     if (!touchStartRef.current.isDragging && (deltaX > 10 || deltaY > 10)) {
-      console.log(`Starting drag for ship ${shipIndex} after ${deltaX}px/${deltaY}px movement`);
+      // Removed console.log for performance
       touchStartRef.current.isDragging = true;
       setIsDragging(shipIndex);
     }
@@ -1867,7 +1884,20 @@ const handleTouchMove = useCallback((e) => {
     };
   }, [isPlacementConfirmed]);
 
-  // Function to render the game grid
+  // Memoized grid metrics calculation to prevent expensive recalculations
+  const gridMetrics = useMemo(() => {
+    if (!gridRef.current) return null;
+    return getGridMetrics(gridRef.current);
+  }, [cellSize]);
+
+  // Memoized cell size calculation for grid
+  const actualCellSize = useMemo(() => {
+    if (!gridRef.current) return cellSize;
+    const { cellSize: calculated } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+    return calculated;
+  }, [cellSize]);
+
+  // Function to render the game grid - optimized with memoization
   const renderGrid = useCallback((board, isEnemy) => {
     return (
       <div
@@ -1899,12 +1929,10 @@ const handleTouchMove = useCallback((e) => {
             const col = index % GRID_COLS;
             const isHit = cell === 'hit';
             const isHovered = isDragging !== null && !isPlacementConfirmed;
-            // Use grid metrics for accurate position calculation instead of cellSize
+            // Optimized hover calculation using memoized values
             let hoverPos = -1;
             let isUnderShip = false;
-            if (isHovered && gridRef.current) {
-              const gridMetrics = getGridMetrics(gridRef.current);
-              const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+            if (isHovered && gridMetrics) {
               const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
               const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
               const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
@@ -1951,8 +1979,10 @@ const handleTouchMove = useCallback((e) => {
               return null;
             }
             
-            // Log ship rendering for debugging
-            console.log(`Ship ${ship.name}: placed=${ship.placed}, positions=${ship.positions}, gameState=${gameState}`);
+            // Optimized logging - only in development
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Ship ${ship.name}: placed=${ship.placed}, positions=${ship.positions}, gameState=${gameState}`);
+            }
             
             // Check if ship is damaged (any position is hit)
             const isDamaged = ship.positions.some(pos => myBoard[pos] === 'hit');
@@ -1971,7 +2001,10 @@ const leftPosition = Math.round(minCol * cellSize);
 const width = Math.round((maxCol - minCol + 1) * cellSize);
 const height = Math.round((maxRow - minRow + 1) * cellSize);
             
-            console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, width=${width}, height=${height}, damaged=${isDamaged}`);
+            // Optimized logging - only in development
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`Rendering ship ${ship.name} at top=${topPosition}, left=${leftPosition}, width=${width}, height=${height}, damaged=${isDamaged}`);
+            }
             
             return (
               <div
@@ -2011,19 +2044,15 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
             className="dragging-ship"
             style={{
               position: 'absolute',
-              // Use grid-aware positioning for dragging preview
+              // Optimized grid-aware positioning using memoized values
               top: (() => {
-                if (!gridRef.current) return Math.round(Math.floor(dragPosition.y / cellSize) * cellSize);
-                const gridMetrics = getGridMetrics(gridRef.current);
-                const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+                if (!gridMetrics) return Math.round(Math.floor(dragPosition.y / cellSize) * cellSize);
                 const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
                 const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
                 return Math.round(Math.max(0, Math.min(GRID_ROWS - 1, hoverRow)) * actualCellSize);
               })(),
               left: (() => {
-                if (!gridRef.current) return Math.round(Math.floor(dragPosition.x / cellSize) * cellSize);
-                const gridMetrics = getGridMetrics(gridRef.current);
-                const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
+                if (!gridMetrics) return Math.round(Math.floor(dragPosition.x / cellSize) * cellSize);
                 const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
                 const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
                 return Math.round(Math.max(0, Math.min(GRID_COLS - 1, hoverCol)) * actualCellSize);
@@ -2041,7 +2070,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         )}
       </div>
     );
-  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard]);
+  }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, gridMetrics, actualCellSize]);
 
   // Function to render the list of ships for placement
   const renderShipList = useCallback(() => {
@@ -2124,18 +2153,32 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     );
   }, [isPlacementConfirmed, ships, cellSize, handleDragStart, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
+  // Memoized button handlers for better performance
+  const handleSoundToggle = useCallback(() => {
+    setIsSoundEnabled(prev => !prev);
+  }, []);
+
+  const handleStartGame = useCallback(() => {
+    setGameState('join');
+  }, []);
+
+  const handleShowHowToPlay = useCallback(() => {
+    setShowHowToPlayModal(true);
+  }, []);
+
+  const handleTelegramSupport = useCallback(() => {
+    window.open('https://t.me/ThunderSlate', '_blank');
+  }, []);
+
   // Component to render the splash screen with tabs
   const SplashScreen = useMemo(() => {
-    console.log('Rendering SplashScreen with TabContainer and tabs');
+    // Rendering SplashScreen - removed console.log for performance
     
     const menuContent = (
       <div className="menu-tab-content" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {/* Sound Toggle in top right corner */}
         <button
-          onClick={() => {
-            console.log('Sound toggle button clicked');
-            setIsSoundEnabled(!isSoundEnabled);
-          }}
+          onClick={handleSoundToggle}
           className="sound-toggle-corner"
           title={isSoundEnabled ? 'Mute Sound' : 'Enable Sound'}
         >
@@ -2159,10 +2202,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           ⚡ Thunder Fleet ⚡
         </h1>
         <button
-          onClick={() => {
-            console.log('Start Game button clicked');
-            setGameState('join');
-          }}
+          onClick={handleStartGame}
           className="join-button"
           style={{ padding: '15px 30px', fontSize: '1.2em' }} // Match other button sizes
         >
@@ -2170,20 +2210,14 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </button>
         <div className="button-group" style={{ marginTop: '20px' }}>
           <button
-            onClick={() => {
-              console.log('How to Play button clicked');
-              setShowHowToPlayModal(true);
-            }}
+            onClick={handleShowHowToPlay}
             className="join-button"
             style={{ padding: '15px 30px', fontSize: '1.2em' }}
           >
             How to Play
           </button>
           <button
-            onClick={() => {
-              console.log('Telegram support button clicked');
-              window.open('https://t.me/ThunderSlate', '_blank');
-            }}
+            onClick={handleTelegramSupport}
             className="telegram-support-button"
             style={{ padding: '15px 30px', fontSize: '1.2em' }}
           >
@@ -2221,11 +2255,11 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </TabContainer>
       </div>
     );
-  }, [isSoundEnabled, activeTab, gameHistory]);
+  }, [isSoundEnabled, activeTab, gameHistory, handleSoundToggle, handleStartGame, handleShowHowToPlay, handleTelegramSupport]);
 
   // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {
-    console.log('Rendering TermsModal');
+    // Rendering TermsModal - removed console.log for performance
     return (
       <div className="modal">
         <div className="modal-content">
