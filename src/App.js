@@ -1803,8 +1803,8 @@ const handleTouchMove = useCallback((e) => {
     const { cellSize: actualCellSize } = calcCellSize(gridRef.current, GRID_COLS, GRID_ROWS);
     
     // Calculate gridLeft position (content area start, ignoring border)
-    const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
-    const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+    const gridLeft = gridMetrics?.borderThickness?.left + gridMetrics?.paddingThickness?.left || 0;
+    const gridTop = gridMetrics?.borderThickness?.top + gridMetrics?.paddingThickness?.top || 0;
     
     // Use Math.floor to translate pointer coordinates to column/row
     const col = Math.floor((x - gridLeft) / actualCellSize);
@@ -1983,8 +1983,8 @@ const handleTouchMove = useCallback((e) => {
             border: '2px solid #555',
             borderRadius: '8px',
             overflow: 'hidden',
-            width: gridMetrics.gridWidth,
-            height: gridMetrics.gridHeight,
+            width: gridMetrics?.gridWidth || `${cellSize * GRID_COLS}px`,
+            height: gridMetrics?.gridHeight || `${cellSize * GRID_ROWS}px`,
             position: 'relative',
           }}
         >
@@ -1997,8 +1997,8 @@ const handleTouchMove = useCallback((e) => {
             let hoverPos = -1;
             let isUnderShip = false;
             if (isHovered && gridMetrics) {
-              const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
-              const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+              const gridLeft = (gridMetrics?.borderThickness?.left || 0) + (gridMetrics?.paddingThickness?.left || 0);
+              const gridTop = (gridMetrics?.borderThickness?.top || 0) + (gridMetrics?.paddingThickness?.top || 0);
               const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
               const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
               if (hoverRow >= 0 && hoverRow < GRID_ROWS && hoverCol >= 0 && hoverCol < GRID_COLS) {
@@ -2111,13 +2111,13 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               // Optimized grid-aware positioning using memoized values
               top: (() => {
                 if (!gridMetrics) return Math.round(Math.floor(dragPosition.y / cellSize) * cellSize);
-                const gridTop = gridMetrics.borderThickness.top + gridMetrics.paddingThickness.top;
+                const gridTop = (gridMetrics?.borderThickness?.top || 0) + (gridMetrics?.paddingThickness?.top || 0);
                 const hoverRow = Math.floor((dragPosition.y - gridTop) / actualCellSize);
                 return Math.round(Math.max(0, Math.min(GRID_ROWS - 1, hoverRow)) * actualCellSize);
               })(),
               left: (() => {
                 if (!gridMetrics) return Math.round(Math.floor(dragPosition.x / cellSize) * cellSize);
-                const gridLeft = gridMetrics.borderThickness.left + gridMetrics.paddingThickness.left;
+                const gridLeft = (gridMetrics?.borderThickness?.left || 0) + (gridMetrics?.paddingThickness?.left || 0);
                 const hoverCol = Math.floor((dragPosition.x - gridLeft) / actualCellSize);
                 return Math.round(Math.max(0, Math.min(GRID_COLS - 1, hoverCol)) * actualCellSize);
               })(),
@@ -2981,36 +2981,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         alignItems: 'center',
       }}
     >
-      {/* Temporary Maintenance Message */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        color: '#fff',
-        textAlign: 'center',
-        padding: '20px'
-      }}>
-        <h1 style={{ fontSize: '2.5em', marginBottom: '20px', color: '#ffcc00' }}>🔧 Under Maintenance</h1>
-        <h2 style={{ fontSize: '1.5em', marginBottom: '30px' }}>We're Working on an Update!</h2>
-        <p style={{ fontSize: '1.2em', marginBottom: '20px', maxWidth: '600px', lineHeight: '1.5' }}>
-          Thunder Fleet is temporarily unavailable while we implement exciting new features and improvements.
-        </p>
-        <p style={{ fontSize: '1.1em', marginBottom: '30px', color: '#ccc' }}>
-          Please check back in a little while. We'll be back online soon!
-        </p>
-        <div style={{ fontSize: '3em', marginBottom: '20px' }}>⚡🚢⚡</div>
-        <p style={{ fontSize: '0.9em', color: '#888' }}>
-          Thank you for your patience!
-        </p>
-      </div>
 
       {/* Show loading screen until app is fully loaded */}
       {!isAppLoaded && (
@@ -3162,7 +3132,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
             <div className="waiting-screen" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, padding: '20px', borderRadius: '10px' }}>
               <h2>Waiting for Opponent</h2>
               <p>{message}</p>
-              <div className="loading-spinner"></div>
+              <div className="loading-spinner" style={{ width: '8px', height: '8px', border: '1px solid #fff', borderTop: '1px solid #28a745', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
               <button onClick={handleCancelGame} className="cancel-button" disabled={isLoading} style={{ padding: '15px 30px', fontSize: '1.2em' }}>
                 Cancel
               </button>
@@ -3327,7 +3297,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <div className="loading-spinner" style={{ width: '20px', height: '20px' }}></div>
+                  <div className="loading-spinner" style={{ width: '8px', height: '8px', border: '1px solid #fff', borderTop: '1px solid #28a745', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: '#fff' }}>Thinking...</p>
                 </div>
               )}
