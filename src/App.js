@@ -2981,6 +2981,36 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         alignItems: 'center',
       }}
     >
+      {/* Temporary Maintenance Message */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        color: '#fff',
+        textAlign: 'center',
+        padding: '20px'
+      }}>
+        <h1 style={{ fontSize: '2.5em', marginBottom: '20px', color: '#ffcc00' }}>🔧 Under Maintenance</h1>
+        <h2 style={{ fontSize: '1.5em', marginBottom: '30px' }}>We're Working on an Update!</h2>
+        <p style={{ fontSize: '1.2em', marginBottom: '20px', maxWidth: '600px', lineHeight: '1.5' }}>
+          Thunder Fleet is temporarily unavailable while we implement exciting new features and improvements.
+        </p>
+        <p style={{ fontSize: '1.1em', marginBottom: '30px', color: '#ccc' }}>
+          Please check back in a little while. We'll be back online soon!
+        </p>
+        <div style={{ fontSize: '3em', marginBottom: '20px' }}>⚡🚢⚡</div>
+        <p style={{ fontSize: '0.9em', color: '#888' }}>
+          Thank you for your patience!
+        </p>
+      </div>
 
       {/* Show loading screen until app is fully loaded */}
       {!isAppLoaded && (
