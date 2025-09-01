@@ -3,9 +3,12 @@ import io from 'socket.io-client';
 import { QRCodeSVG } from 'qrcode.react';
 import { calcCellSize, getGridMetrics } from './utils/gridMetrics';
 import PlayerHistory from './components/PlayerHistory';
+import DailyChallenges from './components/DailyChallenges';
+import TournamentSystem from './components/TournamentSystem';
 import './Cargo.css';
 import TabContainer, { Tab } from './components/TabContainer';
 import './HowToPlay.css';
+import './components/ShipDestructionAnimations.css';
 
 // Ship images for horizontal and vertical orientations
 import carrierHorizontal from './assets/ships/horizontal/carrier.png';
@@ -171,7 +174,9 @@ const App = () => {
   const [gameId, setGameId] = useState(null);
   const [playerId, setPlayerId] = useState(null);
   const [acctId, setAcctId] = useState(null); // Added for acct_id
-  const [lightningAddress, setLightningAddress] = useState('');
+  const [lightningAddress, setLightningAddress] = useState(() => {
+    return localStorage.getItem('lightningAddress') || localStorage.getItem('lastLightningAddress') || '';
+  });
   const [isAddressFromUrl, setIsAddressFromUrl] = useState(false);
   const [betAmount, setBetAmount] = useState(() => {
     const saved = localStorage.getItem('lastBetAmount');
@@ -216,6 +221,8 @@ const App = () => {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showHowToPlayModal, setShowHowToPlayModal] = useState(false);
+  const [showDailyChallenges, setShowDailyChallenges] = useState(false);
+  const [showTournaments, setShowTournaments] = useState(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [payButtonLoading, setPayButtonLoading] = useState(false);
   const [gameStats, setGameStats] = useState({ shotsFired: 0, hits: 0, misses: 0 });
@@ -226,6 +233,7 @@ const App = () => {
   const [isAppLoaded, setIsAppLoaded] = useState(false);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
+  const [shipDestructionAnimation, setShipDestructionAnimation] = useState(null);
   const [gameHistory, setGameHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('Menu');
   const [gameStartTime, setGameStartTime] = useState(null);
@@ -378,6 +386,26 @@ const App = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Function to update community goals
+  const updateCommunityGoals = useCallback(async (eventType, data = {}) => {
+    try {
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://thunderfleet-backend.onrender.com';
+      await fetch(`${BACKEND_URL}/api/community-goals/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventType,
+          lightningAddress: lightningAddress || socket?.id,
+          data
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to update community goals:', error);
+    }
+  }, [lightningAddress, socket]);
+
   // Initialize Socket.IO connection
   useEffect(() => {
     const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://thunderfleet-backend.onrender.com';
@@ -507,6 +535,11 @@ const App = () => {
         setGameStartTime(Date.now());
         // Game start time set - removed console.log for performance
         
+        // Update community goals for games played
+        if (lightningAddress || socket?.id) {
+          updateCommunityGoals('game_completed', {});
+        }
+        
         // Start fire timer if it's player's turn
         if (turn === newSocket.id) {
           setFireTimeLeft(FIRE_TIMEOUT);
@@ -563,6 +596,29 @@ const App = () => {
           setMessage(hit ? 'Opponent hit your ship!' : 'Opponent missed!');
           setIsOpponentThinking(false);
         }
+      },
+      shipSunk: ({ player, shipType, positions }) => {
+        // Ship sunk event
+        console.log(`Ship sunk: ${shipType} by ${player}`);
+        
+        // Trigger ship destruction animation
+        setShipDestructionAnimation({
+          shipType: shipType.toLowerCase(),
+          positions,
+          timestamp: Date.now()
+        });
+        
+        // Clear animation after completion
+        setTimeout(() => {
+          setShipDestructionAnimation(null);
+        }, 6000); // Animation duration based on CSS
+        
+        // Update community goals for ships sunk
+        if (lightningAddress || socket?.id) {
+          updateCommunityGoals('ship_sunk', {});
+        }
+        
+        setMessage(player === newSocket.id ? `You sunk their ${shipType}!` : `Your ${shipType} was sunk!`);
       },
       nextTurn: ({ turn }) => {
         // Next turn - removed console.log for performance
@@ -1915,13 +1971,21 @@ const handleTouchMove = useCallback((e) => {
         }}
         onDragOver={handleGridDragOver}
         onDrop={handleGridDrop}
-        onTouchMove={(e) => handleTouchMove(e)}
       >
         <div
           className="grid"
           style={{
+            display: 'grid',
             gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
             gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
+            gap: '1px',
+            backgroundColor: '#333',
+            border: '2px solid #555',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            width: gridMetrics.gridWidth,
+            height: gridMetrics.gridHeight,
+            position: 'relative',
           }}
         >
           {board.map((cell, index) => {
@@ -2068,6 +2132,41 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
             }}
           />
         )}
+        
+        {/* Ship destruction animations */}
+        {shipDestructionAnimation && (
+          <div className="ship-destruction-container">
+            {shipDestructionAnimation.positions.map((position, index) => {
+              const row = Math.floor(position / GRID_COLS);
+              const col = position % GRID_COLS;
+              const top = row * cellSize;
+              const left = col * cellSize;
+              
+              return (
+                <div
+                  key={`destruction-${position}-${shipDestructionAnimation.timestamp}`}
+                  className={`ship-destruction-animation ${shipDestructionAnimation.shipType}-destruction`}
+                  style={{
+                    position: 'absolute',
+                    top: top,
+                    left: left,
+                    width: cellSize,
+                    height: cellSize,
+                    zIndex: 20,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div className="explosion-effect"></div>
+                  <div className="water-splash"></div>
+                  <div className="smoke-plume"></div>
+                  <div className="debris-float"></div>
+                  <div className="oil-spill"></div>
+                  {index === 0 && <div className="screen-shake"></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }, [cellSize, ships, isDragging, dragPosition, gameState, turn, cannonFire, isPlacementConfirmed, handleFire, toggleOrientation, socket, calculateShipPositions, handleDragStart, handleTouchStart, handleGridDragOver, handleGridDrop, handleTouchMove, handleTouchEnd, myBoard, gridMetrics, actualCellSize]);
@@ -2166,6 +2265,10 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     setShowHowToPlayModal(true);
   }, []);
 
+  const handleShowDailyChallenges = useCallback(() => {
+    setShowDailyChallenges(true);
+  }, []);
+
   const handleTelegramSupport = useCallback(() => {
     window.open('https://t.me/ThunderSlate', '_blank');
   }, []);
@@ -2201,29 +2304,160 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         <h1 className="game-title">
           ⚡ Thunder Fleet ⚡
         </h1>
-        <button
-          onClick={handleStartGame}
-          className="join-button"
-          style={{ padding: '15px 30px', fontSize: '1.2em' }} // Match other button sizes
-        >
-          Start Game
-        </button>
-        <div className="button-group" style={{ marginTop: '20px' }}>
+        <div className="main-actions" style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center', marginTop: '20px' }}>
           <button
-            onClick={handleShowHowToPlay}
-            className="join-button"
-            style={{ padding: '15px 30px', fontSize: '1.2em' }}
+            onClick={handleStartGame}
+            className="primary-action-btn"
+            style={{ 
+              padding: '18px 40px', 
+              fontSize: '1.3em', 
+              fontWeight: 'bold',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '12px',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+              minWidth: '220px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 12px 35px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.3)';
+            }}
           >
-            How to Play
+            🚀 Start Game
           </button>
-          <button
-            onClick={handleTelegramSupport}
-            className="telegram-support-button"
-            style={{ padding: '15px 30px', fontSize: '1.2em' }}
+          
+          <div className="secondary-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => setShowDailyChallenges(true)}
+              className="secondary-button"
+              style={{
+                background: 'linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)',
+                border: 'none',
+                color: '#fff',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 15px rgba(255, 107, 53, 0.2)',
+                margin: '5px',
+                minWidth: '200px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 6px 20px rgba(255, 107, 53, 0.3)';
+              }}
+            >
+              ⚡ Daily Challenges
+            </button>
+            <button
+              onClick={() => setShowTournaments(true)}
+              className="secondary-button"
+              style={{
+                background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                border: 'none',
+                color: '#fff',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 15px rgba(52, 152, 219, 0.2)',
+                margin: '5px',
+                minWidth: '200px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 6px 20px rgba(52, 152, 219, 0.3)';
+              }}
+            >
+              🏆 Tournaments
+            </button>
+            <button
+              onClick={handleShowHowToPlay}
+              className="secondary-action-btn"
+              style={{ 
+                padding: '12px 24px', 
+                fontSize: '1.1em',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '10px',
+                color: 'white',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                minWidth: '160px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              📖 How to Play
+            </button>
+          </div>
+        </div>
+        
+        {/* Contact Support Link */}
+        <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <a
+            href="https://t.me/ThunderSlate"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              textDecoration: 'none',
+              fontSize: '0.85em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.3s ease',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = 'rgba(255, 255, 255, 0.9)';
+              e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = 'rgba(255, 255, 255, 0.7)';
+              e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.transform = 'translateY(0)';
+            }}
           >
-            <span className="telegram-icon">📢</span>
-            Contact Support
-          </button>
+            <span>💬</span>
+            Need Help? Contact Support
+          </a>
         </div>
       </div>
     );
@@ -2255,7 +2489,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         </TabContainer>
       </div>
     );
-  }, [isSoundEnabled, activeTab, gameHistory, handleSoundToggle, handleStartGame, handleShowHowToPlay, handleTelegramSupport]);
+  }, [isSoundEnabled, activeTab, gameHistory, handleSoundToggle, handleStartGame, handleShowHowToPlay, handleShowDailyChallenges, handleTelegramSupport]);
 
   // Component to render the terms and conditions modal
   const TermsModal = useMemo(() => {
@@ -2747,36 +2981,6 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
         alignItems: 'center',
       }}
     >
-      {/* Temporary Maintenance Message */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        color: '#fff',
-        textAlign: 'center',
-        padding: '20px'
-      }}>
-        <h1 style={{ fontSize: '2.5em', marginBottom: '20px', color: '#ffcc00' }}>🔧 Under Maintenance</h1>
-        <h2 style={{ fontSize: '1.5em', marginBottom: '30px' }}>We're Working on an Update!</h2>
-        <p style={{ fontSize: '1.2em', marginBottom: '20px', maxWidth: '600px', lineHeight: '1.5' }}>
-          Thunder Fleet is temporarily unavailable while we implement exciting new features and improvements.
-        </p>
-        <p style={{ fontSize: '1.1em', marginBottom: '30px', color: '#ccc' }}>
-          Please check back in a little while. We'll be back online soon!
-        </p>
-        <div style={{ fontSize: '3em', marginBottom: '20px' }}>⚡🚢⚡</div>
-        <p style={{ fontSize: '0.9em', color: '#888' }}>
-          Thank you for your patience!
-        </p>
-      </div>
 
       {/* Show loading screen until app is fully loaded */}
       {!isAppLoaded && (
@@ -2816,7 +3020,13 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   value={lightningAddress}
                   onChange={(e) => {
                     if (!isAddressFromUrl) {
-                      setLightningAddress(e.target.value.toLowerCase()); // Convert to lowercase
+                      const newAddress = e.target.value.toLowerCase();
+                      setLightningAddress(newAddress); // Convert to lowercase
+                      // Save to localStorage immediately when user types
+                      if (newAddress.trim()) {
+                        localStorage.setItem('lightningAddress', newAddress);
+                        localStorage.setItem('lastLightningAddress', newAddress);
+                      }
                       console.log('Lightning address updated:', e.target.value.toLowerCase());
                     }
                   }}
@@ -3213,6 +3423,22 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
           {showTermsModal && TermsModal}
           {showPrivacyModal && PrivacyModal}
           {showHowToPlayModal && HowToPlayModal}
+          
+          {/* Daily Challenges Modal */}
+          <DailyChallenges 
+            lightningAddress={lightningAddress}
+            isVisible={showDailyChallenges}
+            onClose={() => setShowDailyChallenges(false)}
+          />
+
+          {/* Tournament System Modal */}
+          {showTournaments && (
+            <TournamentSystem 
+              lightningAddress={lightningAddress}
+              onClose={() => setShowTournaments(false)}
+            />
+          )}
+
         </>
       )}
     </div>
