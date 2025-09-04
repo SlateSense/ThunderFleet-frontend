@@ -2949,6 +2949,39 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
     );
   }, [isSocketConnected, handleReconnect]);
 
+  // Persistent Support FAB - visible across the app
+  const SupportFAB = useMemo(() => {
+    const isNarrow = typeof window !== 'undefined' ? window.innerWidth < 420 : false;
+    return (
+      <button
+        onClick={handleTelegramSupport}
+        className="support-fab"
+        aria-label="Contact Support on Telegram"
+        style={{
+          position: 'fixed',
+          right: '16px',
+          bottom: gameState === 'playing' ? '84px' : '16px', // avoid overlapping bottom stats in gameplay
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: '#ffca28',
+          color: '#003087',
+          border: 'none',
+          borderRadius: '9999px',
+          padding: isNarrow ? '14px' : '12px 16px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+          fontWeight: 700,
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}
+      >
+        <span style={{ fontSize: '18px' }} aria-hidden="true">💬</span>
+        {!isNarrow && <span>Support</span>}
+      </button>
+    );
+  }, [handleTelegramSupport, gameState]);
+
   // Error handling function
   const handleError = useCallback((error) => {
     console.error('Game error:', error);
@@ -3438,6 +3471,8 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
               onClose={() => setShowTournaments(false)}
             />
           )}
+
+          {gameState === 'splash' && SupportFAB}
 
         </>
       )}
