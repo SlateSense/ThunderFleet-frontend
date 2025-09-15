@@ -230,13 +230,44 @@ const App = () => {
   const [paymentInfo, setPaymentInfo] = useState(null);
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAppLoaded, setIsAppLoaded] = useState(false);
+  const [isAppLoaded, setIsAppLoaded] = useState(true);
   const [fireTimeLeft, setFireTimeLeft] = useState(FIRE_TIMEOUT);
   const [fireTimerActive, setFireTimerActive] = useState(false);
   const [shipDestructionAnimation, setShipDestructionAnimation] = useState(null);
   const [gameHistory, setGameHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('Menu');
   const [gameStartTime, setGameStartTime] = useState(null);
+
+  // Preload critical splash and ship images for instant render
+  useEffect(() => {
+    try {
+      const publicAssets = ['/background.png', '/logo.png'];
+      const shipAssets = [
+        carrierHorizontal, battleshipHorizontal, submarineHorizontal, cruiserHorizontal, patrolHorizontal,
+        carrierVertical, battleshipVertical, submarineVertical, cruiserVertical, patrolVertical
+      ];
+      [...publicAssets, ...shipAssets].forEach((src) => {
+        const img = new Image();
+        img.src = src;
+      });
+    } catch (e) {
+      // no-op
+    }
+  }, []);
+
+  // Enable CSS animations after the first paint for instant initial splash
+  useEffect(() => {
+    const enableAnimations = () => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.add('animations-enabled');
+      }
+    };
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(enableAnimations);
+    } else {
+      setTimeout(enableAnimations, 0);
+    }
+  }, []);
 
   // Effect to control body scroll during placement/drag
   useEffect(() => {
@@ -316,13 +347,9 @@ const App = () => {
     }
   }, [lightningAddress]);
 
-  // Simulate app loading and initialize history
+  // Initialize history and restore URL/local state (loading simulation removed)
   useEffect(() => {
-    // App loading simulation - removed console.log for performance
-    const timer = setTimeout(() => {
-      setIsAppLoaded(true);
-      // App loaded - removed console.log for performance
-    }, 100); // Reduced from 1000ms to 100ms for faster startup
+    // App loading simulation removed for instant splash/render
 
     // Try to get data from URL fragment first (e.g., #p_add=user@speed.app&acct=123)
     const hash = window.location.hash.substring(1); // Remove the # symbol
@@ -383,7 +410,7 @@ const App = () => {
       localStorage.setItem('acctId', acct);
     }
 
-    return () => clearTimeout(timer);
+    return () => {};
   }, []);
 
   // Function to update community goals
@@ -1557,19 +1584,73 @@ setPlacementSaved(false);
     console.log('Emitted joinGame event to server with username:', cleanedAddress);
   }, [socket, lightningAddress, betAmount, acctId]);
 
+  // Utility to robustly open payment URL across browsers/in-app webviews
+  const openPaymentUrlSafely = useCallback((url) => {
+    try {
+      // Attempt 1: Pre-open a blank tab synchronously, then set location (helps iOS/Safari)
+      const preWin = window.open('', '_blank', 'noopener,noreferrer');
+      if (preWin && typeof preWin.location !== 'undefined') {
+        preWin.location.href = url;
+        return true;
+      }
+    } catch (e) {
+      console.error('Pre-open window failed:', e);
+    }
+
+    try {
+      // Attempt 2: Direct open
+      const w = window.open(url, '_blank', 'noopener,noreferrer');
+      if (w) return true;
+    } catch (e) {
+      console.error('Direct open failed:', e);
+    }
+
+    try {
+      // Attempt 3: Programmatic anchor click
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return true;
+    } catch (e) {
+      console.error('Anchor click open failed:', e);
+    }
+
+    try {
+      // Attempt 4: Same-tab navigation as last resort
+      window.location.href = url;
+      return true;
+    } catch (e) {
+      console.error('Same-tab navigation failed:', e);
+    }
+
+    return false;
+  }, []);
+
   // Function to handle payment button click
   const handlePay = useCallback(() => {
     // Use speedInterfaceUrl if available, otherwise fall back to hostedInvoiceUrl
     const paymentUrl = paymentInfo?.speedInterfaceUrl || hostedInvoiceUrl;
     
     if (paymentUrl) {
-      setPayButtonLoading(true);
       console.log('Opening payment URL:', paymentUrl);
-      window.open(paymentUrl, '_blank');
+      const opened = openPaymentUrlSafely(paymentUrl);
+      if (opened) {
+        setPayButtonLoading(true);
+      }
+      if (!opened) {
+        // If opening was blocked, reset loading and show guidance
+        setPayButtonLoading(false);
+        setMessage('We could not open the payment page automatically. Please use the "Open Invoice" link below or scan the QR code.');
+      }
     } else {
       setMessage('No payment URL available. Please scan the QR code to pay.');
     }
-  }, [paymentInfo, hostedInvoiceUrl]);
+  }, [paymentInfo, hostedInvoiceUrl, openPaymentUrlSafely]);
 
   // Function to cancel the game during payment phase
   const handleCancelGame = useCallback(() => {
@@ -2090,7 +2171,7 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                   backgroundSize: 'cover',
                   backgroundPosition: "center",
                   backgroundRepeat: 'no-repeat',
-                  opacity: (gameState === 'playing' || isPlacementConfirmed) ? 1 : 0.8,
+                  opacity: 1,
                   cursor: (!isPlacementConfirmed && gameState !== 'playing') ? 'grab' : 'default',
                   pointerEvents: (isPlacementConfirmed || gameState === 'playing') ? 'none' : 'auto',
                   touchAction: 'none',
@@ -2893,6 +2974,21 @@ const height = Math.round((maxRow - minRow + 1) * cellSize);
                 </span>
               </div>
             </div>
+          </div>
+        )}
+        {(paymentInfo?.speedInterfaceUrl || hostedInvoiceUrl) && (
+          <div className="invoice-fallback" style={{ marginTop: '10px' }}>
+            <a
+              href={paymentInfo?.speedInterfaceUrl || hostedInvoiceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="open-invoice-link"
+            >
+              Open Invoice
+            </a>
+            <p style={{ fontSize: '0.9em', color: '#666', marginTop: '6px' }}>
+              If the popup is blocked, tap "Open Invoice" above or scan the QR code.
+            </p>
           </div>
         )}
       </div>

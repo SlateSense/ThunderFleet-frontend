@@ -58,7 +58,7 @@
   height: 3px;
   background: #00bdff;
   left: 0;
-  transition: left 0.3s ease, width 0.3s ease;
+  transition: none;
 }
 
 .tab-content-container {
@@ -70,7 +70,7 @@
 
 .tab-content-wrapper {
   display: flex;
-  transition: transform 0.3s ease;
+  transition: none;
 }
 
 .tab-content {
@@ -119,4 +119,13 @@
 
 .swipe-hint {
   margin-top: 5px;
+}
+
+/* Enable tab transitions AFTER first paint for instant first render */
+.animations-enabled .tab-indicator {
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+.animations-enabled .tab-content-wrapper {
+  transition: transform 0.3s ease;
 }
